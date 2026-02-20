@@ -99,8 +99,8 @@ public class LinkJooqAdapter implements LinkRepository {
         return new Link(
                 record.get(LINKS.ID),
                 record.get(LINKS.STASH_ID),
-                record.get(LINKS.CREATED_AT),
-                record.get(LINKS.UPDATED_AT),
+                record.get(LINKS.CREATED_AT) != null ? record.get(LINKS.CREATED_AT).toLocalDateTime() : null,
+                record.get(LINKS.UPDATED_AT) != null ? record.get(LINKS.UPDATED_AT).toLocalDateTime() : null,
                 Url.of(record.get(LINKS.URL)),
                 record.get(LINKS.TITLE) != null ? LinkTitle.of(record.get(LINKS.TITLE)) : null,
                 record.get(LINKS.DESCRIPTION) != null ? LinkDescription.of(record.get(LINKS.DESCRIPTION)) : null,
@@ -108,7 +108,7 @@ public class LinkJooqAdapter implements LinkRepository {
                 record.get(LINKS.PAGE_CONTENT),
                 record.get(LINKS.FINAL_URL) != null ? Url.of(record.get(LINKS.FINAL_URL)) : null,
                 record.get(LINKS.SCREENSHOT_KEY) != null ? ScreenshotKey.of(record.get(LINKS.SCREENSHOT_KEY)) : null,
-                record.get(LINKS.SCREENSHOT_GENERATED_AT)
+                record.get(LINKS.SCREENSHOT_GENERATED_AT) != null ? record.get(LINKS.SCREENSHOT_GENERATED_AT).toLocalDateTime() : null
         );
     }
 }
