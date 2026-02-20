@@ -2,6 +2,7 @@ package com.linkpouch.stash.infrastructure.adapter.web;
 
 import com.linkpouch.stash.api.controller.StashesApi;
 import com.linkpouch.stash.api.model.*;
+import com.linkpouch.stash.application.exception.NotFoundException;
 import com.linkpouch.stash.application.service.StashManagementService;
 import com.linkpouch.stash.infrastructure.adapter.web.mapper.ApiDtoMapper;
 import lombok.RequiredArgsConstructor;
@@ -35,7 +36,7 @@ public class StashController implements StashesApi {
     @Override
     public ResponseEntity<StashResponseDTO> getStash(UUID stashId) {
         var stash = stashService.findStashById(stashId)
-                .orElseThrow(() -> new IllegalArgumentException("Stash not found: " + stashId));
+                .orElseThrow(() -> new NotFoundException("Stash not found: " + stashId));
         return ResponseEntity.ok(mapper.mapOut(stash));
     }
 

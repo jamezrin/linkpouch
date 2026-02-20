@@ -1,10 +1,12 @@
 package com.linkpouch.stash.application.service;
 
 import com.linkpouch.stash.application.dto.PagedResult;
+import com.linkpouch.stash.application.exception.NotFoundException;
 import com.linkpouch.stash.domain.model.Link;
 import com.linkpouch.stash.domain.port.inbound.LinkManagementUseCase;
 import com.linkpouch.stash.domain.port.outbound.EventPublisher;
 import com.linkpouch.stash.domain.port.outbound.LinkRepository;
+import com.linkpouch.stash.domain.port.outbound.StashRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,15 +24,18 @@ import java.util.UUID;
 public class LinkManagementService implements LinkManagementUseCase {
 
     private final LinkRepository linkRepository;
+    private final StashRepository stashRepository;
     private final EventPublisher eventPublisher;
 
     @Override
     @Transactional
     public Link addLink(UUID stashId, String url) {
+        stashRepository.findById(stashId)
+                .orElseThrow(() -> new NotFoundException("Stash not found: " + stashId));
+
         Link link = Link.create(stashId, url);
         Link saved = linkRepository.save(link);
 
-        // Publish event for async indexing
         eventPublisher.publishLinkAdded(new EventPublisher.LinkAddedEvent(
                 saved.getId().toString(),
                 saved.getUrl().getValue(),
@@ -69,7 +74,7 @@ public class LinkManagementService implements LinkManagementUseCase {
     public Link updateLinkMetadata(UUID linkId, String title, String description,
                                    String faviconUrl, String pageContent, String finalUrl) {
         Link link = linkRepository.findById(linkId)
-                .orElseThrow(() -> new IllegalArgumentException("Link not found: " + linkId));
+                .orElseThrow(() -> new NotFoundException("Link not found: " + linkId));
         link.updateMetadata(title, description, faviconUrl, pageContent, finalUrl);
         return linkRepository.save(link);
     }
@@ -78,7 +83,7 @@ public class LinkManagementService implements LinkManagementUseCase {
     @Transactional
     public Link updateLinkScreenshot(UUID linkId, String screenshotKey) {
         Link link = linkRepository.findById(linkId)
-                .orElseThrow(() -> new IllegalArgumentException("Link not found: " + linkId));
+                .orElseThrow(() -> new NotFoundException("Link not found: " + linkId));
         link.updateScreenshot(screenshotKey);
         return linkRepository.save(link);
     }
@@ -87,7 +92,7 @@ public class LinkManagementService implements LinkManagementUseCase {
     @Transactional
     public void requestScreenshotRefresh(UUID linkId) {
         Link link = linkRepository.findById(linkId)
-                .orElseThrow(() -> new IllegalArgumentException("Link not found: " + linkId));
+                .orElseThrow(() -> new NotFoundException("Link not found: " + linkId));
 
         eventPublisher.publishScreenshotRefreshRequested(
                 new EventPublisher.ScreenshotRefreshEvent(
@@ -99,6 +104,13 @@ public class LinkManagementService implements LinkManagementUseCase {
 
     @Transactional(readOnly = true)
     public PagedResult<Link> listLinks(UUID stashId, String search, int page, int size) {
+        if (page < 0) {
+            throw new IllegalArgumentException("page must be >= 0");
+        }
+        if (size <= 0) {
+            throw new IllegalArgumentException("size must be > 0");
+        }
+
         List<Link> links;
         if (search != null && !search.isEmpty()) {
             links = searchLinks(stashId, search);

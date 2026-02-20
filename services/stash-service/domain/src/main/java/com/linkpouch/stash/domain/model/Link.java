@@ -63,6 +63,9 @@ public class Link {
     }
     
     public void updateScreenshot(String screenshotKey) {
+        if (screenshotKey == null || screenshotKey.isBlank()) {
+            throw new IllegalArgumentException("Screenshot key cannot be null or blank");
+        }
         this.screenshotKey = ScreenshotKey.of(screenshotKey);
         this.screenshotGeneratedAt = LocalDateTime.now();
         this.updatedAt = LocalDateTime.now();

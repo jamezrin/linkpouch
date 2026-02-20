@@ -25,6 +25,9 @@ public final class LinkDescription {
             return null;
         }
         String trimmed = value.trim();
+        if (trimmed.isEmpty()) {
+            return null;
+        }
         if (trimmed.length() > MAX_LENGTH) {
             trimmed = trimmed.substring(0, MAX_LENGTH);
         }
