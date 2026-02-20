@@ -1,6 +1,5 @@
 package com.linkpouch.stash.domain.model;
 
-import lombok.Builder;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.ToString;
@@ -30,7 +29,6 @@ public class Link {
     private ScreenshotKey screenshotKey;
     private LocalDateTime screenshotGeneratedAt;
     
-    @Builder
     public Link(UUID id, UUID stashId, LocalDateTime createdAt, LocalDateTime updatedAt,
                 Url url, LinkTitle title, LinkDescription description, Url faviconUrl,
                 String pageContent, Url finalUrl, ScreenshotKey screenshotKey, 
@@ -50,10 +48,8 @@ public class Link {
     }
     
     public static Link create(UUID stashId, String url) {
-        return Link.builder()
-                .stashId(stashId)
-                .url(Url.of(url))
-                .build();
+        return new Link(null, stashId, null, null, Url.of(url), 
+                       null, null, null, null, null, null, null);
     }
     
     public void updateMetadata(String title, String description, String faviconUrl, 

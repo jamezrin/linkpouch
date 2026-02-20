@@ -1,6 +1,5 @@
 package com.linkpouch.stash.domain.model;
 
-import lombok.Builder;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.ToString;
@@ -27,7 +26,6 @@ public class Stash {
     private SecretKey secretKey;
     private final Set<Link> links;
     
-    @Builder
     public Stash(UUID id, LocalDateTime createdAt, LocalDateTime updatedAt, 
                  StashName name, SecretKey secretKey, Set<Link> links) {
         this.id = id != null ? id : UUID.randomUUID();
@@ -39,9 +37,7 @@ public class Stash {
     }
     
     public static Stash create(String name) {
-        return Stash.builder()
-                .name(StashName.of(name))
-                .build();
+        return new Stash(null, null, null, StashName.of(name), null, null);
     }
     
     public void updateName(String newName) {

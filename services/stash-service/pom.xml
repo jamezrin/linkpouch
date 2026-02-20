@@ -33,7 +33,7 @@
         <flyway.version>11.0.0</flyway.version>
         <!-- Other dependencies -->
         <postgresql.version>42.7.4</postgresql.version>
-        <lombok.version>1.18.36</lombok.version>
+        <lombok.version>1.18.42</lombok.version>
         <mapstruct.version>1.6.3</mapstruct.version>
     </properties>
     

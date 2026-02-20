@@ -1,0 +1,17 @@
+com/linkpouch/stash/infrastructure/adapter/persistence/jpa/entity/StashJpaEntity.class
+com/linkpouch/stash/infrastructure/adapter/persistence/jpa/entity/LinkJpaEntity.class
+com/linkpouch/stash/infrastructure/adapter/web/LinkController.class
+com/linkpouch/stash/infrastructure/adapter/persistence/jpa/entity/StashJpaEntity$StashJpaEntityBuilder.class
+com/linkpouch/stash/infrastructure/adapter/persistence/jpa/StashJpaAdapter.class
+com/linkpouch/stash/infrastructure/adapter/persistence/jpa/LinkJpaRepository.class
+com/linkpouch/stash/infrastructure/adapter/event/RedisEventPublisher.class
+com/linkpouch/stash/infrastructure/adapter/persistence/jooq/LinkJooqAdapter.class
+com/linkpouch/stash/infrastructure/config/JooqConfig.class
+com/linkpouch/stash/infrastructure/adapter/event/StubEventPublisher.class
+com/linkpouch/stash/infrastructure/adapter/web/StashController.class
+com/linkpouch/stash/infrastructure/adapter/persistence/jpa/StashJpaRepository.class
+com/linkpouch/stash/infrastructure/adapter/persistence/jpa/entity/LinkJpaEntity$LinkJpaEntityBuilder.class
+com/linkpouch/stash/infrastructure/StashServiceApplication.class
+com/linkpouch/stash/infrastructure/jooq/generated/Tables.class
+com/linkpouch/stash/infrastructure/adapter/persistence/mapper/PersistenceMapper.class
+com/linkpouch/stash/infrastructure/jooq/generated/tables/Links.class
