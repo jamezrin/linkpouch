@@ -1,6 +1,9 @@
 version: '3.8'
 
 services:
+
+  # ── Infrastructure ─────────────────────────────────────────────────────────
+
   postgres:
     image: postgres:16-alpine
     environment:
@@ -15,7 +18,7 @@ services:
       test: ["CMD-SHELL", "pg_isready -U linkpouch"]
       interval: 5s
       timeout: 5s
-      retries: 5
+      retries: 10
 
   redis:
     image: redis:7-alpine
@@ -23,6 +26,11 @@ services:
       - "6379:6379"
     volumes:
       - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
   minio:
     image: minio/minio:latest
@@ -33,13 +41,15 @@ services:
     volumes:
       - minio_data:/data
     ports:
-      - "9000:9000"
-      - "9001:9001"
+      - "9000:9000"   # S3 API
+      - "9001:9001"   # MinIO console (http://localhost:9001)
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
-      interval: 30s
-      timeout: 20s
-      retries: 3
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  # ── Application Services ────────────────────────────────────────────────────
 
   stash-service:
     build:
@@ -51,17 +61,66 @@ services:
       POSTGRES_DB: linkpouch
       POSTGRES_USER: linkpouch
       POSTGRES_PASSWORD: linkpouch_secret
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
       SIGNATURE_MASTER_KEY: local-dev-key
-    ports:
-      - "8080:8080"
+      S3_ENDPOINT: http://minio:9000
+      S3_ACCESS_KEY: minioadmin
+      S3_SECRET_KEY: minioadmin
+      S3_BUCKET: linkpouch-screenshots
+      BASE_URL: http://localhost:8080
     depends_on:
       postgres:
         condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
-      interval: 30s
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/actuator/health"]
+      interval: 15s
       timeout: 10s
-      retries: 3
+      start_period: 60s
+      retries: 5
+
+  indexer-service:
+    build:
+      context: ./services/indexer-service
+      dockerfile: Dockerfile
+    environment:
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      STASH_SERVICE_URL: http://stash-service:8080
+      S3_ENDPOINT: http://minio:9000
+      S3_ACCESS_KEY: minioadmin
+      S3_SECRET_KEY: minioadmin
+      S3_BUCKET: linkpouch-screenshots
+    depends_on:
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+      stash-service:
+        condition: service_healthy
+
+  api-gateway:
+    build:
+      context: ./services/api-gateway
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    depends_on:
+      stash-service:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:80"
+    depends_on:
+      - api-gateway
 
 volumes:
   postgres_data:
