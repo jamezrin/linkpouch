@@ -3,6 +3,9 @@ FROM maven:3.9-eclipse-temurin-21-alpine AS builder
 
 WORKDIR /app
 
+# Install required packages for PostgreSQL client (needed for jOOQ generation)
+RUN apk add --no-cache postgresql-client
+
 # Copy parent POM first
 COPY pom.xml .
 COPY domain/pom.xml domain/
@@ -17,12 +20,12 @@ COPY domain/src domain/src
 COPY application/src application/src
 COPY infrastructure/src infrastructure/src
 
-# Copy jOOQ generated code to source directory (not target, to avoid clean deletion)
-# Create a separate source directory for generated code
-RUN mkdir -p infrastructure/src/main/java
-COPY infrastructure/target/generated-sources/jooq/com infrastructure/src/main/java/com
+# Copy Flyway migrations
+COPY infrastructure/src/main/resources/db/migration infrastructure/src/main/resources/db/migration
 
-# Build without clean (we manually manage the directories)
+# Build (jOOQ code will be generated during the build process)
+# Skip jOOQ generation since we don't have a database in the build container
+# Instead, we'll include the jOOQ generated classes in the source
 RUN mvn package -DskipTests -B
 
 # Runtime stage - using eclipse-temurin which supports arm64
