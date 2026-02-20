@@ -1,0 +1,95 @@
+package com.linkpouch.stash.application.service;
+
+import com.linkpouch.stash.application.dto.AddLinkRequest;
+import com.linkpouch.stash.application.dto.LinkResponse;
+import com.linkpouch.stash.application.mapper.DomainToDtoMapper;
+import com.linkpouch.stash.domain.model.Link;
+import com.linkpouch.stash.domain.port.inbound.LinkManagementUseCase;
+import com.linkpouch.stash.domain.port.outbound.EventPublisher;
+import com.linkpouch.stash.domain.port.outbound.LinkRepository;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+
+/**
+ * Application Service: Link Management
+ * Implements use cases with transaction boundaries at the application layer.
+ */
+@Service
+@RequiredArgsConstructor
+@Transactional(readOnly = true)
+public class LinkManagementService implements LinkManagementUseCase {
+    
+    private final LinkRepository linkRepository;
+    private final EventPublisher eventPublisher;
+    private final DomainToDtoMapper dtoMapper;
+    
+    @Override
+    @Transactional
+    public Link addLink(UUID stashId, String url) {
+        Link link = Link.create(stashId, url);
+        Link saved = linkRepository.save(link);
+        
+        // Publish event for async indexing
+        eventPublisher.publishLinkAdded(new EventPublisher.LinkAddedEvent(
+                saved.getId().toString(),
+                saved.getUrl().getValue(),
+                stashId.toString()
+        ));
+        
+        return saved;
+    }
+    
+    @Override
+    public Optional<Link> findLinkById(UUID linkId) {
+        return linkRepository.findById(linkId);
+    }
+    
+    @Override
+    public List<Link> getLinksByStashId(UUID stashId) {
+        return linkRepository.findByStashIdOrderByCreatedAtDesc(stashId);
+    }
+    
+    @Override
+    public List<Link> searchLinks(UUID stashId, String query) {
+        return linkRepository.searchByStashIdAndQuery(stashId, query);
+    }
+    
+    @Override
+    @Transactional
+    public void deleteLink(UUID linkId) {
+        linkRepository.deleteById(linkId);
+    }
+    
+    @Override
+    @Transactional
+    public void requestScreenshotRefresh(UUID linkId) {
+        Link link = linkRepository.findById(linkId)
+                .orElseThrow(() -> new IllegalArgumentException("Link not found: " + linkId));
+        
+        eventPublisher.publishScreenshotRefreshRequested(
+                new EventPublisher.ScreenshotRefreshEvent(
+                        linkId.toString(),
+                        link.getUrl().getValue()
+                )
+        );
+    }
+    
+    // Helper methods for controllers
+    public LinkResponse addLinkResponse(UUID stashId, AddLinkRequest request) {
+        Link link = addLink(stashId, request.url());
+        return dtoMapper.mapOut(link);
+    }
+    
+    public List<LinkResponse> getLinksResponse(UUID stashId) {
+        return dtoMapper.mapOutLinks(getLinksByStashId(stashId));
+    }
+    
+    public List<LinkResponse> searchLinksResponse(UUID stashId, String query) {
+        return dtoMapper.mapOutLinks(searchLinks(stashId, query));
+    }
+}
