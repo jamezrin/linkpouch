@@ -10,7 +10,7 @@ spec:
     app: frontend
   ports:
     - port: 80
-      targetPort: 3000
+      targetPort: 80
       name: http
   type: ClusterIP
 ---
@@ -36,7 +36,7 @@ spec:
           image: ghcr.io/jamezrin/linkpouch/frontend:latest
           imagePullPolicy: Always
           ports:
-            - containerPort: 3000
+            - containerPort: 80
               name: http
           resources:
             requests:

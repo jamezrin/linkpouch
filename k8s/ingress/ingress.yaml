@@ -7,8 +7,6 @@ metadata:
     # Traefik Ingress Controller
     traefik.ingress.kubernetes.io/router.entrypoints: web,websecure
     traefik.ingress.kubernetes.io/router.tls: "true"
-    traefik.ingress.kubernetes.io/router.tls.certresolver: letsencrypt
-    
     # Middlewares (comma-separated)
     traefik.ingress.kubernetes.io/router.middlewares: linkpouch-dev-redirect-https@kubernetescrd,linkpouch-dev-rate-limit@kubernetescrd
 spec:
