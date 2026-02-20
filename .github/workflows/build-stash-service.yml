@@ -63,6 +63,10 @@ jobs:
 
       - name: Generate jOOQ code
         working-directory: services/stash-service/infrastructure
+        env:
+          DATABASE_URL: jdbc:postgresql://localhost:5432/linkpouch
+          DATABASE_USER: linkpouch
+          DATABASE_PASSWORD: linkpouch_secret
         run: |
           mvn jooq-codegen:generate -B -q
 
@@ -140,6 +144,10 @@ jobs:
 
       - name: Generate jOOQ code
         working-directory: services/stash-service/infrastructure
+        env:
+          DATABASE_URL: jdbc:postgresql://localhost:5432/linkpouch
+          DATABASE_USER: linkpouch
+          DATABASE_PASSWORD: linkpouch_secret
         run: |
           mvn jooq-codegen:generate -B -q
 
