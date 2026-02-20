@@ -14,13 +14,8 @@ permissions:
   packages: write
 
 jobs:
-  build-stash-service:
-    uses: ./.github/workflows/build-container.yml
-    with:
-      service-name: stash-service
-      dockerfile-path: ./services/stash-service/Dockerfile
-      context-path: ./services/stash-service
-    secrets: inherit
+  # Note: stash-service has its own specialized workflow with PostgreSQL
+  # See: build-stash-service.yml
 
   build-indexer-service:
     uses: ./.github/workflows/build-container.yml
