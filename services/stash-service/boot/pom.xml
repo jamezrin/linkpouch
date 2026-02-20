@@ -19,7 +19,25 @@
         <!-- Internal modules -->
         <dependency>
             <groupId>com.linkpouch</groupId>
-            <artifactId>infrastructure</artifactId>
+            <artifactId>infrastructure-web</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.linkpouch</groupId>
+            <artifactId>infrastructure-redis</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.linkpouch</groupId>
+            <artifactId>infrastructure-persistence-jpa</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.linkpouch</groupId>
+            <artifactId>infrastructure-persistence-jooq</artifactId>
             <version>${project.version}</version>
         </dependency>
 
