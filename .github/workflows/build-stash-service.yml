@@ -52,6 +52,11 @@ jobs:
           distribution: 'temurin'
           cache: maven
 
+      - name: Install parent modules
+        working-directory: services/stash-service
+        run: |
+          mvn install -DskipTests -pl domain,application -B -q
+
       - name: Run Flyway migrations
         working-directory: services/stash-service/infrastructure
         env:
@@ -132,6 +137,11 @@ jobs:
           java-version: '21'
           distribution: 'temurin'
           cache: maven
+
+      - name: Install parent modules
+        working-directory: services/stash-service
+        run: |
+          mvn install -DskipTests -pl domain,application -B -q
 
       - name: Run Flyway migrations
         working-directory: services/stash-service/infrastructure
