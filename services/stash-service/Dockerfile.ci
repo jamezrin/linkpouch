@@ -1,0 +1,23 @@
+# CI/CD Dockerfile - expects pre-built JAR
+# This Dockerfile is used in GitHub Actions after Maven build
+
+FROM eclipse-temurin:21-jre-alpine
+
+WORKDIR /app
+
+# Install wget for healthcheck
+RUN apk add --no-cache wget
+
+# Copy the pre-built JAR from the infrastructure module
+COPY infrastructure/target/*.jar app.jar
+
+# Create non-root user
+RUN addgroup -S linkpouch && adduser -S linkpouch -G linkpouch
+USER linkpouch
+
+EXPOSE 8080
+
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+  CMD wget --no-verbose --tries=1 --spider http://localhost:8080/actuator/health || exit 1
+
+ENTRYPOINT ["java", "-jar", "app.jar"]

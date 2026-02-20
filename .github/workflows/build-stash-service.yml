@@ -5,7 +5,6 @@ on:
     branches: [main, master]
     paths:
       - 'services/stash-service/**'
-      - '.github/workflows/build-container.yml'
       - '.github/workflows/build-stash-service.yml'
   pull_request:
     branches: [main, master]
@@ -20,11 +19,205 @@ permissions:
   contents: read
   packages: write
 
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}/stash-service
+
 jobs:
-  build-stash-service:
-    uses: ./.github/workflows/build-container.yml
-    with:
-      service-name: stash-service
-      dockerfile-path: ./services/stash-service/Dockerfile
-      context-path: ./services/stash-service
-    secrets: inherit
+  build-amd64:
+    runs-on: ubuntu-24.04
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: linkpouch
+          POSTGRES_USER: linkpouch
+          POSTGRES_PASSWORD: linkpouch_secret
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Run Flyway migrations
+        working-directory: services/stash-service/infrastructure
+        env:
+          FLYWAY_URL: jdbc:postgresql://localhost:5432/linkpouch
+          FLYWAY_USER: linkpouch
+          FLYWAY_PASSWORD: linkpouch_secret
+        run: |
+          mvn flyway:migrate -B -q
+
+      - name: Generate jOOQ code
+        working-directory: services/stash-service/infrastructure
+        run: |
+          mvn jooq-codegen:generate -B -q
+
+      - name: Build JAR
+        working-directory: services/stash-service
+        run: |
+          mvn package -DskipTests -B -q
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=sha,prefix=sha-,suffix=-amd64,format=short
+
+      - name: Build and push AMD64 image
+        uses: docker/build-push-action@v5
+        with:
+          context: services/stash-service
+          file: services/stash-service/Dockerfile.ci
+          platforms: linux/amd64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha,scope=stash-service-amd64
+          cache-to: type=gha,mode=max,scope=stash-service-amd64
+
+  build-arm64:
+    runs-on: ubuntu-24.04-arm
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: linkpouch
+          POSTGRES_USER: linkpouch
+          POSTGRES_PASSWORD: linkpouch_secret
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Run Flyway migrations
+        working-directory: services/stash-service/infrastructure
+        env:
+          FLYWAY_URL: jdbc:postgresql://localhost:5432/linkpouch
+          FLYWAY_USER: linkpouch
+          FLYWAY_PASSWORD: linkpouch_secret
+        run: |
+          mvn flyway:migrate -B -q
+
+      - name: Generate jOOQ code
+        working-directory: services/stash-service/infrastructure
+        run: |
+          mvn jooq-codegen:generate -B -q
+
+      - name: Build JAR
+        working-directory: services/stash-service
+        run: |
+          mvn package -DskipTests -B -q
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=sha,prefix=sha-,suffix=-arm64,format=short
+
+      - name: Build and push ARM64 image
+        uses: docker/build-push-action@v5
+        with:
+          context: services/stash-service
+          file: services/stash-service/Dockerfile.ci
+          platforms: linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha,scope=stash-service-arm64
+          cache-to: type=gha,mode=max,scope=stash-service-arm64
+
+  merge-manifests:
+    runs-on: ubuntu-24.04
+    needs: [build-amd64, build-arm64]
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=sha,prefix=,suffix=,format=short
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Create and push multi-arch manifest
+        run: |
+          # Get the short SHA from github context
+          SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
+          
+          # Create multi-arch manifest
+          docker buildx imagetools create \
+            --tag ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest \
+            --tag ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:sha-${SHORT_SHA} \
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:sha-${SHORT_SHA}-amd64 \
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:sha-${SHORT_SHA}-arm64
+
+      - name: Inspect manifest
+        run: |
+          docker buildx imagetools inspect ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
