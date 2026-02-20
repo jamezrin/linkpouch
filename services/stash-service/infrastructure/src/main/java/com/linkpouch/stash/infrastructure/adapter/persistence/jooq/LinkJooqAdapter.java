@@ -8,6 +8,7 @@ import com.linkpouch.stash.domain.model.ScreenshotKey;
 import com.linkpouch.stash.domain.port.outbound.LinkRepository;
 import com.linkpouch.stash.infrastructure.adapter.persistence.jpa.LinkJpaRepository;
 import com.linkpouch.stash.infrastructure.adapter.persistence.jpa.entity.LinkJpaEntity;
+import com.linkpouch.stash.infrastructure.adapter.persistence.mapper.PersistenceMapper;
 import lombok.RequiredArgsConstructor;
 import org.jooq.DSLContext;
 import org.jooq.impl.DSL;
@@ -30,6 +31,7 @@ public class LinkJooqAdapter implements LinkRepository {
     
     private final LinkJpaRepository jpaRepository;
     private final DSLContext dsl;
+    private final PersistenceMapper mapper;
     
     @Override
     public Link save(Link link) {
@@ -41,23 +43,25 @@ public class LinkJooqAdapter implements LinkRepository {
                     return newEntity;
                 });
         
-        entity.setUrl(link.getUrl().getValue());
-        entity.setTitle(link.getTitle() != null ? link.getTitle().getValue() : null);
-        entity.setDescription(link.getDescription() != null ? link.getDescription().getValue() : null);
-        entity.setFaviconUrl(link.getFaviconUrl() != null ? link.getFaviconUrl().getValue() : null);
-        entity.setPageContent(link.getPageContent());
-        entity.setFinalUrl(link.getFinalUrl() != null ? link.getFinalUrl().getValue() : null);
-        entity.setScreenshotKey(link.getScreenshotKey() != null ? link.getScreenshotKey().getValue() : null);
-        entity.setScreenshotGeneratedAt(link.getScreenshotGeneratedAt());
+        // Update fields from domain object
+        LinkJpaEntity mappedEntity = mapper.mapOut(link);
+        entity.setUrl(mappedEntity.getUrl());
+        entity.setTitle(mappedEntity.getTitle());
+        entity.setDescription(mappedEntity.getDescription());
+        entity.setFaviconUrl(mappedEntity.getFaviconUrl());
+        entity.setPageContent(mappedEntity.getPageContent());
+        entity.setFinalUrl(mappedEntity.getFinalUrl());
+        entity.setScreenshotKey(mappedEntity.getScreenshotKey());
+        entity.setScreenshotGeneratedAt(mappedEntity.getScreenshotGeneratedAt());
         
         LinkJpaEntity saved = jpaRepository.save(entity);
-        return toDomain(saved);
+        return mapper.mapIn(saved);
     }
     
     @Override
     public Optional<Link> findById(UUID id) {
         return jpaRepository.findById(id)
-                .map(this::toDomain);
+                .map(mapper::mapIn);
     }
     
     @Override
@@ -67,7 +71,7 @@ public class LinkJooqAdapter implements LinkRepository {
                 .where(LINKS.STASH_ID.eq(stashId))
                 .orderBy(LINKS.CREATED_AT.desc())
                 .fetch()
-                .map(this::recordToLink);
+                .map(this::mapIn);  // mapIn: from jOOQ record TO domain
     }
     
     @Override
@@ -80,7 +84,7 @@ public class LinkJooqAdapter implements LinkRepository {
                 .and(DSL.condition("search_vector @@ plainto_tsquery('english', {0})", query))
                 .orderBy(DSL.field("ts_rank(search_vector, plainto_tsquery('english', {0})) DESC", query))
                 .fetch()
-                .map(this::recordToLink);
+                .map(this::mapIn);  // mapIn: from jOOQ record TO domain
     }
     
     @Override
@@ -88,26 +92,10 @@ public class LinkJooqAdapter implements LinkRepository {
         jpaRepository.deleteById(id);
     }
     
-    private Link toDomain(LinkJpaEntity entity) {
-        if (entity == null) return null;
-        
-        return Link.builder()
-                .id(entity.getId())
-                .stashId(entity.getStash() != null ? entity.getStash().getId() : null)
-                .url(Url.of(entity.getUrl()))
-                .title(entity.getTitle() != null ? LinkTitle.of(entity.getTitle()) : null)
-                .description(entity.getDescription() != null ? LinkDescription.of(entity.getDescription()) : null)
-                .faviconUrl(entity.getFaviconUrl() != null ? Url.of(entity.getFaviconUrl()) : null)
-                .pageContent(entity.getPageContent())
-                .finalUrl(entity.getFinalUrl() != null ? Url.of(entity.getFinalUrl()) : null)
-                .screenshotKey(entity.getScreenshotKey() != null ? ScreenshotKey.of(entity.getScreenshotKey()) : null)
-                .screenshotGeneratedAt(entity.getScreenshotGeneratedAt())
-                .createdAt(entity.getCreatedAt())
-                .updatedAt(entity.getUpdatedAt())
-                .build();
-    }
-    
-    private Link recordToLink(org.jooq.Record record) {
+    /**
+     * Maps FROM jOOQ record TO domain (mapIn pattern).
+     */
+    private Link mapIn(org.jooq.Record record) {
         return Link.builder()
                 .id(record.get(LINKS.ID))
                 .stashId(record.get(LINKS.STASH_ID))

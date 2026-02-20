@@ -213,15 +213,17 @@ Location: `stash-service/src/main/resources/db/migration/`
 
 3. **Module Structure**: Clear separation following hexagonal architecture
 
-4. **Mapping Strategy**: MapStruct for all DTO/entity/domain object mapping (compile-time, type-safe)
+4. **Mapping Strategy**: MapStruct for all DTO/entity/domain object mapping
+   - `mapIn`: Maps from external layer (JPA/jOOQ) TO domain
+   - `mapOut`: Maps FROM domain TO external layer (JPA/DTO)
 
-5. **Code Generation**: Lombok for reducing boilerplate (constructors, getters, builders)
+5. **Code Generation**: Lombok for reducing boilerplate
 
 6. **Transaction Boundaries**: Application layer only (services/use cases), never in adapters
 
 7. **Git Workflow**: Commit after each milestone/feature
 
-7. **Deployment**: kubectl apply to linkpouch-dev namespace for testing
+8. **Deployment**: kubectl apply to linkpouch-dev namespace for testing
 
 ## Latest Version References
 
