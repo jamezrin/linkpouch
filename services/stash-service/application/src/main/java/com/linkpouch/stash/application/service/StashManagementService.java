@@ -58,6 +58,7 @@ public class StashManagementService implements StashManagementUseCase {
     }
 
     // Helper method for controller
+    @Transactional
     public StashResponse createStashResponse(CreateStashRequest request) {
         Stash stash = createStash(request.name());
         String signature = signatureService.generateSignature(
