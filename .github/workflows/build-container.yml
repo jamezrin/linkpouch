@@ -136,15 +136,15 @@ jobs:
 
       - name: Create and push multi-arch manifest
         run: |
-          # Get the SHA from metadata
-          SHA=$(echo '${{ steps.meta.outputs.json }}' | jq -r '.sha // .tags[0]')
+          # Get the short SHA from github context
+          SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
           
           # Create multi-arch manifest
           docker buildx imagetools create \
             --tag ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest \
-            --tag ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:sha-${SHA::7} \
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:sha-${SHA::7}-amd64 \
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:sha-${SHA::7}-arm64
+            --tag ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:sha-${SHORT_SHA} \
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:sha-${SHORT_SHA}-amd64 \
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:sha-${SHORT_SHA}-arm64
 
       - name: Inspect manifest
         run: |
