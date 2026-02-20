@@ -5,6 +5,7 @@ import com.linkpouch.stash.infrastructure.adapter.persistence.jpa.entity.LinkJpa
 import com.linkpouch.stash.infrastructure.adapter.persistence.jpa.entity.StashJpaEntity;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
+import org.mapstruct.MappingTarget;
 import org.mapstruct.Named;
 
 import java.util.List;
@@ -65,20 +66,24 @@ public interface PersistenceMapper {
     LinkJpaEntity mapOut(Link link);
     
     // ==================== LINK LIST MAPPINGS ====================
-    
-    @Mapping(target = "id", source = "id")
-    @Mapping(target = "stashId", source = "stash.id")
-    @Mapping(target = "url", source = "url", qualifiedByName = "stringToUrl")
-    @Mapping(target = "title", source = "title", qualifiedByName = "stringToLinkTitle")
-    @Mapping(target = "description", source = "description", qualifiedByName = "stringToLinkDescription")
-    @Mapping(target = "faviconUrl", source = "faviconUrl", qualifiedByName = "stringToUrl")
-    @Mapping(target = "pageContent", source = "pageContent")
-    @Mapping(target = "finalUrl", source = "finalUrl", qualifiedByName = "stringToUrl")
-    @Mapping(target = "screenshotKey", source = "screenshotKey", qualifiedByName = "stringToScreenshotKey")
-    @Mapping(target = "screenshotGeneratedAt", source = "screenshotGeneratedAt")
-    @Mapping(target = "createdAt", source = "createdAt")
-    @Mapping(target = "updatedAt", source = "updatedAt")
+
     List<Link> mapInLinks(List<LinkJpaEntity> entities);
+
+    // ==================== LINK: updateEntity (Domain -> existing JPA entity) ====================
+
+    @Mapping(target = "id", ignore = true)
+    @Mapping(target = "stash", ignore = true)
+    @Mapping(target = "url", source = "url", qualifiedByName = "urlToString")
+    @Mapping(target = "title", source = "title", qualifiedByName = "linkTitleToString")
+    @Mapping(target = "description", source = "description", qualifiedByName = "linkDescriptionToString")
+    @Mapping(target = "faviconUrl", source = "faviconUrl", qualifiedByName = "urlToString")
+    @Mapping(target = "pageContent", source = "pageContent")
+    @Mapping(target = "finalUrl", source = "finalUrl", qualifiedByName = "urlToString")
+    @Mapping(target = "screenshotKey", source = "screenshotKey", qualifiedByName = "screenshotKeyToString")
+    @Mapping(target = "screenshotGeneratedAt", source = "screenshotGeneratedAt")
+    @Mapping(target = "createdAt", ignore = true)
+    @Mapping(target = "updatedAt", ignore = true)
+    void updateEntity(Link link, @MappingTarget LinkJpaEntity entity);
     
     // ==================== VALUE OBJECT CONVERTERS ====================
     

@@ -47,18 +47,9 @@ public class LinkJooqAdapter implements LinkRepository {
                     newEntity.setStash(stashRef);
                     return newEntity;
                 });
-        
-        // Update fields from domain object
-        LinkJpaEntity mappedEntity = mapper.mapOut(link);
-        entity.setUrl(mappedEntity.getUrl());
-        entity.setTitle(mappedEntity.getTitle());
-        entity.setDescription(mappedEntity.getDescription());
-        entity.setFaviconUrl(mappedEntity.getFaviconUrl());
-        entity.setPageContent(mappedEntity.getPageContent());
-        entity.setFinalUrl(mappedEntity.getFinalUrl());
-        entity.setScreenshotKey(mappedEntity.getScreenshotKey());
-        entity.setScreenshotGeneratedAt(mappedEntity.getScreenshotGeneratedAt());
-        
+
+        mapper.updateEntity(link, entity);
+
         LinkJpaEntity saved = jpaRepository.save(entity);
         return mapper.mapIn(saved);
     }
