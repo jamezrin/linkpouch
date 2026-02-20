@@ -9,4 +9,4 @@ spec:
     name: letsencrypt-prod
     kind: ClusterIssuer
   dnsNames:
-    - linkpouch.example.com  # Replace with your domain
+    - linkpou.ch
