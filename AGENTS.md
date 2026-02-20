@@ -61,8 +61,8 @@ mypy src/
 ### Java
 
 **Imports:**
-- Always import types; never use fully qualified names unless resolving naming conflicts
-- Group imports: java.*, javax.*, third-party, com.linkpouch.*
+- Always import types; never use fully qualified names unless resolving conflicts
+- Group: java.*, javax.*, third-party, com.linkpouch.*
 - No wildcard imports (except lombok.*)
 - Static imports last
 - Remove unused imports
@@ -155,29 +155,16 @@ StashResponseDTO mapOut(StashResponse response);
 - Each module is independent with its own dependencies
 
 **Code Generation:**
-- OpenAPI DTOs generated with "DTO" suffix
-- jOOQ code from live database (target/generated-sources/)
+- OpenAPI: Define in `api-spec/src/main/resources/openapi/*.yaml`, use plugin v7.20.0
+- jOOQ: Generated from live DB schema to `target/generated-sources/jooq/`
 - Lombok for boilerplate reduction
-- NEVER commit generated code
-
-**OpenAPI Code Generation:**
-- Define API in `api-spec/src/main/resources/openapi/*.yaml`
-- Use `openapi-generator-maven-plugin` version 7.20.0
-- Generated models MUST have `DTO` suffix: `modelNameSuffix: DTO`
-- Controllers implement generated interfaces (e.g., `StashesApi`)
-- Web module uses MapStruct to convert between OpenAPI DTOs and application DTOs
-
-**jOOQ Code Generation:**
-- Generated code is created from live database schema
-- Run `mvn jooq-codegen:generate` after migrations
-- Generated classes go to `target/generated-sources/jooq/`
-- NOT committed to repository
-- Build fails without generated code - this is intentional
+- NEVER commit generated code (jOOQ, OpenAPI)
+- Regenerate jOOQ after migrations: `mvn jooq-codegen:generate`
+- Build fails without generated code - intentional
 
 **Database:**
 - Flyway migrations in infrastructure-persistence-jpa
-- jOOQ requires running DB for code generation
-- Regenerate after schema changes: `mvn jooq-codegen:generate`
+- jOOQ requires running DB for generation
 
 **Transaction Boundaries:**
 - Application layer only (services/use cases)
@@ -202,5 +189,4 @@ StashResponseDTO mapOut(StashResponse response);
 3. NEVER commit generated code (jOOQ, OpenAPI)
 4. ALWAYS run mvn clean compile before committing Java changes
 5. NEVER skip transaction boundaries at application layer
-6. ALWAYS regenerate jOOQ code after schema changes
-7. NEVER use manual field assignment in mapper default methods - use @Mapping
+6. NEVER use manual field assignment in mapper default methods
