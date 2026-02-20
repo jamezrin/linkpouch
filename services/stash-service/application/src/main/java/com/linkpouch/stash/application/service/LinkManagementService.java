@@ -2,6 +2,7 @@ package com.linkpouch.stash.application.service;
 
 import com.linkpouch.stash.application.dto.AddLinkRequest;
 import com.linkpouch.stash.application.dto.LinkResponse;
+import com.linkpouch.stash.application.dto.PagedResult;
 import com.linkpouch.stash.application.mapper.DomainToDtoMapper;
 import com.linkpouch.stash.domain.model.Link;
 import com.linkpouch.stash.domain.port.inbound.LinkManagementUseCase;
@@ -84,12 +85,35 @@ public class LinkManagementService implements LinkManagementUseCase {
         Link link = addLink(stashId, request.url());
         return dtoMapper.mapOut(link);
     }
-    
-    public List<LinkResponse> getLinksResponse(UUID stashId) {
-        return dtoMapper.mapOutLinks(getLinksByStashId(stashId));
+
+    public LinkResponse toResponse(Link link) {
+        return dtoMapper.mapOut(link);
     }
-    
-    public List<LinkResponse> searchLinksResponse(UUID stashId, String query) {
-        return dtoMapper.mapOutLinks(searchLinks(stashId, query));
+
+    public PagedResult<LinkResponse> listLinksResponse(UUID stashId, String search, int page, int size) {
+        List<Link> links;
+        if (search != null && !search.isEmpty()) {
+            links = searchLinks(stashId, search);
+        } else {
+            links = getLinksByStashId(stashId);
+        }
+
+        int totalElements = links.size();
+        int totalPages = (int) Math.ceil((double) totalElements / size);
+
+        int fromIndex = page * size;
+        int toIndex = Math.min(fromIndex + size, totalElements);
+
+        List<Link> paginatedLinks = fromIndex < totalElements
+                ? links.subList(fromIndex, toIndex)
+                : List.of();
+
+        return new PagedResult<>(
+                dtoMapper.mapOutLinks(paginatedLinks),
+                totalElements,
+                totalPages,
+                size,
+                page
+        );
     }
 }

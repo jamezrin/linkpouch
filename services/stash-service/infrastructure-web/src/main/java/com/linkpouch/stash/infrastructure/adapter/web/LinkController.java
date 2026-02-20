@@ -1,57 +1,60 @@
 package com.linkpouch.stash.infrastructure.adapter.web;
 
-import com.linkpouch.stash.application.dto.*;
+import com.linkpouch.stash.api.controller.LinksApi;
+import com.linkpouch.stash.api.model.*;
+import com.linkpouch.stash.application.dto.AddLinkRequest;
 import com.linkpouch.stash.application.service.LinkManagementService;
+import com.linkpouch.stash.infrastructure.adapter.web.mapper.ApiDtoMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.RestController;
 
-import java.util.List;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/stashes/{stashId}/links")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*")
-public class LinkController {
+public class LinkController implements LinksApi {
     
     private final LinkManagementService linkService;
+    private final ApiDtoMapper mapper;
     
-    @PostMapping
-    public ResponseEntity<LinkResponse> addLink(
-            @PathVariable UUID stashId,
-            @RequestBody AddLinkRequest request) {
-        LinkResponse response = linkService.addLinkResponse(stashId, request);
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    @Override
+    public ResponseEntity<LinkResponseDTO> addLink(UUID stashId, AddLinkRequestDTO addLinkRequestDTO) {
+        var request = mapper.mapIn(addLinkRequestDTO);
+        var response = linkService.addLinkResponse(stashId, request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(mapper.mapOut(response));
     }
     
-    @GetMapping
-    public ResponseEntity<List<LinkResponse>> getLinks(@PathVariable UUID stashId) {
-        List<LinkResponse> links = linkService.getLinksResponse(stashId);
-        return ResponseEntity.ok(links);
-    }
-    
-    @GetMapping("/search")
-    public ResponseEntity<List<LinkResponse>> searchLinks(
-            @PathVariable UUID stashId,
-            @RequestParam("q") String query) {
-        List<LinkResponse> links = linkService.searchLinksResponse(stashId, query);
-        return ResponseEntity.ok(links);
-    }
-    
-    @DeleteMapping("/{linkId}")
-    public ResponseEntity<Void> deleteLink(
-            @PathVariable UUID stashId,
-            @PathVariable UUID linkId) {
+    @Override
+    public ResponseEntity<Void> deleteLink(UUID linkId) {
         linkService.deleteLink(linkId);
         return ResponseEntity.noContent().build();
     }
     
-    @PostMapping("/{linkId}/refresh")
-    public ResponseEntity<Void> refreshScreenshot(
-            @PathVariable UUID stashId,
-            @PathVariable UUID linkId) {
+    @Override
+    public ResponseEntity<LinkResponseDTO> getLink(UUID linkId) {
+        var link = linkService.findLinkById(linkId)
+                .orElseThrow(() -> new IllegalArgumentException("Link not found: " + linkId));
+        return ResponseEntity.ok(mapper.mapOut(linkService.toResponse(link)));
+    }
+    
+    @Override
+    public ResponseEntity<PagedLinkResponseDTO> listLinks(UUID stashId, String search, Integer page, Integer size) {
+        var pagedResult = linkService.listLinksResponse(stashId, search, page, size);
+        
+        PagedLinkResponseDTO response = new PagedLinkResponseDTO();
+        response.setContent(mapper.mapOutLinkResponseList(pagedResult.content()));
+        response.setTotalElements(pagedResult.totalElements());
+        response.setTotalPages(pagedResult.totalPages());
+        response.setSize(pagedResult.size());
+        response.setNumber(pagedResult.number());
+        
+        return ResponseEntity.ok(response);
+    }
+    
+    @Override
+    public ResponseEntity<Void> refreshScreenshot(UUID linkId) {
         linkService.requestScreenshotRefresh(linkId);
         return ResponseEntity.accepted().build();
     }
