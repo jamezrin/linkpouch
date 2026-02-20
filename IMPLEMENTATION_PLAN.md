@@ -216,6 +216,9 @@ Location: `stash-service/src/main/resources/db/migration/`
 4. **Mapping Strategy**: MapStruct for all DTO/entity/domain object mapping
    - `mapIn`: Maps from external layer (JPA/jOOQ) TO domain
    - `mapOut`: Maps FROM domain TO external layer (JPA/DTO)
+   - **EXPLICIT @Mapping annotations required** for every field, even with same names
+   - Use MapStruct built-in features (nullValuePropertyMappingStrategy, defaultValue, etc.) to minimize manual code
+   - This ensures IDE refactoring updates mappers automatically
 
 5. **Code Generation**: Lombok for reducing boilerplate
 

@@ -5,93 +5,140 @@ import com.linkpouch.stash.infrastructure.adapter.persistence.jpa.entity.LinkJpa
 import com.linkpouch.stash.infrastructure.adapter.persistence.jpa.entity.StashJpaEntity;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
+import org.mapstruct.Named;
 
 import java.util.List;
 
 @Mapper(componentModel = "spring")
 public interface PersistenceMapper {
     
-    // ==================== STASH MAPPINGS ====================
+    // ==================== STASH: mapIn (JPA -> Domain) ====================
     
-    /**
-     * Maps FROM JPA entity TO domain (mapIn pattern).
-     */
-    @Mapping(target = "links", ignore = true)  // Links loaded separately
+    @Mapping(target = "id", source = "id")
+    @Mapping(target = "name", source = "name", qualifiedByName = "stringToStashName")
+    @Mapping(target = "secretKey", source = "secretKey", qualifiedByName = "stringToSecretKey")
+    @Mapping(target = "createdAt", source = "createdAt")
+    @Mapping(target = "updatedAt", source = "updatedAt")
+    @Mapping(target = "links", ignore = true)
     Stash mapIn(StashJpaEntity entity);
     
-    /**
-     * Maps FROM domain TO JPA entity (mapOut pattern).
-     */
-    @Mapping(target = "links", ignore = true)  // Links managed separately
+    // ==================== STASH: mapOut (Domain -> JPA) ====================
+    
+    @Mapping(target = "id", source = "id")
+    @Mapping(target = "name", source = "name", qualifiedByName = "stashNameToString")
+    @Mapping(target = "secretKey", source = "secretKey", qualifiedByName = "secretKeyToString")
+    @Mapping(target = "createdAt", source = "createdAt")
+    @Mapping(target = "updatedAt", source = "updatedAt")
+    @Mapping(target = "links", ignore = true)
     StashJpaEntity mapOut(Stash stash);
     
-    // ==================== LINK MAPPINGS ====================
+    // ==================== LINK: mapIn (JPA -> Domain) ====================
     
-    /**
-     * Maps FROM JPA entity TO domain (mapIn pattern).
-     */
+    @Mapping(target = "id", source = "id")
     @Mapping(target = "stashId", source = "stash.id")
+    @Mapping(target = "url", source = "url", qualifiedByName = "stringToUrl")
+    @Mapping(target = "title", source = "title", qualifiedByName = "stringToLinkTitle")
+    @Mapping(target = "description", source = "description", qualifiedByName = "stringToLinkDescription")
+    @Mapping(target = "faviconUrl", source = "faviconUrl", qualifiedByName = "stringToUrl")
+    @Mapping(target = "pageContent", source = "pageContent")
+    @Mapping(target = "finalUrl", source = "finalUrl", qualifiedByName = "stringToUrl")
+    @Mapping(target = "screenshotKey", source = "screenshotKey", qualifiedByName = "stringToScreenshotKey")
+    @Mapping(target = "screenshotGeneratedAt", source = "screenshotGeneratedAt")
+    @Mapping(target = "createdAt", source = "createdAt")
+    @Mapping(target = "updatedAt", source = "updatedAt")
     Link mapIn(LinkJpaEntity entity);
     
-    /**
-     * Maps FROM domain TO JPA entity (mapOut pattern).
-     * Note: stash relationship must be set separately.
-     */
+    // ==================== LINK: mapOut (Domain -> JPA) ====================
+    
+    @Mapping(target = "id", source = "id")
     @Mapping(target = "stash", ignore = true)
+    @Mapping(target = "url", source = "url", qualifiedByName = "urlToString")
+    @Mapping(target = "title", source = "title", qualifiedByName = "linkTitleToString")
+    @Mapping(target = "description", source = "description", qualifiedByName = "linkDescriptionToString")
+    @Mapping(target = "faviconUrl", source = "faviconUrl", qualifiedByName = "urlToString")
+    @Mapping(target = "pageContent", source = "pageContent")
+    @Mapping(target = "finalUrl", source = "finalUrl", qualifiedByName = "urlToString")
+    @Mapping(target = "screenshotKey", source = "screenshotKey", qualifiedByName = "screenshotKeyToString")
+    @Mapping(target = "screenshotGeneratedAt", source = "screenshotGeneratedAt")
+    @Mapping(target = "createdAt", source = "createdAt")
+    @Mapping(target = "updatedAt", source = "updatedAt")
     LinkJpaEntity mapOut(Link link);
     
-    /**
-     * Maps list FROM JPA entity TO domain.
-     */
+    // ==================== LINK LIST MAPPINGS ====================
+    
+    @Mapping(target = "id", source = "id")
+    @Mapping(target = "stashId", source = "stash.id")
+    @Mapping(target = "url", source = "url", qualifiedByName = "stringToUrl")
+    @Mapping(target = "title", source = "title", qualifiedByName = "stringToLinkTitle")
+    @Mapping(target = "description", source = "description", qualifiedByName = "stringToLinkDescription")
+    @Mapping(target = "faviconUrl", source = "faviconUrl", qualifiedByName = "stringToUrl")
+    @Mapping(target = "pageContent", source = "pageContent")
+    @Mapping(target = "finalUrl", source = "finalUrl", qualifiedByName = "stringToUrl")
+    @Mapping(target = "screenshotKey", source = "screenshotKey", qualifiedByName = "stringToScreenshotKey")
+    @Mapping(target = "screenshotGeneratedAt", source = "screenshotGeneratedAt")
+    @Mapping(target = "createdAt", source = "createdAt")
+    @Mapping(target = "updatedAt", source = "updatedAt")
     List<Link> mapInLinks(List<LinkJpaEntity> entities);
     
-    // ==================== VALUE OBJECT HELPERS ====================
+    // ==================== VALUE OBJECT CONVERTERS ====================
     
-    default StashName mapStashName(String value) {
+    @Named("stringToStashName")
+    default StashName stringToStashName(String value) {
         return value != null ? StashName.of(value) : null;
     }
     
-    default String mapStashName(StashName stashName) {
+    @Named("stashNameToString")
+    default String stashNameToString(StashName stashName) {
         return stashName != null ? stashName.getValue() : null;
     }
     
-    default SecretKey mapSecretKey(String value) {
+    @Named("stringToSecretKey")
+    default SecretKey stringToSecretKey(String value) {
         return value != null ? SecretKey.of(value) : null;
     }
     
-    default String mapSecretKey(SecretKey secretKey) {
+    @Named("secretKeyToString")
+    default String secretKeyToString(SecretKey secretKey) {
         return secretKey != null ? secretKey.getValue() : null;
     }
     
-    default Url mapUrl(String value) {
+    @Named("stringToUrl")
+    default Url stringToUrl(String value) {
         return value != null ? Url.of(value) : null;
     }
     
-    default String mapUrl(Url url) {
+    @Named("urlToString")
+    default String urlToString(Url url) {
         return url != null ? url.getValue() : null;
     }
     
-    default LinkTitle mapLinkTitle(String value) {
+    @Named("stringToLinkTitle")
+    default LinkTitle stringToLinkTitle(String value) {
         return value != null ? LinkTitle.of(value) : null;
     }
     
-    default String mapLinkTitle(LinkTitle title) {
+    @Named("linkTitleToString")
+    default String linkTitleToString(LinkTitle title) {
         return title != null ? title.getValue() : null;
     }
     
-    default LinkDescription mapLinkDescription(String value) {
+    @Named("stringToLinkDescription")
+    default LinkDescription stringToLinkDescription(String value) {
         return value != null ? LinkDescription.of(value) : null;
     }
     
-    default String mapLinkDescription(LinkDescription description) {
+    @Named("linkDescriptionToString")
+    default String linkDescriptionToString(LinkDescription description) {
         return description != null ? description.getValue() : null;
     }
     
-    default ScreenshotKey mapScreenshotKey(String value) {
+    @Named("stringToScreenshotKey")
+    default ScreenshotKey stringToScreenshotKey(String value) {
         return value != null ? ScreenshotKey.of(value) : null;
     }
     
-    default String mapScreenshotKey(ScreenshotKey key) {
+    @Named("screenshotKeyToString")
+    default String screenshotKeyToString(ScreenshotKey key) {
         return key != null ? key.getValue() : null;
     }
 }
