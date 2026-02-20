@@ -61,6 +61,7 @@ mypy src/
 ### Java
 
 **Imports:**
+- Always import types; never use fully qualified names unless resolving naming conflicts
 - Group imports: java.*, javax.*, third-party, com.linkpouch.*
 - No wildcard imports (except lombok.*)
 - Static imports last
