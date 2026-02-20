@@ -1,0 +1,188 @@
+"""Redis Streams consumer for async event processing."""
+
+import asyncio
+import json
+from typing import Any
+
+import structlog
+from redis.asyncio import Redis
+
+from src.config.settings import Settings
+from src.services.scraper import LinkScraper
+
+logger = structlog.get_logger()
+
+
+class RedisStreamConsumer:
+    """Consumer for Redis Streams events."""
+    
+    def __init__(self, settings: Settings):
+        self.settings = settings
+        self.redis: Redis | None = None
+        self.scraper = LinkScraper(settings)
+        self._running = False
+        
+    async def start(self) -> None:
+        """Start the consumer."""
+        logger.info(
+            "Starting Redis Stream Consumer",
+            group=self.settings.consumer_group,
+            name=self.settings.consumer_name,
+        )
+        
+        self.redis = Redis.from_url(
+            self.settings.redis_url,
+            decode_responses=True,
+        )
+        self._running = True
+        
+        # Create consumer group if not exists
+        await self._create_consumer_groups()
+        
+        # Start consuming
+        await self._consume()
+    
+    async def stop(self) -> None:
+        """Stop the consumer."""
+        logger.info("Stopping Redis Stream Consumer")
+        self._running = False
+        if self.redis:
+            await self.redis.close()
+    
+    async def _create_consumer_groups(self) -> None:
+        """Create consumer groups for streams."""
+        streams = [
+            self.settings.link_stream_key,
+            self.settings.screenshot_stream_key,
+        ]
+        
+        for stream in streams:
+            try:
+                await self.redis.xgroup_create(  # type: ignore
+                    stream,
+                    self.settings.consumer_group,
+                    id="0",
+                    mkstream=True,
+                )
+                logger.info("Created consumer group", stream=stream)
+            except Exception as e:
+                if "already exists" in str(e):
+                    logger.debug("Consumer group already exists", stream=stream)
+                else:
+                    logger.error("Failed to create consumer group", stream=stream, error=str(e))
+    
+    async def _consume(self) -> None:
+        """Main consumption loop."""
+        streams = {
+            self.settings.link_stream_key: self._handle_link_event,
+            self.settings.screenshot_stream_key: self._handle_screenshot_event,
+        }
+        
+        while self._running:
+            try:
+                # Read from all streams
+                for stream_key, handler in streams.items():
+                    messages = await self.redis.xreadgroup(  # type: ignore
+                        groupname=self.settings.consumer_group,
+                        consumername=self.settings.consumer_name,
+                        streams={stream_key: ">"},
+                        count=1,
+                        block=1000,
+                    )
+                    
+                    if messages:
+                        for stream_name, msgs in messages:
+                            for msg_id, msg_data in msgs:
+                                await self._process_message(
+                                    stream_name,
+                                    msg_id,
+                                    msg_data,
+                                    handler,
+                                )
+                                
+            except asyncio.CancelledError:
+                break
+            except Exception as e:
+                logger.error("Error in consumption loop", error=str(e))
+                await asyncio.sleep(1)
+    
+    async def _process_message(
+        self,
+        stream: str,
+        msg_id: str,
+        msg_data: dict,
+        handler: Any,
+    ) -> None:
+        """Process a single message."""
+        try:
+            logger.debug(
+                "Processing message",
+                stream=stream,
+                msg_id=msg_id,
+                event_type=msg_data.get("eventType"),
+            )
+            
+            await handler(msg_data)
+            
+            # Acknowledge message
+            await self.redis.xack(stream, self.settings.consumer_group, msg_id)  # type: ignore
+            
+            logger.info(
+                "Message processed successfully",
+                stream=stream,
+                msg_id=msg_id,
+            )
+            
+        except Exception as e:
+            logger.error(
+                "Failed to process message",
+                stream=stream,
+                msg_id=msg_id,
+                error=str(e),
+                exc_info=True,
+            )
+    
+    async def _handle_link_event(self, data: dict) -> None:
+        """Handle link.added event."""
+        event_type = data.get("eventType")
+        link_id = data.get("linkId")
+        url = data.get("url")
+        
+        logger.info(
+            "Handling link event",
+            event_type=event_type,
+            link_id=link_id,
+            url=url,
+        )
+        
+        if event_type == "link.added":
+            # Scrape metadata and take screenshot
+            result = await self.scraper.scrape_link(url)
+            logger.info(
+                "Link scraped",
+                link_id=link_id,
+                title=result.get("title"),
+            )
+            # TODO: Send result back to stash service via HTTP or Redis
+    
+    async def _handle_screenshot_event(self, data: dict) -> None:
+        """Handle screenshot.refresh.requested event."""
+        event_type = data.get("eventType")
+        link_id = data.get("linkId")
+        url = data.get("url")
+        
+        logger.info(
+            "Handling screenshot event",
+            event_type=event_type,
+            link_id=link_id,
+            url=url,
+        )
+        
+        if event_type == "screenshot.refresh.requested":
+            # Regenerate screenshot
+            screenshot = await self.scraper.take_screenshot(url)
+            logger.info(
+                "Screenshot refreshed",
+                link_id=link_id,
+                screenshot_key=screenshot.get("key"),
+            )
