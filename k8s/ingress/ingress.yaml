@@ -14,7 +14,7 @@ metadata:
 spec:
   ingressClassName: traefik
   rules:
-    - host: linkpouch.example.com  # Replace with your domain
+    - host: linkpou.ch
       http:
         paths:
           # Frontend - React app
@@ -45,5 +45,5 @@ spec:
                   number: 80
   tls:
     - hosts:
-        - linkpouch.example.com  # Replace with your domain
+        - linkpou.ch
       secretName: linkpouch-tls
