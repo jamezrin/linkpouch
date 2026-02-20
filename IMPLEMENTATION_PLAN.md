@@ -226,20 +226,27 @@ Location: `stash-service/src/main/resources/db/migration/`
 
 4. **Module Structure**: Clear separation following hexagonal architecture
 
-4. **Mapping Strategy**: MapStruct for all DTO/entity/domain object mapping
+5. **Mapping Strategy**: MapStruct for all DTO/entity/domain object mapping
    - `mapIn`: Maps from external layer (JPA/jOOQ) TO domain
    - `mapOut`: Maps FROM domain TO external layer (JPA/DTO)
    - **EXPLICIT @Mapping annotations required** for every field, even with same names
    - Use MapStruct built-in features (nullValuePropertyMappingStrategy, defaultValue, etc.) to minimize manual code
    - This ensures IDE refactoring updates mappers automatically
 
-5. **Code Generation**: Lombok for reducing boilerplate
+6. **jOOQ Code Generation**: Use ACTUAL jOOQ codegen, NEVER fake/stub generated classes
+   - Generated code is created from live database schema
+   - Run `mvn jooq-codegen:generate` after migrations
+   - Generated classes go to `target/generated-sources/jooq/`
+   - NOT committed to repository
+   - Build fails without generated code - this is intentional
 
-6. **Transaction Boundaries**: Application layer only (services/use cases), never in adapters
+7. **Code Generation**: Lombok for reducing boilerplate
 
-7. **Git Workflow**: Commit after each milestone/feature
+8. **Transaction Boundaries**: Application layer only (services/use cases), never in adapters
 
-8. **Deployment**: kubectl apply to linkpouch-dev namespace for testing
+9. **Git Workflow**: Commit after each milestone/feature
+
+10. **Deployment**: kubectl apply to linkpouch-dev namespace for testing
 
 ## Inter-Service Communication (Redis Streams)
 
