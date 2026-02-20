@@ -14,6 +14,7 @@
     <description>Parent POM for Stash Service with Hexagonal Architecture</description>
     
     <modules>
+        <module>api-spec</module>
         <module>domain</module>
         <module>application</module>
         <module>infrastructure</module>
@@ -50,6 +51,11 @@
             </dependency>
             
             <!-- Internal modules -->
+            <dependency>
+                <groupId>com.linkpouch</groupId>
+                <artifactId>api-spec</artifactId>
+                <version>${project.version}</version>
+            </dependency>
             <dependency>
                 <groupId>com.linkpouch</groupId>
                 <artifactId>domain</artifactId>

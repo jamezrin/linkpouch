@@ -1,0 +1,360 @@
+openapi: 3.0.3
+info:
+  title: Linkpouch Stash Service API
+  description: API for managing stashes and links in Linkpouch
+  version: 1.0.0
+  contact:
+    name: Linkpouch Team
+
+servers:
+  - url: /api
+    description: Local development
+
+paths:
+  /stashes:
+    post:
+      summary: Create a new stash
+      operationId: createStash
+      tags:
+        - Stashes
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateStashRequest'
+      responses:
+        '201':
+          description: Stash created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StashResponse'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Stash with this name already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    get:
+      summary: List all stashes
+      operationId: listStashes
+      tags:
+        - Stashes
+      responses:
+        '200':
+          description: List of stashes
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/StashResponse'
+
+  /stashes/{stashId}:
+    parameters:
+      - name: stashId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    
+    get:
+      summary: Get stash by ID
+      operationId: getStash
+      tags:
+        - Stashes
+      responses:
+        '200':
+          description: Stash found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StashResponse'
+        '404':
+          description: Stash not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    delete:
+      summary: Delete stash by ID
+      operationId: deleteStash
+      tags:
+        - Stashes
+      responses:
+        '204':
+          description: Stash deleted successfully
+        '404':
+          description: Stash not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /stashes/{stashId}/links:
+    parameters:
+      - name: stashId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    
+    post:
+      summary: Add a link to stash
+      operationId: addLink
+      tags:
+        - Links
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddLinkRequest'
+      responses:
+        '201':
+          description: Link added successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LinkResponse'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Stash not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Link with this URL already exists in stash
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    get:
+      summary: List links in stash
+      operationId: listLinks
+      tags:
+        - Links
+      parameters:
+        - name: search
+          in: query
+          description: Search query for full-text search
+          schema:
+            type: string
+        - name: page
+          in: query
+          description: Page number (0-based)
+          schema:
+            type: integer
+            default: 0
+        - name: size
+          in: query
+          description: Page size
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: List of links
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PagedLinkResponse'
+
+  /links/{linkId}:
+    parameters:
+      - name: linkId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    
+    get:
+      summary: Get link by ID
+      operationId: getLink
+      tags:
+        - Links
+      responses:
+        '200':
+          description: Link found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LinkResponse'
+        '404':
+          description: Link not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    delete:
+      summary: Delete link by ID
+      operationId: deleteLink
+      tags:
+        - Links
+      responses:
+        '204':
+          description: Link deleted successfully
+        '404':
+          description: Link not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /links/{linkId}/refresh-screenshot:
+    parameters:
+      - name: linkId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    
+    post:
+      summary: Request screenshot refresh for link
+      operationId: refreshScreenshot
+      tags:
+        - Links
+      responses:
+        '202':
+          description: Screenshot refresh requested
+        '404':
+          description: Link not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  schemas:
+    CreateStashRequest:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 255
+          description: Name of the stash
+        secretKey:
+          type: string
+          minLength: 32
+          maxLength: 128
+          description: Secret key for accessing the stash
+
+    StashResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        linkCount:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    AddLinkRequest:
+      type: object
+      required:
+        - url
+      properties:
+        url:
+          type: string
+          format: uri
+          description: URL to add
+        title:
+          type: string
+          description: Optional title override
+        description:
+          type: string
+          description: Optional description override
+
+    LinkResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        stashId:
+          type: string
+          format: uuid
+        url:
+          type: string
+          format: uri
+        title:
+          type: string
+        description:
+          type: string
+        faviconUrl:
+          type: string
+          format: uri
+        screenshotUrl:
+          type: string
+          format: uri
+        screenshotGeneratedAt:
+          type: string
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    PagedLinkResponse:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/LinkResponse'
+        totalElements:
+          type: integer
+        totalPages:
+          type: integer
+        size:
+          type: integer
+        number:
+          type: integer
+
+    ErrorResponse:
+      type: object
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+        status:
+          type: integer
+        error:
+          type: string
+        message:
+          type: string
+        path:
+          type: string
