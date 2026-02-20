@@ -221,6 +221,74 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
+  /links/{linkId}/metadata:
+    parameters:
+      - name: linkId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+
+    patch:
+      summary: Update link metadata (called by indexer service)
+      operationId: updateLinkMetadata
+      tags:
+        - Links
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateLinkMetadataRequest'
+      responses:
+        '200':
+          description: Link metadata updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LinkResponse'
+        '404':
+          description: Link not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /links/{linkId}/screenshot:
+    parameters:
+      - name: linkId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+
+    patch:
+      summary: Update link screenshot key (called by indexer service)
+      operationId: updateLinkScreenshot
+      tags:
+        - Links
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateLinkScreenshotRequest'
+      responses:
+        '200':
+          description: Link screenshot updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LinkResponse'
+        '404':
+          description: Link not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
   /links/{linkId}/refresh-screenshot:
     parameters:
       - name: linkId
@@ -343,6 +411,28 @@ components:
           type: integer
         number:
           type: integer
+
+    UpdateLinkMetadataRequest:
+      type: object
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        faviconUrl:
+          type: string
+        pageContent:
+          type: string
+        finalUrl:
+          type: string
+
+    UpdateLinkScreenshotRequest:
+      type: object
+      required:
+        - screenshotKey
+      properties:
+        screenshotKey:
+          type: string
 
     ErrorResponse:
       type: object

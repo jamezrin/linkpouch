@@ -29,7 +29,7 @@
         <maven.compiler.source>${java.version}</maven.compiler.source>
         <maven.compiler.target>${java.version}</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        
+
         <!-- Latest Spring Boot -->
         <spring-boot.version>3.4.3</spring-boot.version>
         <!-- Latest jOOQ -->
@@ -40,6 +40,8 @@
         <postgresql.version>42.7.4</postgresql.version>
         <lombok.version>1.18.42</lombok.version>
         <mapstruct.version>1.6.3</mapstruct.version>
+        <!-- AWS SDK v2 -->
+        <aws-sdk.version>2.29.52</aws-sdk.version>
     </properties>
     
     <dependencyManagement>
@@ -49,6 +51,15 @@
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-dependencies</artifactId>
                 <version>${spring-boot.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+
+            <!-- AWS SDK v2 BOM -->
+            <dependency>
+                <groupId>software.amazon.awssdk</groupId>
+                <artifactId>bom</artifactId>
+                <version>${aws-sdk.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>

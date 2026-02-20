@@ -1,24 +1,24 @@
 """Web scraping service using Playwright."""
 
 import hashlib
-import io
 from typing import Any
 
-import httpx
 import structlog
 from playwright.async_api import async_playwright
 from tenacity import retry, stop_after_attempt, wait_exponential
 
 from src.config.settings import Settings
+from src.services.storage_service import ScreenshotStorageService
 
 logger = structlog.get_logger()
 
 
 class LinkScraper:
     """Scraper for extracting link metadata and screenshots."""
-    
-    def __init__(self, settings: Settings):
+
+    def __init__(self, settings: Settings, storage_service: ScreenshotStorageService):
         self.settings = settings
+        self.storage_service = storage_service
         
     @retry(
         stop=stop_after_attempt(3),
@@ -125,14 +125,12 @@ class LinkScraper:
                     type="png",
                     full_page=False,
                 )
-                
-                # Generate key
+
+                # Generate key and upload to S3
                 url_hash = hashlib.sha256(url.encode()).hexdigest()[:16]
                 key = f"screenshots/{url_hash}.png"
-                
-                # TODO: Upload to S3/MinIO
-                # For now, just return the key
-                
+                await self.storage_service.upload(key, screenshot_bytes)
+
                 result = {
                     "key": key,
                     "width": self.settings.screenshot_width,

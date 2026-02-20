@@ -74,6 +74,12 @@
             <optional>true</optional>
         </dependency>
 
+        <!-- AWS SDK v2 S3 (screenshot proxy) -->
+        <dependency>
+            <groupId>software.amazon.awssdk</groupId>
+            <artifactId>s3</artifactId>
+        </dependency>
+
         <!-- Testing -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

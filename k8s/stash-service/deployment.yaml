@@ -48,6 +48,22 @@ spec:
               name: stash-service-secret
               key: SIGNATURE_MASTER_KEY
               optional: true
+        - name: S3_ENDPOINT
+          value: http://seaweedfs:8333
+        - name: S3_ACCESS_KEY
+          valueFrom:
+            secretKeyRef:
+              name: seaweedfs-secret
+              key: access-key
+        - name: S3_SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: seaweedfs-secret
+              key: secret-key
+        - name: S3_BUCKET
+          value: linkpouch-screenshots
+        - name: BASE_URL
+          value: https://linkpou.ch
         resources:
           requests:
             memory: "512Mi"

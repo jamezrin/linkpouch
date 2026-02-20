@@ -34,19 +34,17 @@ spec:
         - name: PLAYWRIGHT_TIMEOUT
           value: "30000"
         - name: S3_ENDPOINT
-          value: http://minio:9000
+          value: http://seaweedfs:8333
         - name: S3_ACCESS_KEY
           valueFrom:
             secretKeyRef:
-              name: minio-secret
+              name: seaweedfs-secret
               key: access-key
-              optional: true
         - name: S3_SECRET_KEY
           valueFrom:
             secretKeyRef:
-              name: minio-secret
+              name: seaweedfs-secret
               key: secret-key
-              optional: true
         - name: S3_BUCKET
           value: linkpouch-screenshots
         resources:
