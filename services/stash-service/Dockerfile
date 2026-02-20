@@ -3,9 +3,6 @@ FROM maven:3.9-eclipse-temurin-21-alpine AS builder
 
 WORKDIR /app
 
-# Install required packages for PostgreSQL client (needed for jOOQ generation)
-RUN apk add --no-cache postgresql-client
-
 # Copy parent POM first
 COPY pom.xml .
 COPY api-spec/pom.xml api-spec/
@@ -33,8 +30,8 @@ COPY boot/src boot/src
 # Copy Flyway migrations
 COPY infrastructure-persistence-jpa/src/main/resources/db/migration infrastructure-persistence-jpa/src/main/resources/db/migration
 
-# Build (jOOQ code will be generated during the build process)
-RUN mvn package -DskipTests -B
+# Build (jOOQ sources are pre-generated in src/main/generated, codegen skipped)
+RUN mvn package -DskipTests -Djooq.codegen.skip=true -B
 
 # Runtime stage - using eclipse-temurin which supports arm64
 FROM eclipse-temurin:21-jre-alpine

@@ -42,6 +42,8 @@
         <mapstruct.version>1.6.3</mapstruct.version>
         <!-- AWS SDK v2 -->
         <aws-sdk.version>2.29.52</aws-sdk.version>
+        <!-- jOOQ codegen: set to true to skip (e.g. in Docker builds) -->
+        <jooq.codegen.skip>false</jooq.codegen.skip>
     </properties>
     
     <dependencyManagement>
