@@ -60,7 +60,7 @@ jobs:
       - name: Install parent modules
         working-directory: services/stash-service
         run: |
-          mvn install -DskipTests -pl domain,application -B -q
+          mvn install -DskipTests -pl domain,application,infrastructure-redis,infrastructure-persistence-jpa -B -q
 
       - name: Wait for PostgreSQL
         run: |
@@ -74,7 +74,7 @@ jobs:
           done
 
       - name: Run Flyway migrations
-        working-directory: services/stash-service/infrastructure
+        working-directory: services/stash-service/infrastructure-persistence-jpa
         env:
           FLYWAY_URL: jdbc:postgresql://localhost:5432/linkpouch
           FLYWAY_USER: linkpouch
@@ -83,7 +83,7 @@ jobs:
           mvn flyway:migrate -B -q
 
       - name: Generate jOOQ code
-        working-directory: services/stash-service/infrastructure
+        working-directory: services/stash-service/infrastructure-persistence-jooq
         run: |
           mvn jooq-codegen:generate -B -q \
             -Djooq.url=jdbc:postgresql://localhost:5432/linkpouch \
@@ -161,10 +161,10 @@ jobs:
       - name: Install parent modules
         working-directory: services/stash-service
         run: |
-          mvn install -DskipTests -pl domain,application -B -q
+          mvn install -DskipTests -pl domain,application,infrastructure-redis,infrastructure-persistence-jpa -B -q
 
       - name: Run Flyway migrations
-        working-directory: services/stash-service/infrastructure
+        working-directory: services/stash-service/infrastructure-persistence-jpa
         env:
           FLYWAY_URL: jdbc:postgresql://localhost:5432/linkpouch
           FLYWAY_USER: linkpouch
@@ -173,7 +173,7 @@ jobs:
           mvn flyway:migrate -B -q
 
       - name: Generate jOOQ code
-        working-directory: services/stash-service/infrastructure
+        working-directory: services/stash-service/infrastructure-persistence-jooq
         run: |
           mvn jooq-codegen:generate -B -q \
             -Djooq.url=jdbc:postgresql://localhost:5432/linkpouch \
