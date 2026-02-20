@@ -68,9 +68,14 @@ linkpouch/
 ├── services/
 │   ├── api-gateway/               # Spring Boot - Routing & Auth
 │   ├── stash-service/             # Spring Boot - DDD + Hexagonal
+│   │   ├── api-spec/              # OpenAPI specification & generated code
 │   │   ├── domain/                # Core domain (ports, entities, value objects)
 │   │   ├── application/           # Use cases, services
-│   │   ├── infrastructure/        # Adapters (jOOQ, JPA, REST, etc.)
+│   │   ├── infrastructure-web/    # REST controllers & API adapters
+│   │   ├── infrastructure-redis/  # Event publishing adapters
+│   │   ├── infrastructure-persistence-jpa/  # JPA adapters (write operations)
+│   │   ├── infrastructure-persistence-jooq/ # jOOQ adapters (read operations)
+│   │   ├── boot/                  # Spring Boot entry point
 │   │   └── pom.xml
 │   └── indexer-service/           # Python FastAPI
 └── frontend/                      # React + Vite
@@ -80,6 +85,9 @@ linkpouch/
 
 ```
 stash-service/
+├── api-spec/                      # OpenAPI specification & generated DTOs
+│   └── src/main/resources/openapi/
+│       └── stash-api.yaml         # OpenAPI 3.0 spec
 ├── domain/                        # Inner hexagon - pure business logic
 │   ├── model/                     # Entities, Value Objects
 │   ├── port/
@@ -90,15 +98,15 @@ stash-service/
 │   ├── dto/                       # Data transfer objects
 │   ├── mapper/                    # DTO <-> Domain mapping (MapStruct)
 │   └── service/                   # Application services (use cases + transaction boundaries)
-├── infrastructure/                # Outer hexagon - adapters
-│   ├── adapter/
-│   │   ├── persistence/           # Repository adapters
-│   │   │   ├── jpa/               # JPA repositories (simple CRUD)
-│   │   │   └── jooq/              # jOOQ repositories (complex queries)
-│   │   └── web/                   # REST controllers
-│   ├── config/                    # Spring configurations
-│   └── flyway/                    # Database migrations
-└── pom.xml
+├── infrastructure-web/            # REST API adapters (outer hexagon)
+│   └── adapter/web/               # REST controllers implementing OpenAPI interfaces
+├── infrastructure-redis/          # Event publishing adapters
+│   └── adapter/event/             # Redis Streams event publishers
+├── infrastructure-persistence-jpa/ # JPA persistence adapters
+│   └── adapter/persistence/jpa/   # JPA repositories (write operations)
+├── infrastructure-persistence-jooq/ # jOOQ persistence adapters
+│   └── adapter/persistence/jooq/  # jOOQ queries (read operations)
+└── boot/                          # Spring Boot entry point
 ```
 
 ## Database Migrations (Flyway)
@@ -116,9 +124,15 @@ Location: `stash-service/src/main/resources/db/migration/`
 
 1. **Project Setup**
    - [ ] Maven multi-module structure
+   - [ ] api-spec module (OpenAPI spec & generated DTOs)
    - [ ] Domain module (entities, ports)
    - [ ] Application module (use cases)
-   - [ ] Infrastructure module (adapters)
+   - [ ] Infrastructure modules (4 isolated adapters):
+     - infrastructure-web: REST controllers
+     - infrastructure-redis: Event publishing
+     - infrastructure-persistence-jpa: JPA write operations
+     - infrastructure-persistence-jooq: jOOQ read operations
+   - [ ] boot module (Spring Boot entry point)
 
 2. **Database**
    - [ ] Flyway setup
@@ -132,10 +146,11 @@ Location: `stash-service/src/main/resources/db/migration/`
    - [ ] Repository ports
    - [ ] Use case ports
 
-4. **Persistence Adapters**
-   - [ ] JPA adapter for Stash (simple CRUD)
-   - [ ] jOOQ configuration
-   - [ ] jOOQ adapter for Link with FTS
+4. **Infrastructure Modules** (4 isolated modules)
+   - [ ] infrastructure-web: REST controllers implementing OpenAPI interfaces
+   - [ ] infrastructure-redis: Redis Streams event publishing
+   - [ ] infrastructure-persistence-jpa: JPA repositories (write operations)
+   - [ ] infrastructure-persistence-jooq: jOOQ queries (read operations)
 
 ### Phase 2: Stash Service Core (Week 2)
 **Goal**: CRUD operations with URL signing
@@ -219,7 +234,15 @@ Location: `stash-service/src/main/resources/db/migration/`
 
 2. **Migration Tool**: Flyway (better Gradle/Maven integration)
 
-3. **Tool Version Management**: mise (https://mise.jdx.dev/)
+3. **Infrastructure Module Isolation**: 4 separate infrastructure modules
+   - infrastructure-web: REST controllers and API adapters (depends on api-spec)
+   - infrastructure-redis: Event publishing via Redis Streams
+   - infrastructure-persistence-jpa: JPA entities and repositories (write operations)
+   - infrastructure-persistence-jooq: jOOQ queries (read operations)
+   - Each module is independent with its own dependencies
+   - No circular dependencies between infrastructure modules
+
+4. **Tool Version Management**: mise (https://mise.jdx.dev/)
    - Manages Java, Maven, Node.js, Python versions
    - Ensures consistent tooling across development environments
    - Configuration in `mise.toml` at repository root
@@ -229,11 +252,22 @@ Location: `stash-service/src/main/resources/db/migration/`
 5. **Mapping Strategy**: MapStruct for all DTO/entity/domain object mapping
    - `mapIn`: Maps from external layer (JPA/jOOQ) TO domain
    - `mapOut`: Maps FROM domain TO external layer (JPA/DTO)
-   - **EXPLICIT @Mapping annotations required** for every field, even with same names
-   - Use MapStruct built-in features (nullValuePropertyMappingStrategy, defaultValue, etc.) to minimize manual code
-   - This ensures IDE refactoring updates mappers automatically
+   - **MUST use @Mapping annotations** - no manual field assignment in default methods
+   - Use `qualifiedByName` for custom type conversions (e.g., LocalDateTime → OffsetDateTime)
+   - Name converter methods descriptively: `toOffsetDateTime`, `stringToUri`, etc.
+   - **NEVER use fully qualified class names** - use imports instead
+   - Let MapStruct generate implementation code automatically
+   - IDE refactoring will update mappers automatically when using @Mapping
 
-6. **jOOQ Code Generation**: Use ACTUAL jOOQ codegen, NEVER fake/stub generated classes
+6. **OpenAPI Code Generation**: Contract-first API design
+   - Define API in `api-spec/src/main/resources/openapi/*.yaml`
+   - Use `openapi-generator-maven-plugin` version 7.20.0
+   - Generated models MUST have `DTO` suffix: `modelNameSuffix: DTO`
+   - Generates API interfaces (e.g., `StashesApi`) and DTOs (e.g., `StashResponseDTO`)
+   - Controllers implement generated interfaces
+   - Web module uses MapStruct to convert between OpenAPI DTOs and application DTOs
+
+7. **jOOQ Code Generation**: Use ACTUAL jOOQ codegen, NEVER fake/stub generated classes
    - Generated code is created from live database schema
    - Run `mvn jooq-codegen:generate` after migrations
    - Generated classes go to `target/generated-sources/jooq/`
