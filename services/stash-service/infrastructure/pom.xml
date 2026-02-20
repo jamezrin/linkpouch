@@ -150,9 +150,9 @@
                 <configuration>
                     <jdbc>
                         <driver>org.postgresql.Driver</driver>
-                        <url>${jooq.url:jdbc:postgresql://localhost:5432/linkpouch}</url>
-                        <user>${jooq.user:linkpouch}</user>
-                        <password>${jooq.password:linkpouch_secret}</password>
+                        <url>${jooq.url}</url>
+                        <user>${jooq.user}</user>
+                        <password>${jooq.password}</password>
                     </jdbc>
                     <generator>
                         <database>
@@ -167,6 +167,13 @@
                         </target>
                     </generator>
                 </configuration>
+                <dependencies>
+                    <dependency>
+                        <groupId>org.postgresql</groupId>
+                        <artifactId>postgresql</artifactId>
+                        <version>${postgresql.version}</version>
+                    </dependency>
+                </dependencies>
             </plugin>
 
             <!-- Add jOOQ generated sources to compilation -->
