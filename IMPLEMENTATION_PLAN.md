@@ -17,6 +17,8 @@
 - JPA (Hibernate 6.6) - simple CRUD only
 - Flyway 11 (database migrations)
 - PostgreSQL 16 driver
+- MapStruct 1.6.3 (DTO/entity mapping)
+- Lombok 1.18.36 (boilerplate reduction)
 
 #### Backend - API Gateway (Java 21)
 - Spring Boot 3.4.0
@@ -78,8 +80,8 @@ stash-service/
 │   └── service/                   # Domain services
 ├── application/                   # Application layer
 │   ├── dto/                       # Data transfer objects
-│   ├── mapper/                    # DTO <-> Domain mapping
-│   └── service/                   # Application services (use case implementations)
+│   ├── mapper/                    # DTO <-> Domain mapping (MapStruct)
+│   └── service/                   # Application services (use cases + transaction boundaries)
 ├── infrastructure/                # Outer hexagon - adapters
 │   ├── adapter/
 │   │   ├── persistence/           # Repository adapters
@@ -211,9 +213,15 @@ Location: `stash-service/src/main/resources/db/migration/`
 
 3. **Module Structure**: Clear separation following hexagonal architecture
 
-4. **Git Workflow**: Commit after each milestone/feature
+4. **Mapping Strategy**: MapStruct for all DTO/entity/domain object mapping (compile-time, type-safe)
 
-5. **Deployment**: kubectl apply to linkpouch-dev namespace for testing
+5. **Code Generation**: Lombok for reducing boilerplate (constructors, getters, builders)
+
+6. **Transaction Boundaries**: Application layer only (services/use cases), never in adapters
+
+7. **Git Workflow**: Commit after each milestone/feature
+
+7. **Deployment**: kubectl apply to linkpouch-dev namespace for testing
 
 ## Latest Version References
 
