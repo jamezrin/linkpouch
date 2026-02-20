@@ -46,11 +46,17 @@ public class Stash {
     }
     
     public void addLink(Link link) {
+        if (!this.id.equals(link.getStashId())) {
+            throw new IllegalArgumentException("Link " + link.getId() + " does not belong to stash " + this.id);
+        }
         this.links.add(link);
         this.updatedAt = LocalDateTime.now();
     }
-    
+
     public void removeLink(Link link) {
+        if (!this.id.equals(link.getStashId())) {
+            throw new IllegalArgumentException("Link " + link.getId() + " does not belong to stash " + this.id);
+        }
         this.links.remove(link);
         this.updatedAt = LocalDateTime.now();
     }

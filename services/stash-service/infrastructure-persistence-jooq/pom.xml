@@ -24,11 +24,6 @@
 
         <dependency>
             <groupId>com.linkpouch</groupId>
-            <artifactId>application</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>com.linkpouch</groupId>
             <artifactId>infrastructure-persistence-jpa</artifactId>
         </dependency>
 

@@ -22,11 +22,6 @@
             <artifactId>domain</artifactId>
         </dependency>
 
-        <dependency>
-            <groupId>com.linkpouch</groupId>
-            <artifactId>application</artifactId>
-        </dependency>
-
         <!-- Spring Boot -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
