@@ -8,9 +8,8 @@ WORKDIR /app
 # Install wget for healthcheck
 RUN apk add --no-cache wget
 
-# Copy the Spring Boot executable JAR (fat JAR with all dependencies)
-# The Spring Boot plugin creates infrastructure-*.jar which is the executable JAR
-COPY infrastructure/target/infrastructure-*.jar app.jar
+# Copy the Spring Boot executable JAR from the boot module
+COPY boot/target/boot-*.jar app.jar
 
 # Create non-root user
 RUN addgroup -S linkpouch && adduser -S linkpouch -G linkpouch
