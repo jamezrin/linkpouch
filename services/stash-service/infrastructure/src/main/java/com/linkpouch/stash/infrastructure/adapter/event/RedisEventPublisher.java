@@ -7,6 +7,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.connection.stream.MapRecord;
 import org.springframework.data.redis.connection.stream.RecordId;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Component;
 
 import java.time.Instant;
@@ -18,6 +19,7 @@ import java.util.Map;
  * Publishes domain events to Redis Streams for async processing by indexer service.
  */
 @Component
+@Primary
 @RequiredArgsConstructor
 @Slf4j
 public class RedisEventPublisher implements EventPublisher {
