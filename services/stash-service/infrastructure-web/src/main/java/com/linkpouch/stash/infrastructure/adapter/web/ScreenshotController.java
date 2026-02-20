@@ -1,5 +1,6 @@
 package com.linkpouch.stash.infrastructure.adapter.web;
 
+import com.linkpouch.stash.application.exception.NotFoundException;
 import com.linkpouch.stash.application.service.LinkManagementService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -31,7 +32,7 @@ public class ScreenshotController {
     @GetMapping(value = "/links/{linkId}/screenshot", produces = MediaType.IMAGE_PNG_VALUE)
     public ResponseEntity<byte[]> getScreenshot(@PathVariable UUID linkId) {
         var link = linkService.findLinkById(linkId)
-                .orElseThrow(() -> new IllegalArgumentException("Link not found: " + linkId));
+                .orElseThrow(() -> new NotFoundException("Link not found: " + linkId));
 
         if (link.getScreenshotKey() == null) {
             return ResponseEntity.notFound().build();

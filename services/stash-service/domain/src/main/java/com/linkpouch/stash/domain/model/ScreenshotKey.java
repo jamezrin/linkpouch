@@ -19,8 +19,8 @@ public final class ScreenshotKey {
     }
     
     public static ScreenshotKey of(String value) {
-        if (value == null) {
-            return null;
+        if (value == null || value.trim().isEmpty()) {
+            throw new IllegalArgumentException("ScreenshotKey cannot be null or blank");
         }
         return new ScreenshotKey(value.trim());
     }

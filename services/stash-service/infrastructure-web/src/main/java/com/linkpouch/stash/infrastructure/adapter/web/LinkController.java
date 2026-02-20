@@ -2,6 +2,7 @@ package com.linkpouch.stash.infrastructure.adapter.web;
 
 import com.linkpouch.stash.api.controller.LinksApi;
 import com.linkpouch.stash.api.model.*;
+import com.linkpouch.stash.application.exception.NotFoundException;
 import com.linkpouch.stash.application.service.LinkManagementService;
 import com.linkpouch.stash.domain.model.Link;
 import com.linkpouch.stash.infrastructure.adapter.web.mapper.ApiDtoMapper;
@@ -40,7 +41,7 @@ public class LinkController implements LinksApi {
     @Override
     public ResponseEntity<LinkResponseDTO> getLink(UUID linkId) {
         var link = linkService.findLinkById(linkId)
-                .orElseThrow(() -> new IllegalArgumentException("Link not found: " + linkId));
+                .orElseThrow(() -> new NotFoundException("Link not found: " + linkId));
         return ResponseEntity.ok(toResponse(link));
     }
 
