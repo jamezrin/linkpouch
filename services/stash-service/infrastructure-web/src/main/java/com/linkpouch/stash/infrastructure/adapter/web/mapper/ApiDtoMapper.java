@@ -8,16 +8,15 @@ import com.linkpouch.stash.application.dto.StashResponse;
 import org.mapstruct.Mapper;
 import org.mapstruct.Named;
 
+import java.net.URI;
+import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.List;
 
-/**
- * Mapper between OpenAPI generated DTOs and Application DTOs.
- * Follows the mapIn/mapOut naming convention.
- */
 @Mapper(componentModel = "spring")
 public interface ApiDtoMapper {
 
-    @Named("mapInCreateStashRequest")
     default CreateStashRequest mapIn(CreateStashRequestDTO dto) {
         if (dto == null) {
             return null;
@@ -25,7 +24,6 @@ public interface ApiDtoMapper {
         return new CreateStashRequest(dto.getName());
     }
 
-    @Named("mapOutStashResponse")
     default StashResponseDTO mapOut(StashResponse response) {
         if (response == null) {
             return null;
@@ -33,13 +31,12 @@ public interface ApiDtoMapper {
         StashResponseDTO dto = new StashResponseDTO();
         dto.setId(response.id());
         dto.setName(response.name());
-        dto.setLinkCount(response.linkCount());
-        dto.setCreatedAt(response.createdAt());
-        dto.setUpdatedAt(response.updatedAt());
+        dto.setLinkCount(0);
+        dto.setCreatedAt(toOffsetDateTime(response.createdAt()));
+        dto.setUpdatedAt(toOffsetDateTime(response.updatedAt()));
         return dto;
     }
 
-    @Named("mapOutStashResponseList")
     default List<StashResponseDTO> mapOutStashResponseList(List<StashResponse> responses) {
         if (responses == null) {
             return null;
@@ -49,38 +46,31 @@ public interface ApiDtoMapper {
                 .toList();
     }
 
-    @Named("mapInAddLinkRequest")
     default AddLinkRequest mapIn(AddLinkRequestDTO dto) {
         if (dto == null) {
             return null;
         }
         return new AddLinkRequest(
-                dto.getUrl(),
-                dto.getTitle(),
-                dto.getDescription()
+                dto.getUrl() != null ? dto.getUrl().toString() : null
         );
     }
 
-    @Named("mapOutLinkResponse")
     default LinkResponseDTO mapOut(LinkResponse response) {
         if (response == null) {
             return null;
         }
         LinkResponseDTO dto = new LinkResponseDTO();
         dto.setId(response.id());
-        dto.setStashId(response.stashId());
-        dto.setUrl(response.url());
+        dto.setUrl(toUri(response.url()));
         dto.setTitle(response.title());
         dto.setDescription(response.description());
-        dto.setFaviconUrl(response.faviconUrl());
-        dto.setScreenshotUrl(response.screenshotUrl());
-        dto.setScreenshotGeneratedAt(response.screenshotGeneratedAt());
-        dto.setCreatedAt(response.createdAt());
-        dto.setUpdatedAt(response.updatedAt());
+        dto.setFaviconUrl(toUri(response.faviconUrl()));
+        dto.setScreenshotUrl(null);
+        dto.setScreenshotGeneratedAt(toOffsetDateTime(response.screenshotGeneratedAt()));
+        dto.setCreatedAt(toOffsetDateTime(response.createdAt()));
         return dto;
     }
 
-    @Named("mapOutLinkResponseList")
     default List<LinkResponseDTO> mapOutLinkResponseList(List<LinkResponse> responses) {
         if (responses == null) {
             return null;
@@ -88,5 +78,23 @@ public interface ApiDtoMapper {
         return responses.stream()
                 .map(this::mapOut)
                 .toList();
+    }
+
+    default OffsetDateTime toOffsetDateTime(LocalDateTime localDateTime) {
+        if (localDateTime == null) {
+            return null;
+        }
+        return localDateTime.atOffset(ZoneOffset.UTC);
+    }
+
+    default URI toUri(String url) {
+        if (url == null) {
+            return null;
+        }
+        try {
+            return URI.create(url);
+        } catch (Exception e) {
+            return null;
+        }
     }
 }

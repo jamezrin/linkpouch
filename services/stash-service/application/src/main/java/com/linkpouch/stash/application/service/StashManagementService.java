@@ -52,7 +52,11 @@ public class StashManagementService implements StashManagementUseCase {
     public void deleteStash(UUID stashId) {
         stashRepository.deleteById(stashId);
     }
-    
+
+    public java.util.List<Stash> listAllStashes() {
+        return stashRepository.findAll();
+    }
+
     // Helper method for controller
     public StashResponse createStashResponse(CreateStashRequest request) {
         Stash stash = createStash(request.name());
