@@ -1,4 +1,4 @@
-package com.linkpouch.stash.infrastructure;
+package com.linkpouch.stash.boot;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
