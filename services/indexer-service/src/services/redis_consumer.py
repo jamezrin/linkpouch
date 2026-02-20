@@ -156,6 +156,9 @@ class RedisStreamConsumer:
         )
         
         if event_type == "link.added":
+            if not url:
+                logger.warning("No URL provided for link.added event", link_id=link_id)
+                return
             # Scrape metadata and take screenshot
             result = await self.scraper.scrape_link(url)
             logger.info(
@@ -179,6 +182,9 @@ class RedisStreamConsumer:
         )
         
         if event_type == "screenshot.refresh.requested":
+            if not url:
+                logger.warning("No URL provided for screenshot.refresh.requested event", link_id=link_id)
+                return
             # Regenerate screenshot
             screenshot = await self.scraper.take_screenshot(url)
             logger.info(
