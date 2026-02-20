@@ -8,6 +8,7 @@ import com.linkpouch.stash.domain.model.ScreenshotKey;
 import com.linkpouch.stash.domain.port.outbound.LinkRepository;
 import com.linkpouch.stash.infrastructure.adapter.persistence.jpa.LinkJpaRepository;
 import com.linkpouch.stash.infrastructure.adapter.persistence.jpa.entity.LinkJpaEntity;
+import com.linkpouch.stash.infrastructure.adapter.persistence.jpa.entity.StashJpaEntity;
 import com.linkpouch.stash.infrastructure.adapter.persistence.mapper.PersistenceMapper;
 import lombok.RequiredArgsConstructor;
 import org.jooq.DSLContext;
@@ -40,6 +41,10 @@ public class LinkJooqAdapter implements LinkRepository {
                 .orElseGet(() -> {
                     LinkJpaEntity newEntity = new LinkJpaEntity();
                     newEntity.setId(link.getId());
+                    // Set stash reference for new entities (FK stash_id)
+                    StashJpaEntity stashRef = new StashJpaEntity();
+                    stashRef.setId(link.getStashId());
+                    newEntity.setStash(stashRef);
                     return newEntity;
                 });
         
