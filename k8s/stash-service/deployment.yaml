@@ -1,0 +1,67 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: stash-service
+  namespace: linkpouch-dev
+  labels:
+    app: stash-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: stash-service
+  template:
+    metadata:
+      labels:
+        app: stash-service
+    spec:
+      containers:
+      - name: stash-service
+        image: stash-service:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8080
+          name: http
+        env:
+        - name: POSTGRES_HOST
+          value: postgres
+        - name: POSTGRES_PORT
+          value: "5432"
+        - name: POSTGRES_DB
+          value: linkpouch
+        - name: POSTGRES_USER
+          value: linkpouch
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: postgres-secret
+              key: POSTGRES_PASSWORD
+        - name: REDIS_HOST
+          value: redis
+        - name: REDIS_PORT
+          value: "6379"
+        - name: SIGNATURE_MASTER_KEY
+          valueFrom:
+            secretKeyRef:
+              name: stash-service-secret
+              key: SIGNATURE_MASTER_KEY
+              optional: true
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "500m"
+          limits:
+            memory: "1Gi"
+            cpu: "1000m"
+        livenessProbe:
+          httpGet:
+            path: /actuator/health/liveness
+            port: 8080
+          initialDelaySeconds: 60
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /actuator/health/readiness
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
