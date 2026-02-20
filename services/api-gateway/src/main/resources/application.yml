@@ -27,7 +27,7 @@ spring:
           predicates:
             - Path=/api/stashes/**
           filters:
-            - StripPrefix=0
+            - StripPrefix=1
         
         # Indexer Service Routes
         - id: indexer-service
