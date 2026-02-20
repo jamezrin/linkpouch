@@ -96,19 +96,19 @@ public class LinkJooqAdapter implements LinkRepository {
      * Maps FROM jOOQ record TO domain (mapIn pattern).
      */
     private Link mapIn(org.jooq.Record record) {
-        return Link.builder()
-                .id(record.get(LINKS.ID))
-                .stashId(record.get(LINKS.STASH_ID))
-                .url(Url.of(record.get(LINKS.URL)))
-                .title(record.get(LINKS.TITLE) != null ? LinkTitle.of(record.get(LINKS.TITLE)) : null)
-                .description(record.get(LINKS.DESCRIPTION) != null ? LinkDescription.of(record.get(LINKS.DESCRIPTION)) : null)
-                .faviconUrl(record.get(LINKS.FAVICON_URL) != null ? Url.of(record.get(LINKS.FAVICON_URL)) : null)
-                .pageContent(record.get(LINKS.PAGE_CONTENT))
-                .finalUrl(record.get(LINKS.FINAL_URL) != null ? Url.of(record.get(LINKS.FINAL_URL)) : null)
-                .screenshotKey(record.get(LINKS.SCREENSHOT_KEY) != null ? ScreenshotKey.of(record.get(LINKS.SCREENSHOT_KEY)) : null)
-                .screenshotGeneratedAt(record.get(LINKS.SCREENSHOT_GENERATED_AT))
-                .createdAt(record.get(LINKS.CREATED_AT))
-                .updatedAt(record.get(LINKS.UPDATED_AT))
-                .build();
+        return new Link(
+                record.get(LINKS.ID),
+                record.get(LINKS.STASH_ID),
+                record.get(LINKS.CREATED_AT),
+                record.get(LINKS.UPDATED_AT),
+                Url.of(record.get(LINKS.URL)),
+                record.get(LINKS.TITLE) != null ? LinkTitle.of(record.get(LINKS.TITLE)) : null,
+                record.get(LINKS.DESCRIPTION) != null ? LinkDescription.of(record.get(LINKS.DESCRIPTION)) : null,
+                record.get(LINKS.FAVICON_URL) != null ? Url.of(record.get(LINKS.FAVICON_URL)) : null,
+                record.get(LINKS.PAGE_CONTENT),
+                record.get(LINKS.FINAL_URL) != null ? Url.of(record.get(LINKS.FINAL_URL)) : null,
+                record.get(LINKS.SCREENSHOT_KEY) != null ? ScreenshotKey.of(record.get(LINKS.SCREENSHOT_KEY)) : null,
+                record.get(LINKS.SCREENSHOT_GENERATED_AT)
+        );
     }
 }

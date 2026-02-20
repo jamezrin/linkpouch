@@ -131,7 +131,8 @@
                 </configuration>
             </plugin>
             
-            <plugin>
+            <!-- jOOQ Code Generation - run manually with: mvn jooq-codegen:generate -->
+            <!-- <plugin>
                 <groupId>org.jooq</groupId>
                 <artifactId>jooq-codegen-maven</artifactId>
                 <version>${jooq.version}</version>
@@ -161,7 +162,7 @@
                         </target>
                     </generator>
                 </configuration>
-            </plugin>
+            </plugin> -->
         </plugins>
     </build>
 </project>

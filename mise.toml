@@ -13,16 +13,6 @@ python = "3.13"
 # Infrastructure tools
 kubectl = "latest"
 
-[env]
-# Java configuration
-JAVA_HOME = "{{ .Config.DataDir }}/installs/java/21"
-
-# Maven configuration
-MAVEN_OPTS = "-Xmx2g -XX:+UseG1GC"
-
-# Node configuration
-NODE_ENV = "development"
-
 [tasks.build]
 description = "Build all services"
 run = "cd services/stash-service && mvn clean package -DskipTests"
