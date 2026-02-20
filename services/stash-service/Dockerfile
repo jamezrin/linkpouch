@@ -1,5 +1,5 @@
 # Build stage
-FROM --platform=$BUILDPLATFORM maven:3.9-eclipse-temurin-21-alpine AS builder
+FROM maven:3.9-eclipse-temurin-21-alpine AS builder
 
 WORKDIR /app
 
@@ -17,8 +17,13 @@ COPY domain/src domain/src
 COPY application/src application/src
 COPY infrastructure/src infrastructure/src
 
-# Build the application
-RUN mvn clean package -DskipTests -B
+# Copy jOOQ generated code to source directory (not target, to avoid clean deletion)
+# Create a separate source directory for generated code
+RUN mkdir -p infrastructure/src/main/java
+COPY infrastructure/target/generated-sources/jooq/com infrastructure/src/main/java/com
+
+# Build without clean (we manually manage the directories)
+RUN mvn package -DskipTests -B
 
 # Runtime stage - using eclipse-temurin which supports arm64
 FROM eclipse-temurin:21-jre-alpine

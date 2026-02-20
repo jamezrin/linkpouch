@@ -1,26 +1,11 @@
-# Build stage
-FROM --platform=$BUILDPLATFORM python:3.13-slim AS builder
-
-WORKDIR /app
-
-# Install system dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    gcc \
-    && rm -rf /var/lib/apt/lists/*
-
-# Copy requirements
-COPY pyproject.toml .
-
-# Install dependencies
-RUN pip install --no-cache-dir -e "."
-
-# Final stage
+# Single stage build for arm64 compatibility
 FROM python:3.13-slim
 
 WORKDIR /app
 
-# Install Playwright dependencies
+# Install system dependencies and Playwright dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
+    gcc \
     wget \
     gnupg \
     libglib2.0-0 \
@@ -43,9 +28,15 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libatspi2.0-0 \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy Python packages from builder
-COPY --from=builder /usr/local/lib/python3.13/site-packages /usr/local/lib/python3.13/site-packages
-COPY --from=builder /usr/local/bin /usr/local/bin
+# Copy requirements first for better caching
+COPY pyproject.toml .
+
+# Install Python dependencies
+RUN pip install --no-cache-dir -e "."
+
+# Install Playwright browsers
+RUN playwright install chromium
+RUN playwright install-deps chromium
 
 # Copy application code
 COPY src/ ./src/
@@ -53,9 +44,6 @@ COPY src/ ./src/
 # Create non-root user
 RUN groupadd -r linkpouch && useradd -r -g linkpouch linkpouch
 USER linkpouch
-
-# Install Playwright browsers
-RUN playwright install chromium
 
 EXPOSE 8081
 
