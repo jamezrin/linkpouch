@@ -8,24 +8,32 @@ RUN apk add --no-cache postgresql-client
 
 # Copy parent POM first
 COPY pom.xml .
+COPY api-spec/pom.xml api-spec/
 COPY domain/pom.xml domain/
 COPY application/pom.xml application/
-COPY infrastructure/pom.xml infrastructure/
+COPY infrastructure-persistence-jpa/pom.xml infrastructure-persistence-jpa/
+COPY infrastructure-persistence-jooq/pom.xml infrastructure-persistence-jooq/
+COPY infrastructure-redis/pom.xml infrastructure-redis/
+COPY infrastructure-web/pom.xml infrastructure-web/
+COPY boot/pom.xml boot/
 
 # Download dependencies
 RUN mvn dependency:go-offline -B
 
 # Copy source code
+COPY api-spec/src api-spec/src
 COPY domain/src domain/src
 COPY application/src application/src
-COPY infrastructure/src infrastructure/src
+COPY infrastructure-persistence-jpa/src infrastructure-persistence-jpa/src
+COPY infrastructure-persistence-jooq/src infrastructure-persistence-jooq/src
+COPY infrastructure-redis/src infrastructure-redis/src
+COPY infrastructure-web/src infrastructure-web/src
+COPY boot/src boot/src
 
 # Copy Flyway migrations
-COPY infrastructure/src/main/resources/db/migration infrastructure/src/main/resources/db/migration
+COPY infrastructure-persistence-jpa/src/main/resources/db/migration infrastructure-persistence-jpa/src/main/resources/db/migration
 
 # Build (jOOQ code will be generated during the build process)
-# Skip jOOQ generation since we don't have a database in the build container
-# Instead, we'll include the jOOQ generated classes in the source
 RUN mvn package -DskipTests -B
 
 # Runtime stage - using eclipse-temurin which supports arm64
@@ -36,8 +44,8 @@ WORKDIR /app
 # Install wget for healthcheck
 RUN apk add --no-cache wget
 
-# Copy the built JAR
-COPY --from=builder /app/infrastructure/target/*.jar app.jar
+# Copy the built JAR from boot module
+COPY --from=builder /app/boot/target/*.jar app.jar
 
 # Create non-root user
 RUN addgroup -S linkpouch && adduser -S linkpouch -G linkpouch
