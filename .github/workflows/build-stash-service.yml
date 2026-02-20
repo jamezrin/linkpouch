@@ -52,6 +52,11 @@ jobs:
           distribution: 'temurin'
           cache: maven
 
+      - name: Install parent POM
+        working-directory: services/stash-service
+        run: |
+          mvn install -N -B -q
+
       - name: Install parent modules
         working-directory: services/stash-service
         run: |
@@ -137,6 +142,11 @@ jobs:
           java-version: '21'
           distribution: 'temurin'
           cache: maven
+
+      - name: Install parent POM
+        working-directory: services/stash-service
+        run: |
+          mvn install -N -B -q
 
       - name: Install parent modules
         working-directory: services/stash-service
