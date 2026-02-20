@@ -21,25 +21,25 @@ spring:
               - "*"
             allowCredentials: false
       routes:
-        # Stash Service Routes
-        - id: stash-service
-          uri: http://stash-service:8080
+        # Stash Service - stash routes
+        - id: stash-service-stashes
+          uri: ${STASH_SERVICE_URL:http://stash-service:8080}
           predicates:
             - Path=/api/stashes/**
           filters:
             - StripPrefix=1
-        
-        # Indexer Service Routes
-        - id: indexer-service
-          uri: http://indexer-service:8080
+
+        # Stash Service - link routes (including screenshot proxy)
+        - id: stash-service-links
+          uri: ${STASH_SERVICE_URL:http://stash-service:8080}
           predicates:
-            - Path=/api/indexer/**
+            - Path=/api/links/**
           filters:
             - StripPrefix=1
-        
+
         # Health check route
         - id: health
-          uri: http://stash-service:8080
+          uri: ${STASH_SERVICE_URL:http://stash-service:8080}
           predicates:
             - Path=/health
           filters:

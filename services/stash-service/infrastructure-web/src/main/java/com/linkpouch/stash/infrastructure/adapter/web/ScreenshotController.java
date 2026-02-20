@@ -10,7 +10,6 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
@@ -19,7 +18,6 @@ import software.amazon.awssdk.services.s3.model.NoSuchKeyException;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/api")
 @RequiredArgsConstructor
 public class ScreenshotController {
 
