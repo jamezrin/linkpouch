@@ -131,18 +131,15 @@
                 </configuration>
             </plugin>
             
-            <!-- jOOQ Code Generation - run manually with: mvn jooq-codegen:generate -->
-            <!-- <plugin>
+            <!-- jOOQ Code Generation
+                 Run manually after starting database:
+                 mvn jooq-codegen:generate -pl infrastructure
+            -->
+            <plugin>
                 <groupId>org.jooq</groupId>
                 <artifactId>jooq-codegen-maven</artifactId>
                 <version>${jooq.version}</version>
-                <executions>
-                    <execution>
-                        <goals>
-                            <goal>generate</goal>
-                        </goals>
-                    </execution>
-                </executions>
+                <!-- No executions - only runs when explicitly invoked -->
                 <configuration>
                     <jdbc>
                         <driver>org.postgresql.Driver</driver>
@@ -162,7 +159,28 @@
                         </target>
                     </generator>
                 </configuration>
-            </plugin> -->
+            </plugin>
+
+            <!-- Add jOOQ generated sources to compilation -->
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>build-helper-maven-plugin</artifactId>
+                <version>3.6.0</version>
+                <executions>
+                    <execution>
+                        <id>add-source</id>
+                        <phase>generate-sources</phase>
+                        <goals>
+                            <goal>add-source</goal>
+                        </goals>
+                        <configuration>
+                            <sources>
+                                <source>target/generated-sources/jooq</source>
+                            </sources>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
         </plugins>
     </build>
 </project>
