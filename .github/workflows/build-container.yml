@@ -20,6 +20,11 @@ on:
         type: string
         description: 'Build arguments (optional)'
         default: ''
+      needs-postgres:
+        required: false
+        type: boolean
+        description: 'Whether the build needs a PostgreSQL service for jOOQ code generation'
+        default: false
 
 env:
   REGISTRY: ghcr.io
