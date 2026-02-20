@@ -46,6 +46,10 @@ class Settings(BaseSettings):
     screenshot_width: int = Field(default=1280)
     screenshot_height: int = Field(default=720)
     
+    # Stash Service
+    stash_service_url: str = Field(default="http://stash-service:8080")
+    stash_service_timeout: int = Field(default=30)
+    
     @property
     def redis_url(self) -> str:
         """Get Redis connection URL."""

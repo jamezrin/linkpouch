@@ -9,6 +9,7 @@ from redis.asyncio import Redis
 
 from src.config.settings import Settings
 from src.services.scraper import LinkScraper
+from src.services.stash_client import StashServiceClient
 
 logger = structlog.get_logger()
 
@@ -20,6 +21,7 @@ class RedisStreamConsumer:
         self.settings = settings
         self.redis: Redis | None = None
         self.scraper = LinkScraper(settings)
+        self.stash_client = StashServiceClient(settings)
         self._running = False
         
     async def start(self) -> None:
@@ -48,6 +50,7 @@ class RedisStreamConsumer:
         self._running = False
         if self.redis:
             await self.redis.close()
+        await self.stash_client.close()
     
     async def _create_consumer_groups(self) -> None:
         """Create consumer groups for streams."""
@@ -166,7 +169,15 @@ class RedisStreamConsumer:
                 link_id=link_id,
                 title=result.get("title"),
             )
-            # TODO: Send result back to stash service via HTTP or Redis
+            # Send metadata back to stash service
+            await self.stash_client.update_link_metadata(
+                link_id=link_id,
+                title=result.get("title"),
+                description=result.get("description"),
+                favicon_url=result.get("favicon_url"),
+                page_content=result.get("page_content"),
+                final_url=result.get("final_url"),
+            )
     
     async def _handle_screenshot_event(self, data: dict) -> None:
         """Handle screenshot.refresh.requested event."""
@@ -192,3 +203,9 @@ class RedisStreamConsumer:
                 link_id=link_id,
                 screenshot_key=screenshot.get("key"),
             )
+            # Notify stash service about new screenshot
+            if link_id and screenshot.get("key"):
+                await self.stash_client.update_screenshot(
+                    link_id=link_id,
+                    screenshot_key=screenshot["key"],
+                )

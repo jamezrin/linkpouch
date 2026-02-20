@@ -8,4 +8,5 @@ com/linkpouch/stash/application/service/SignatureValidationService.class
 com/linkpouch/stash/application/service/StashManagementService.class
 com/linkpouch/stash/application/mapper/DomainToDtoMapperImpl.class
 com/linkpouch/stash/application/dto/AddLinkRequest.class
+com/linkpouch/stash/application/dto/PagedResult.class
 com/linkpouch/stash/application/mapper/DtoToDomainMapperImpl.class
