@@ -1,0 +1,35 @@
+name: Build All Services
+
+on:
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-stash-service:
+    uses: ./.github/workflows/build-container.yml
+    with:
+      service-name: stash-service
+      dockerfile-path: ./services/stash-service/Dockerfile
+      context-path: ./services/stash-service
+    secrets: inherit
+
+  build-indexer-service:
+    uses: ./.github/workflows/build-container.yml
+    with:
+      service-name: indexer-service
+      dockerfile-path: ./services/indexer-service/Dockerfile
+      context-path: ./services/indexer-service
+    secrets: inherit
+
+  build-api-gateway:
+    uses: ./.github/workflows/build-container.yml
+    with:
+      service-name: api-gateway
+      dockerfile-path: ./services/api-gateway/Dockerfile
+      context-path: ./services/api-gateway
+    secrets: inherit

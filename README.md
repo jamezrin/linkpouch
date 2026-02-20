@@ -23,10 +23,10 @@ mise exec java -- mvn spring-boot:run -pl infrastructure  # Stash Service on :80
 
 ## Architecture
 
+- **API Gateway** (Spring Cloud Gateway): Routing, load balancing, and CORS
 - **Stash Service** (Java/Spring Boot): Core API with DDD + Hexagonal Architecture
 - **Indexer Service** (Python/FastAPI): Async link scraping with Playwright
 - **Frontend** (React/Vite): Modern UI
-- **API Gateway** (Spring Cloud Gateway): Routing and auth
 
 ## Documentation
 
@@ -42,6 +42,16 @@ mise exec java -- mvn spring-boot:run -pl infrastructure  # Stash Service on :80
 - **Cache/Queue**: Redis 7.4 (Streams)
 - **Storage**: MinIO (S3-compatible)
 - **Infra**: Kubernetes, Docker
+
+## CI/CD & Container Registry
+
+Images are automatically built and published to **GitHub Container Registry (GHCR)** via GitHub Actions:
+
+- `ghcr.io/jamezrin/linkpouch/stash-service`
+- `ghcr.io/jamezrin/linkpouch/indexer-service`
+- `ghcr.io/jamezrin/linkpouch/api-gateway`
+
+Workflows trigger on pushes to `main` branch and build multi-platform images (amd64/arm64).
 
 ## Development
 

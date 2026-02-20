@@ -15,10 +15,12 @@ spec:
       labels:
         app: indexer-service
     spec:
+      imagePullSecrets:
+      - name: ghcr-secret
       containers:
       - name: indexer-service
-        image: indexer-service:latest
-        imagePullPolicy: IfNotPresent
+        image: ghcr.io/jamezrin/linkpouch/indexer-service:latest
+        imagePullPolicy: Always
         ports:
         - containerPort: 8081
           name: http

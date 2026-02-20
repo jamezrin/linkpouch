@@ -15,10 +15,12 @@ spec:
       labels:
         app: stash-service
     spec:
+      imagePullSecrets:
+      - name: ghcr-secret
       containers:
       - name: stash-service
-        image: stash-service:latest
-        imagePullPolicy: IfNotPresent
+        image: ghcr.io/jamezrin/linkpouch/stash-service:latest
+        imagePullPolicy: Always
         ports:
         - containerPort: 8080
           name: http
