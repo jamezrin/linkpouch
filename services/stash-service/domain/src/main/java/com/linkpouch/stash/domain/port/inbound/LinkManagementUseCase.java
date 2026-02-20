@@ -37,6 +37,17 @@ public interface LinkManagementUseCase {
     void deleteLink(UUID linkId);
     
     /**
+     * Update link metadata (called by indexer after scraping).
+     */
+    Link updateLinkMetadata(UUID linkId, String title, String description,
+                            String faviconUrl, String pageContent, String finalUrl);
+
+    /**
+     * Update link screenshot key (called by indexer after upload).
+     */
+    Link updateLinkScreenshot(UUID linkId, String screenshotKey);
+
+    /**
      * Request a screenshot refresh for a link.
      */
     void requestScreenshotRefresh(UUID linkId);

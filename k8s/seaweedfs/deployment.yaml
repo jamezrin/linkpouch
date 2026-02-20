@@ -1,0 +1,74 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: seaweedfs
+  namespace: linkpouch-dev
+  labels:
+    app: seaweedfs
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: seaweedfs
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: seaweedfs
+    spec:
+      containers:
+      - name: seaweedfs
+        image: chrislusf/seaweedfs:3.78
+        command:
+          - weed
+          - server
+          - -dir=/data
+          - -filer
+          - -s3
+          - -s3.config=/etc/seaweedfs/s3-config.json
+          - -s3.port=8333
+        ports:
+        - containerPort: 9333
+          name: master
+        - containerPort: 8080
+          name: volume
+        - containerPort: 8888
+          name: filer
+        - containerPort: 8333
+          name: s3
+        volumeMounts:
+        - name: data
+          mountPath: /data
+        - name: s3-config
+          mountPath: /etc/seaweedfs
+          readOnly: true
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /cluster/status
+            port: 9333
+          initialDelaySeconds: 30
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /cluster/status
+            port: 9333
+          initialDelaySeconds: 15
+          periodSeconds: 10
+      volumes:
+      - name: data
+        persistentVolumeClaim:
+          claimName: seaweedfs-data
+      - name: s3-config
+        secret:
+          secretName: seaweedfs-secret
+          items:
+          - key: s3-config.json
+            path: s3-config.json

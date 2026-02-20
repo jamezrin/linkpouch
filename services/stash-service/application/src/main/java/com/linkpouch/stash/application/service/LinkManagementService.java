@@ -66,6 +66,25 @@ public class LinkManagementService implements LinkManagementUseCase {
 
     @Override
     @Transactional
+    public Link updateLinkMetadata(UUID linkId, String title, String description,
+                                   String faviconUrl, String pageContent, String finalUrl) {
+        Link link = linkRepository.findById(linkId)
+                .orElseThrow(() -> new IllegalArgumentException("Link not found: " + linkId));
+        link.updateMetadata(title, description, faviconUrl, pageContent, finalUrl);
+        return linkRepository.save(link);
+    }
+
+    @Override
+    @Transactional
+    public Link updateLinkScreenshot(UUID linkId, String screenshotKey) {
+        Link link = linkRepository.findById(linkId)
+                .orElseThrow(() -> new IllegalArgumentException("Link not found: " + linkId));
+        link.updateScreenshot(screenshotKey);
+        return linkRepository.save(link);
+    }
+
+    @Override
+    @Transactional
     public void requestScreenshotRefresh(UUID linkId) {
         Link link = linkRepository.findById(linkId)
                 .orElseThrow(() -> new IllegalArgumentException("Link not found: " + linkId));

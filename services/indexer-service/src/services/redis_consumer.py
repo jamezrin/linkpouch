@@ -10,17 +10,19 @@ from redis.asyncio import Redis
 from src.config.settings import Settings
 from src.services.scraper import LinkScraper
 from src.services.stash_client import StashServiceClient
+from src.services.storage_service import ScreenshotStorageService
 
 logger = structlog.get_logger()
 
 
 class RedisStreamConsumer:
     """Consumer for Redis Streams events."""
-    
+
     def __init__(self, settings: Settings):
         self.settings = settings
         self.redis: Redis | None = None
-        self.scraper = LinkScraper(settings)
+        self.storage_service = ScreenshotStorageService(settings)
+        self.scraper = LinkScraper(settings, self.storage_service)
         self.stash_client = StashServiceClient(settings)
         self._running = False
         
@@ -162,14 +164,9 @@ class RedisStreamConsumer:
             if not url:
                 logger.warning("No URL provided for link.added event", link_id=link_id)
                 return
-            # Scrape metadata and take screenshot
+            # Scrape metadata
             result = await self.scraper.scrape_link(url)
-            logger.info(
-                "Link scraped",
-                link_id=link_id,
-                title=result.get("title"),
-            )
-            # Send metadata back to stash service
+            logger.info("Link scraped", link_id=link_id, title=result.get("title"))
             await self.stash_client.update_link_metadata(
                 link_id=link_id,
                 title=result.get("title"),
@@ -178,6 +175,18 @@ class RedisStreamConsumer:
                 page_content=result.get("page_content"),
                 final_url=result.get("final_url"),
             )
+            # Take screenshot automatically for new links
+            screenshot = await self.scraper.take_screenshot(url)
+            logger.info(
+                "Initial screenshot taken",
+                link_id=link_id,
+                screenshot_key=screenshot.get("key"),
+            )
+            if link_id and screenshot.get("key"):
+                await self.stash_client.update_screenshot(
+                    link_id=link_id,
+                    screenshot_key=screenshot["key"],
+                )
     
     async def _handle_screenshot_event(self, data: dict) -> None:
         """Handle screenshot.refresh.requested event."""
