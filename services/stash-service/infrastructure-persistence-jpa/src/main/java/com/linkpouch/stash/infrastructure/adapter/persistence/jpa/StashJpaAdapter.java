@@ -39,4 +39,11 @@ public class StashJpaAdapter implements StashRepository {
     public void deleteById(UUID id) {
         jpaRepository.deleteById(id);
     }
+
+    @Override
+    public java.util.List<Stash> findAll() {
+        return jpaRepository.findAll().stream()
+                .map(mapper::mapIn)
+                .toList();
+    }
 }

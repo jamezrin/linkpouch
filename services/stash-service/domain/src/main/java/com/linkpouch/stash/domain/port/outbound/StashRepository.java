@@ -24,4 +24,9 @@ public interface StashRepository {
      * Delete a stash by ID.
      */
     void deleteById(UUID id);
+
+    /**
+     * Find all stashes.
+     */
+    java.util.List<Stash> findAll();
 }
