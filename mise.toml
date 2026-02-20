@@ -1,0 +1,48 @@
+[tools]
+# Java
+java = "21"
+maven = "3.9"
+
+# Node.js
+node = "22"
+npm = "10"
+
+# Python (for indexer service)
+python = "3.13"
+
+# Infrastructure tools
+kubectl = "latest"
+
+[env]
+# Java configuration
+JAVA_HOME = "{{ .Config.DataDir }}/installs/java/21"
+
+# Maven configuration
+MAVEN_OPTS = "-Xmx2g -XX:+UseG1GC"
+
+# Node configuration
+NODE_ENV = "development"
+
+[tasks.build]
+description = "Build all services"
+run = "cd services/stash-service && mvn clean package -DskipTests"
+
+[tasks.test]
+description = "Run all tests"
+run = "cd services/stash-service && mvn test"
+
+[tasks.dev]
+description = "Start local development environment"
+run = "docker-compose up -d postgres redis minio"
+
+[tasks.dev-down]
+description = "Stop local development environment"
+run = "docker-compose down"
+
+[tasks.migrate]
+description = "Run database migrations"
+run = "cd services/stash-service/infrastructure && mvn flyway:migrate"
+
+[tasks.k8s-deploy]
+description = "Deploy to Kubernetes dev namespace"
+run = "kubectl apply -f k8s/ -n linkpouch-dev"
