@@ -1,9 +1,6 @@
 package com.linkpouch.stash.application.service;
 
-import com.linkpouch.stash.application.dto.AddLinkRequest;
-import com.linkpouch.stash.application.dto.LinkResponse;
 import com.linkpouch.stash.application.dto.PagedResult;
-import com.linkpouch.stash.application.mapper.DomainToDtoMapper;
 import com.linkpouch.stash.domain.model.Link;
 import com.linkpouch.stash.domain.port.inbound.LinkManagementUseCase;
 import com.linkpouch.stash.domain.port.outbound.EventPublisher;
@@ -26,24 +23,23 @@ public class LinkManagementService implements LinkManagementUseCase {
 
     private final LinkRepository linkRepository;
     private final EventPublisher eventPublisher;
-    private final DomainToDtoMapper dtoMapper;
 
     @Override
     @Transactional
     public Link addLink(UUID stashId, String url) {
         Link link = Link.create(stashId, url);
         Link saved = linkRepository.save(link);
-        
+
         // Publish event for async indexing
         eventPublisher.publishLinkAdded(new EventPublisher.LinkAddedEvent(
                 saved.getId().toString(),
                 saved.getUrl().getValue(),
                 stashId.toString()
         ));
-        
+
         return saved;
     }
-    
+
     @Override
     @Transactional(readOnly = true)
     public Optional<Link> findLinkById(UUID linkId) {
@@ -61,19 +57,19 @@ public class LinkManagementService implements LinkManagementUseCase {
     public List<Link> searchLinks(UUID stashId, String query) {
         return linkRepository.searchByStashIdAndQuery(stashId, query);
     }
-    
+
     @Override
     @Transactional
     public void deleteLink(UUID linkId) {
         linkRepository.deleteById(linkId);
     }
-    
+
     @Override
     @Transactional
     public void requestScreenshotRefresh(UUID linkId) {
         Link link = linkRepository.findById(linkId)
                 .orElseThrow(() -> new IllegalArgumentException("Link not found: " + linkId));
-        
+
         eventPublisher.publishScreenshotRefreshRequested(
                 new EventPublisher.ScreenshotRefreshEvent(
                         linkId.toString(),
@@ -81,21 +77,9 @@ public class LinkManagementService implements LinkManagementUseCase {
                 )
         );
     }
-    
-    // Helper methods for controllers
-    @Transactional
-    public LinkResponse addLinkResponse(UUID stashId, AddLinkRequest request) {
-        Link link = addLink(stashId, request.url());
-        return dtoMapper.mapOut(link);
-    }
 
     @Transactional(readOnly = true)
-    public LinkResponse toResponse(Link link) {
-        return dtoMapper.mapOut(link);
-    }
-
-    @Transactional(readOnly = true)
-    public PagedResult<LinkResponse> listLinksResponse(UUID stashId, String search, int page, int size) {
+    public PagedResult<Link> listLinks(UUID stashId, String search, int page, int size) {
         List<Link> links;
         if (search != null && !search.isEmpty()) {
             links = searchLinks(stashId, search);
@@ -113,12 +97,6 @@ public class LinkManagementService implements LinkManagementUseCase {
                 ? links.subList(fromIndex, toIndex)
                 : List.of();
 
-        return new PagedResult<>(
-                dtoMapper.mapOutLinks(paginatedLinks),
-                totalElements,
-                totalPages,
-                size,
-                page
-        );
+        return new PagedResult<>(paginatedLinks, totalElements, totalPages, size, page);
     }
 }

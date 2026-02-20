@@ -15,45 +15,33 @@ import java.util.UUID;
 @RestController
 @RequiredArgsConstructor
 public class StashController implements StashesApi {
-    
+
     private final StashManagementService stashService;
     private final ApiDtoMapper mapper;
-    
+
     @Override
     public ResponseEntity<StashResponseDTO> createStash(CreateStashRequestDTO createStashRequestDTO) {
         var request = mapper.mapIn(createStashRequestDTO);
-        var response = stashService.createStashResponse(request);
-        return ResponseEntity.status(HttpStatus.CREATED).body(mapper.mapOut(response));
+        var stash = stashService.createStash(request.name());
+        return ResponseEntity.status(HttpStatus.CREATED).body(mapper.mapOut(stash));
     }
-    
+
     @Override
     public ResponseEntity<Void> deleteStash(UUID stashId) {
         stashService.deleteStash(stashId);
         return ResponseEntity.noContent().build();
     }
-    
+
     @Override
     public ResponseEntity<StashResponseDTO> getStash(UUID stashId) {
         var stash = stashService.findStashById(stashId)
                 .orElseThrow(() -> new IllegalArgumentException("Stash not found: " + stashId));
-        var request = new com.linkpouch.stash.application.dto.CreateStashRequest(stash.getName().getValue());
-        var response = stashService.createStashResponse(request);
-        return ResponseEntity.ok(mapper.mapOut(response));
+        return ResponseEntity.ok(mapper.mapOut(stash));
     }
-    
+
     @Override
     public ResponseEntity<List<StashResponseDTO>> listStashes() {
         var stashes = stashService.listAllStashes();
-        // Convert domain models to response DTOs
-        var responses = stashes.stream()
-                .map(stash -> new com.linkpouch.stash.application.dto.StashResponse(
-                        stash.getId(),
-                        stash.getName().getValue(),
-                        stash.getSecretKey().getValue(),
-                        stash.getCreatedAt(),
-                        stash.getUpdatedAt()
-                ))
-                .toList();
-        return ResponseEntity.ok(mapper.mapOutStashResponseList(responses));
+        return ResponseEntity.ok(mapper.mapOutStashes(stashes));
     }
 }
