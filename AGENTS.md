@@ -88,12 +88,14 @@ mypy src/
 
 **MapStruct Mappers:**
 - Name methods: `mapIn` (external → domain), `mapOut` (domain → external)
-- Use @Mapping annotations for all fields
+- **REQUIRED: Use @Mapping annotations for ALL fields, even with same names** - makes code resilient to field renames/refactors
 - Use qualifiedByName for custom conversions
 - Name converter methods descriptively: `toOffsetDateTime`, `stringToUri`
 - NEVER use fully qualified class names in mappers
 - Example:
 ```java
+@Mapping(target = "id", source = "id")
+@Mapping(target = "name", source = "name")
 @Mapping(target = "linkCount", constant = "0")
 @Mapping(target = "createdAt", source = "createdAt", qualifiedByName = "toOffsetDateTime")
 StashResponseDTO mapOut(StashResponse response);
@@ -143,27 +145,61 @@ StashResponseDTO mapOut(StashResponse response);
 - infrastructure-*/ - Adapters (4 separate modules)
 - Dependency direction: domain ← application ← infrastructure
 
+**Infrastructure Module Isolation:**
+- 4 separate infrastructure modules with no circular dependencies:
+  - infrastructure-web: REST controllers and API adapters (depends on api-spec)
+  - infrastructure-redis: Event publishing via Redis Streams
+  - infrastructure-persistence-jpa: JPA entities and repositories (write operations)
+  - infrastructure-persistence-jooq: jOOQ queries (read operations)
+- Each module is independent with its own dependencies
+
 **Code Generation:**
 - OpenAPI DTOs generated with "DTO" suffix
 - jOOQ code from live database (target/generated-sources/)
 - Lombok for boilerplate reduction
 - NEVER commit generated code
 
+**OpenAPI Code Generation:**
+- Define API in `api-spec/src/main/resources/openapi/*.yaml`
+- Use `openapi-generator-maven-plugin` version 7.20.0
+- Generated models MUST have `DTO` suffix: `modelNameSuffix: DTO`
+- Controllers implement generated interfaces (e.g., `StashesApi`)
+- Web module uses MapStruct to convert between OpenAPI DTOs and application DTOs
+
+**jOOQ Code Generation:**
+- Generated code is created from live database schema
+- Run `mvn jooq-codegen:generate` after migrations
+- Generated classes go to `target/generated-sources/jooq/`
+- NOT committed to repository
+- Build fails without generated code - this is intentional
+
 **Database:**
 - Flyway migrations in infrastructure-persistence-jpa
 - jOOQ requires running DB for code generation
 - Regenerate after schema changes: `mvn jooq-codegen:generate`
 
+**Transaction Boundaries:**
+- Application layer only (services/use cases)
+- NEVER in adapters or infrastructure
+- Use @Transactional at service methods
+
 **Commits:**
 - Format: `type(scope): description`
 - Types: feat, fix, refactor, docs, test, chore
 - Example: `feat(stash): add listAllStashes method`
+- Commit after each milestone/feature
+
+**Tool Version Management:**
+- Use mise (https://mise.jdx.dev/) for managing Java, Maven, Node.js, Python versions
+- Configuration in `mise.toml` at repository root
+- Run `mise install` to install all tools
 
 ## Important Rules
 
 1. NEVER use fully qualified class names - use imports
-2. ALWAYS use @Mapping annotations in MapStruct mappers
+2. ALWAYS use @Mapping annotations in MapStruct mappers for ALL fields (even same name)
 3. NEVER commit generated code (jOOQ, OpenAPI)
 4. ALWAYS run mvn clean compile before committing Java changes
 5. NEVER skip transaction boundaries at application layer
 6. ALWAYS regenerate jOOQ code after schema changes
+7. NEVER use manual field assignment in mapper default methods - use @Mapping
