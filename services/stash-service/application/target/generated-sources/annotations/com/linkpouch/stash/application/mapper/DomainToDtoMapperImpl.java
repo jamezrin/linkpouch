@@ -13,8 +13,8 @@ import org.springframework.stereotype.Component;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2026-02-20T21:50:48+0100",
-    comments = "version: 1.6.3, compiler: Eclipse JDT (IDE) 3.45.0.v20260122-1615, environment: Java 21.0.2 (Oracle Corporation)"
+    date = "2026-02-20T21:51:47+0100",
+    comments = "version: 1.6.3, compiler: javac, environment: Java 21.0.2 (Oracle Corporation)"
 )
 @Component
 public class DomainToDtoMapperImpl implements DomainToDtoMapper {

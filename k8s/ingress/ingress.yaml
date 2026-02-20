@@ -1,0 +1,49 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: linkpouch-ingress
+  namespace: linkpouch-dev
+  annotations:
+    # Traefik Ingress Controller
+    traefik.ingress.kubernetes.io/router.entrypoints: web,websecure
+    traefik.ingress.kubernetes.io/router.tls: "true"
+    traefik.ingress.kubernetes.io/router.tls.certresolver: letsencrypt
+    
+    # Middlewares (comma-separated)
+    traefik.ingress.kubernetes.io/router.middlewares: linkpouch-dev-redirect-https@kubernetescrd,linkpouch-dev-rate-limit@kubernetescrd
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: linkpouch.example.com  # Replace with your domain
+      http:
+        paths:
+          # Frontend - React app
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: frontend
+                port:
+                  number: 80
+          
+          # API Gateway - all API routes
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: api-gateway
+                port:
+                  number: 80
+          
+          # Actuator health checks
+          - path: /actuator
+            pathType: Prefix
+            backend:
+              service:
+                name: api-gateway
+                port:
+                  number: 80
+  tls:
+    - hosts:
+        - linkpouch.example.com  # Replace with your domain
+      secretName: linkpouch-tls
