@@ -150,9 +150,9 @@
                 <configuration>
                     <jdbc>
                         <driver>org.postgresql.Driver</driver>
-                        <url>${env.DATABASE_URL:jdbc:postgresql://localhost:5432/linkpouch}</url>
-                        <user>${env.DATABASE_USER:linkpouch}</user>
-                        <password>${env.DATABASE_PASSWORD:linkpouch_secret}</password>
+                        <url>${jooq.url:jdbc:postgresql://localhost:5432/linkpouch}</url>
+                        <user>${jooq.user:linkpouch}</user>
+                        <password>${jooq.password:linkpouch_secret}</password>
                     </jdbc>
                     <generator>
                         <database>
