@@ -17,7 +17,10 @@
         <module>api-spec</module>
         <module>domain</module>
         <module>application</module>
-        <module>infrastructure</module>
+        <module>infrastructure-persistence-jpa</module>
+        <module>infrastructure-persistence-jooq</module>
+        <module>infrastructure-redis</module>
+        <module>infrastructure-web</module>
         <module>boot</module>
     </modules>
     
@@ -64,6 +67,26 @@
             <dependency>
                 <groupId>com.linkpouch</groupId>
                 <artifactId>application</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.linkpouch</groupId>
+                <artifactId>infrastructure-persistence-jpa</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.linkpouch</groupId>
+                <artifactId>infrastructure-persistence-jooq</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.linkpouch</groupId>
+                <artifactId>infrastructure-redis</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.linkpouch</groupId>
+                <artifactId>infrastructure-web</artifactId>
                 <version>${project.version}</version>
             </dependency>
         </dependencies>
