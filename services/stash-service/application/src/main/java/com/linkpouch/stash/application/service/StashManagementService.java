@@ -19,25 +19,25 @@ import java.util.UUID;
  */
 @Service
 @RequiredArgsConstructor
-@Transactional(readOnly = true)
 public class StashManagementService implements StashManagementUseCase {
-    
+
     private final StashRepository stashRepository;
     private final SignatureValidationUseCase signatureService;
     private final DomainToDtoMapper dtoMapper;
-    
+
     @Override
     @Transactional
     public Stash createStash(String name) {
         Stash stash = Stash.create(name);
         return stashRepository.save(stash);
     }
-    
+
     @Override
+    @Transactional(readOnly = true)
     public Optional<Stash> findStashById(UUID stashId) {
         return stashRepository.findById(stashId);
     }
-    
+
     @Override
     @Transactional
     public Stash updateStashName(UUID stashId, String newName) {
@@ -46,13 +46,14 @@ public class StashManagementService implements StashManagementUseCase {
         stash.updateName(newName);
         return stashRepository.save(stash);
     }
-    
+
     @Override
     @Transactional
     public void deleteStash(UUID stashId) {
         stashRepository.deleteById(stashId);
     }
 
+    @Transactional(readOnly = true)
     public java.util.List<Stash> listAllStashes() {
         return stashRepository.findAll();
     }

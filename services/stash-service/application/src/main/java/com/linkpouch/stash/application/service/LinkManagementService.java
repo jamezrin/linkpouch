@@ -22,13 +22,12 @@ import java.util.UUID;
  */
 @Service
 @RequiredArgsConstructor
-@Transactional(readOnly = true)
 public class LinkManagementService implements LinkManagementUseCase {
-    
+
     private final LinkRepository linkRepository;
     private final EventPublisher eventPublisher;
     private final DomainToDtoMapper dtoMapper;
-    
+
     @Override
     @Transactional
     public Link addLink(UUID stashId, String url) {
@@ -46,16 +45,19 @@ public class LinkManagementService implements LinkManagementUseCase {
     }
     
     @Override
+    @Transactional(readOnly = true)
     public Optional<Link> findLinkById(UUID linkId) {
         return linkRepository.findById(linkId);
     }
-    
+
     @Override
+    @Transactional(readOnly = true)
     public List<Link> getLinksByStashId(UUID stashId) {
         return linkRepository.findByStashIdOrderByCreatedAtDesc(stashId);
     }
-    
+
     @Override
+    @Transactional(readOnly = true)
     public List<Link> searchLinks(UUID stashId, String query) {
         return linkRepository.searchByStashIdAndQuery(stashId, query);
     }
@@ -81,15 +83,18 @@ public class LinkManagementService implements LinkManagementUseCase {
     }
     
     // Helper methods for controllers
+    @Transactional
     public LinkResponse addLinkResponse(UUID stashId, AddLinkRequest request) {
         Link link = addLink(stashId, request.url());
         return dtoMapper.mapOut(link);
     }
 
+    @Transactional(readOnly = true)
     public LinkResponse toResponse(Link link) {
         return dtoMapper.mapOut(link);
     }
 
+    @Transactional(readOnly = true)
     public PagedResult<LinkResponse> listLinksResponse(UUID stashId, String search, int page, int size) {
         List<Link> links;
         if (search != null && !search.isEmpty()) {
