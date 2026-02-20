@@ -1,0 +1,68 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: indexer-service
+  namespace: linkpouch-dev
+  labels:
+    app: indexer-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: indexer-service
+  template:
+    metadata:
+      labels:
+        app: indexer-service
+    spec:
+      containers:
+      - name: indexer-service
+        image: indexer-service:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8081
+          name: http
+        env:
+        - name: REDIS_HOST
+          value: redis
+        - name: REDIS_PORT
+          value: "6379"
+        - name: PLAYWRIGHT_HEADLESS
+          value: "true"
+        - name: PLAYWRIGHT_TIMEOUT
+          value: "30000"
+        - name: S3_ENDPOINT
+          value: http://minio:9000
+        - name: S3_ACCESS_KEY
+          valueFrom:
+            secretKeyRef:
+              name: minio-secret
+              key: access-key
+              optional: true
+        - name: S3_SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: minio-secret
+              key: secret-key
+              optional: true
+        - name: S3_BUCKET
+          value: linkpouch-screenshots
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "500m"
+          limits:
+            memory: "1Gi"
+            cpu: "1000m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8081
+          initialDelaySeconds: 60
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8081
+          initialDelaySeconds: 30
+          periodSeconds: 10

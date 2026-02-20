@@ -1,5 +1,5 @@
 # Build stage
-FROM maven:3.9-eclipse-temurin-21-alpine AS builder
+FROM --platform=$BUILDPLATFORM maven:3.9-eclipse-temurin-21-alpine AS builder
 
 WORKDIR /app
 
@@ -20,10 +20,13 @@ COPY infrastructure/src infrastructure/src
 # Build the application
 RUN mvn clean package -DskipTests -B
 
-# Runtime stage
+# Runtime stage - using eclipse-temurin which supports arm64
 FROM eclipse-temurin:21-jre-alpine
 
 WORKDIR /app
+
+# Install wget for healthcheck
+RUN apk add --no-cache wget
 
 # Copy the built JAR
 COPY --from=builder /app/infrastructure/target/*.jar app.jar
