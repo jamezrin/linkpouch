@@ -1,0 +1,26 @@
+name: Build API Gateway
+
+on:
+  push:
+    branches: [main, master]
+    paths:
+      - 'services/api-gateway/**'
+      - '.github/workflows/build-container.yml'
+      - '.github/workflows/build-api-gateway.yml'
+  pull_request:
+    branches: [main, master]
+    paths:
+      - 'services/api-gateway/**'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-api-gateway:
+    uses: ./.github/workflows/build-container.yml
+    with:
+      service-name: api-gateway
+      dockerfile-path: ./services/api-gateway/Dockerfile
+      context-path: ./services/api-gateway
+    secrets: inherit

@@ -1,0 +1,26 @@
+name: Build Indexer Service
+
+on:
+  push:
+    branches: [main, master]
+    paths:
+      - 'services/indexer-service/**'
+      - '.github/workflows/build-container.yml'
+      - '.github/workflows/build-indexer-service.yml'
+  pull_request:
+    branches: [main, master]
+    paths:
+      - 'services/indexer-service/**'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-indexer-service:
+    uses: ./.github/workflows/build-container.yml
+    with:
+      service-name: indexer-service
+      dockerfile-path: ./services/indexer-service/Dockerfile
+      context-path: ./services/indexer-service
+    secrets: inherit
