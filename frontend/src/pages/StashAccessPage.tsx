@@ -142,7 +142,7 @@ export default function StashAccessPage() {
   const { data: linksData, isLoading: linksLoading } = useQuery({
     queryKey: ['links', stashId],
     queryFn: async () => {
-      const response = await linkApi.listLinks(stashId, signature, undefined, 0, 1000);
+      const response = await linkApi.listLinks(stashId, signature, undefined, 0, 100);
       return response.data;
     },
     enabled: !!stashId && !!signature,
