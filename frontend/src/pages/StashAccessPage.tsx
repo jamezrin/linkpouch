@@ -156,8 +156,14 @@ export default function StashAccessPage() {
 
   // Update local links state when data changes
   useEffect(() => {
-    if (linksData?.content) {
-      setLinks(linksData.content);
+    console.log('linksData:', linksData);
+    if (linksData) {
+      // Handle both direct array and paged response format
+      const linksArray = Array.isArray(linksData) ? linksData : linksData.content;
+      console.log('Setting links:', linksArray);
+      if (Array.isArray(linksArray)) {
+        setLinks(linksArray);
+      }
     }
   }, [linksData]);
 
