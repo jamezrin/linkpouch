@@ -74,13 +74,6 @@ const LinkItem = ({ link, isSelected, isMultiSelectMode, onSelect, style }: Link
   );
 };
 
-interface RowData {
-  links: LinkType[];
-  selectedLinkIds: Set<string>;
-  isMultiSelectMode: boolean;
-  onSelectLink: (linkId: string, isCtrlClick: boolean) => void;
-}
-
 interface RowComponentProps {
   index: number;
   style: CSSProperties;
@@ -89,18 +82,21 @@ interface RowComponentProps {
     'aria-setsize': number;
     role: 'listitem';
   };
-  data?: RowData;
+  links: LinkType[];
+  selectedLinkIds: Set<string>;
+  isMultiSelectMode: boolean;
+  onSelectLink: (linkId: string, isCtrlClick: boolean) => void;
 }
 
 const Row = ({
   index,
   style,
   ariaAttributes,
-  data,
+  links,
+  selectedLinkIds,
+  isMultiSelectMode,
+  onSelectLink,
 }: RowComponentProps) => {
-  if (!data) return null;
-  
-  const { links, selectedLinkIds, isMultiSelectMode, onSelectLink } = data;
   const link = links[index];
 
   if (!link) return null;
@@ -156,11 +152,9 @@ export default function StashAccessPage() {
 
   // Update local links state when data changes
   useEffect(() => {
-    console.log('linksData:', linksData);
     if (linksData) {
       // Handle both direct array and paged response format
       const linksArray = Array.isArray(linksData) ? linksData : linksData.content;
-      console.log('Setting links:', linksArray);
       if (Array.isArray(linksArray)) {
         setLinks(linksArray);
       }
