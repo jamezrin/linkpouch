@@ -177,13 +177,20 @@ export default function StashAccessPage() {
 
   // Mutations
   const addLinkMutation = useMutation({
-    mutationFn: (url: string) => linkApi.addLink(stashId!, signature!, { url }),
-    onSuccess: () => {
+    mutationFn: async (url: string) => {
+      console.log('MutationFn called with URL:', url);
+      const response = await linkApi.addLink(stashId!, signature!, { url });
+      console.log('API response:', response);
+      return response;
+    },
+    onSuccess: (data) => {
+      console.log('Mutation onSuccess:', data);
       queryClient.invalidateQueries({ queryKey: ['links', stashId] });
       setNewLinkUrl('');
       setIsAddingLink(false);
     },
     onError: (error: unknown) => {
+      console.error('Mutation onError:', error);
       const message = error instanceof Error ? error.message : 'Failed to add link';
       alert(`Error: ${message}`);
     },
@@ -232,10 +239,22 @@ export default function StashAccessPage() {
     }
   }, [isMultiSelectMode]);
 
-  const handleAddLink = (e: React.FormEvent) => {
+  const handleAddLink = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (newLinkUrl.trim()) {
-      addLinkMutation.mutate(newLinkUrl.trim());
+    const trimmedUrl = newLinkUrl.trim();
+    if (!trimmedUrl) {
+      console.log('No URL provided');
+      return;
+    }
+    
+    console.log('Adding link:', trimmedUrl);
+    console.log('Stash ID:', stashId);
+    console.log('Signature:', signature);
+    
+    try {
+      addLinkMutation.mutate(trimmedUrl);
+    } catch (error) {
+      console.error('Error adding link:', error);
     }
   };
 
@@ -271,7 +290,7 @@ export default function StashAccessPage() {
   // Error handling
   if (stashError instanceof AxiosError && stashError.response?.status === 401) {
     return (
-      <div className="h-screen flex items-center justify-center">
+      <div className="h-full w-full flex items-center justify-center">
         <div className="text-center">
           <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <svg className="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -288,16 +307,16 @@ export default function StashAccessPage() {
 
   if (stashLoading) {
     return (
-      <div className="h-screen flex items-center justify-center">
+      <div className="h-full w-full flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
       </div>
     );
   }
 
   return (
-    <div className="h-screen flex overflow-hidden">
+    <div className="h-full w-full flex overflow-hidden">
       {/* Left Column - 30% */}
-      <div className="w-[30%] flex flex-col border-r border-gray-200 bg-white">
+      <div className="w-[30%] h-full flex flex-col border-r border-gray-200 bg-white">
         {/* Header */}
         <div className="p-4 border-b border-gray-200">
           <h1 className="text-xl font-bold text-gray-900 truncate">{stash?.name}</h1>
@@ -400,7 +419,7 @@ export default function StashAccessPage() {
           <div className="p-3 border-b border-gray-200 bg-blue-50">
             <form onSubmit={handleAddLink} className="flex gap-2">
               <input
-                type="url"
+                type="text"
                 value={newLinkUrl}
                 onChange={(e) => setNewLinkUrl(e.target.value)}
                 placeholder="https://example.com"
@@ -470,7 +489,7 @@ export default function StashAccessPage() {
       </div>
 
       {/* Right Column - 70% */}
-      <div className="w-[70%] bg-gray-100 overflow-hidden">
+      <div className="w-[70%] h-full bg-gray-100 overflow-hidden">
         {previewLink ? (
           <div className="h-full flex flex-col">
             {/* Preview Header */}
