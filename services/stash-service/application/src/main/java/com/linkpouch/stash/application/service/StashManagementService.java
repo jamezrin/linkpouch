@@ -48,9 +48,4 @@ public class StashManagementService implements StashManagementUseCase {
     public void deleteStash(UUID stashId) {
         stashRepository.deleteById(stashId);
     }
-
-    @Transactional(readOnly = true)
-    public List<Stash> listAllStashes() {
-        return stashRepository.findAll();
-    }
 }

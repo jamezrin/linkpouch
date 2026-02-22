@@ -43,21 +43,6 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
-    get:
-      summary: List all stashes
-      operationId: listStashes
-      tags:
-        - Stashes
-      responses:
-        '200':
-          description: List of stashes
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/StashResponse'
-
   /stashes/{stashId}:
     parameters:
       - name: stashId
@@ -66,6 +51,12 @@ paths:
         schema:
           type: string
           format: uuid
+      - name: X-Stash-Signature
+        in: header
+        required: true
+        schema:
+          type: string
+        description: HMAC-SHA256 signature for stash access
     
     get:
       summary: Get stash by ID
@@ -79,6 +70,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/StashResponse'
+        '401':
+          description: Invalid or missing signature
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
         '404':
           description: Stash not found
           content:
@@ -94,6 +91,40 @@ paths:
       responses:
         '204':
           description: Stash deleted successfully
+        '401':
+          description: Invalid or missing signature
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Stash not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /stashes/{stashId}/signature:
+    parameters:
+      - name: stashId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    
+    post:
+      summary: Generate signed URL for stash access
+      operationId: generateSignedUrl
+      tags:
+        - Stashes
+      responses:
+        '200':
+          description: Signed URL generated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SignedUrlResponse'
         '404':
           description: Stash not found
           content:
@@ -109,6 +140,12 @@ paths:
         schema:
           type: string
           format: uuid
+      - name: X-Stash-Signature
+        in: header
+        required: true
+        schema:
+          type: string
+        description: HMAC-SHA256 signature for stash access
     
     post:
       summary: Add a link to stash
@@ -130,6 +167,12 @@ paths:
                 $ref: '#/components/schemas/LinkResponse'
         '400':
           description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Invalid or missing signature
           content:
             application/json:
               schema:
@@ -177,6 +220,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PagedLinkResponse'
+        '401':
+          description: Invalid or missing signature
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
   /links/{linkId}:
     parameters:
@@ -347,6 +396,22 @@ components:
         updatedAt:
           type: string
           format: date-time
+        signedUrl:
+          type: string
+          description: Signed URL for accessing this stash
+
+    SignedUrlResponse:
+      type: object
+      properties:
+        stashId:
+          type: string
+          format: uuid
+        signedUrl:
+          type: string
+          description: Full signed URL with signature
+        signature:
+          type: string
+          description: The signature component of the URL
 
     AddLinkRequest:
       type: object

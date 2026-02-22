@@ -110,6 +110,9 @@ public class LinkManagementService implements LinkManagementUseCase {
         if (size <= 0) {
             throw new IllegalArgumentException("size must be > 0");
         }
+        if (size > 100) {
+            throw new IllegalArgumentException("size must be <= 100");
+        }
 
         List<Link> links;
         if (search != null && !search.isEmpty()) {

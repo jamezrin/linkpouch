@@ -3,7 +3,10 @@ package com.linkpouch.stash.infrastructure.adapter.web;
 import com.linkpouch.stash.api.controller.LinksApi;
 import com.linkpouch.stash.api.model.*;
 import com.linkpouch.stash.application.exception.NotFoundException;
+import com.linkpouch.stash.application.exception.UnauthorizedException;
 import com.linkpouch.stash.application.service.LinkManagementService;
+import com.linkpouch.stash.application.service.SignatureValidationService;
+import com.linkpouch.stash.application.service.StashManagementService;
 import com.linkpouch.stash.domain.model.Link;
 import com.linkpouch.stash.infrastructure.adapter.web.mapper.ApiDtoMapper;
 import lombok.RequiredArgsConstructor;
@@ -20,13 +23,22 @@ import java.util.UUID;
 public class LinkController implements LinksApi {
 
     private final LinkManagementService linkService;
+    private final StashManagementService stashService;
+    private final SignatureValidationService signatureService;
     private final ApiDtoMapper mapper;
 
     @Value("${linkpouch.base-url:http://localhost:8080}")
     private String baseUrl;
 
     @Override
-    public ResponseEntity<LinkResponseDTO> addLink(UUID stashId, AddLinkRequestDTO addLinkRequestDTO) {
+    public ResponseEntity<LinkResponseDTO> addLink(UUID stashId, String xStashSignature, AddLinkRequestDTO addLinkRequestDTO) {
+        var stash = stashService.findStashById(stashId)
+                .orElseThrow(() -> new NotFoundException("Stash not found: " + stashId));
+        
+        if (!signatureService.validateSignature(stashId, stash.getSecretKey().getValue(), xStashSignature)) {
+            throw new UnauthorizedException("Invalid signature");
+        }
+        
         var request = mapper.mapIn(addLinkRequestDTO);
         var link = linkService.addLink(stashId, request.url());
         return ResponseEntity.status(HttpStatus.CREATED).body(toResponse(link));
@@ -46,7 +58,14 @@ public class LinkController implements LinksApi {
     }
 
     @Override
-    public ResponseEntity<PagedLinkResponseDTO> listLinks(UUID stashId, String search, Integer page, Integer size) {
+    public ResponseEntity<PagedLinkResponseDTO> listLinks(UUID stashId, String xStashSignature, String search, Integer page, Integer size) {
+        var stash = stashService.findStashById(stashId)
+                .orElseThrow(() -> new NotFoundException("Stash not found: " + stashId));
+        
+        if (!signatureService.validateSignature(stashId, stash.getSecretKey().getValue(), xStashSignature)) {
+            throw new UnauthorizedException("Invalid signature");
+        }
+        
         var pagedResult = linkService.listLinks(stashId, search, page, size);
 
         PagedLinkResponseDTO response = new PagedLinkResponseDTO();

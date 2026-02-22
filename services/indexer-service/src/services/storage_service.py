@@ -72,3 +72,7 @@ class ScreenshotStorageService:
         )
         logger.info("Screenshot uploaded to S3", key=key, size=len(data))
         return key
+
+    def shutdown(self) -> None:
+        """Shut down the thread pool executor."""
+        self._executor.shutdown(wait=False)
