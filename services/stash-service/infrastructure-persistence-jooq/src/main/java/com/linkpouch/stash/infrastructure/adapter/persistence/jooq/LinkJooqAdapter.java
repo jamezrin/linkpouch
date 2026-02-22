@@ -15,6 +15,8 @@ import org.jooq.DSLContext;
 import org.jooq.impl.DSL;
 import org.springframework.stereotype.Component;
 
+import java.time.ZoneOffset;
+
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -95,8 +97,8 @@ public class LinkJooqAdapter implements LinkRepository {
         return new Link(
                 record.get(LINKS.ID),
                 record.get(LINKS.STASH_ID),
-                record.get(LINKS.CREATED_AT) != null ? record.get(LINKS.CREATED_AT).toLocalDateTime() : null,
-                record.get(LINKS.UPDATED_AT) != null ? record.get(LINKS.UPDATED_AT).toLocalDateTime() : null,
+                record.get(LINKS.CREATED_AT) != null ? record.get(LINKS.CREATED_AT).withOffsetSameInstant(ZoneOffset.UTC).toLocalDateTime() : null,
+                record.get(LINKS.UPDATED_AT) != null ? record.get(LINKS.UPDATED_AT).withOffsetSameInstant(ZoneOffset.UTC).toLocalDateTime() : null,
                 Url.of(record.get(LINKS.URL)),
                 record.get(LINKS.TITLE) != null ? LinkTitle.of(record.get(LINKS.TITLE)) : null,
                 record.get(LINKS.DESCRIPTION) != null ? LinkDescription.of(record.get(LINKS.DESCRIPTION)) : null,
@@ -104,7 +106,7 @@ public class LinkJooqAdapter implements LinkRepository {
                 record.get(LINKS.PAGE_CONTENT),
                 record.get(LINKS.FINAL_URL) != null ? Url.of(record.get(LINKS.FINAL_URL)) : null,
                 record.get(LINKS.SCREENSHOT_KEY) != null ? ScreenshotKey.of(record.get(LINKS.SCREENSHOT_KEY)) : null,
-                record.get(LINKS.SCREENSHOT_GENERATED_AT) != null ? record.get(LINKS.SCREENSHOT_GENERATED_AT).toLocalDateTime() : null
+                record.get(LINKS.SCREENSHOT_GENERATED_AT) != null ? record.get(LINKS.SCREENSHOT_GENERATED_AT).withOffsetSameInstant(ZoneOffset.UTC).toLocalDateTime() : null
         );
     }
 }

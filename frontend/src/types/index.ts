@@ -4,6 +4,7 @@ export interface Stash {
   linkCount: number;
   createdAt: string;
   updatedAt: string;
+  signedUrl?: string;
 }
 
 export interface Link {

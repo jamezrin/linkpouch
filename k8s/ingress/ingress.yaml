@@ -31,8 +31,8 @@ spec:
               service:
                 name: api-gateway
                 port:
-                  number: 80
-          
+                  number: 8080
+
           # Actuator health checks
           - path: /actuator
             pathType: Prefix
@@ -40,7 +40,7 @@ spec:
               service:
                 name: api-gateway
                 port:
-                  number: 80
+                  number: 8080
   tls:
     - hosts:
         - linkpou.ch

@@ -2,6 +2,7 @@
 
 import hashlib
 from typing import Any
+from urllib.parse import urljoin
 
 import structlog
 from playwright.async_api import async_playwright
@@ -68,20 +69,22 @@ class LinkScraper:
                 if description_elem:
                     result["description"] = await description_elem.get_attribute("content")
                 
-                # Try to get favicon
+                # Try to get favicon (resolve relative URLs against the final page URL)
                 favicon_elem = await page.query_selector('link[rel*="icon"]')
                 if favicon_elem:
                     favicon_href = await favicon_elem.get_attribute("href")
                     if favicon_href:
-                        result["favicon_url"] = favicon_href
+                        base = result["final_url"] or url
+                        result["favicon_url"] = urljoin(base, favicon_href)
                 
                 # Extract text content (limited)
                 body_text = await page.evaluate("""() => {
                     return document.body.innerText.substring(0, 100000);
                 }""")
                 result["page_content"] = body_text[:self.settings.max_content_length]
-                
+
             finally:
+                await context.close()
                 await browser.close()
         
         logger.info(
@@ -137,14 +140,15 @@ class LinkScraper:
                     "height": self.settings.screenshot_height,
                     "size": len(screenshot_bytes),
                 }
-                
+
                 logger.info(
                     "Screenshot taken successfully",
                     url=url,
                     key=key,
                 )
-                
+
                 return result
-                
+
             finally:
+                await context.close()
                 await browser.close()

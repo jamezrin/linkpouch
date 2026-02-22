@@ -5,6 +5,7 @@ import lombok.Getter;
 import lombok.ToString;
 
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.UUID;
 
 /**
@@ -35,7 +36,7 @@ public class Link {
                 LocalDateTime screenshotGeneratedAt) {
         this.id = id != null ? id : UUID.randomUUID();
         this.stashId = stashId;
-        this.createdAt = createdAt != null ? createdAt : LocalDateTime.now();
+        this.createdAt = createdAt != null ? createdAt : LocalDateTime.now(ZoneOffset.UTC);
         this.updatedAt = updatedAt != null ? updatedAt : this.createdAt;
         this.url = url;
         this.title = title;
@@ -59,15 +60,15 @@ public class Link {
         this.faviconUrl = faviconUrl != null ? Url.of(faviconUrl) : null;
         this.pageContent = pageContent;
         this.finalUrl = finalUrl != null ? Url.of(finalUrl) : null;
-        this.updatedAt = LocalDateTime.now();
+        this.updatedAt = LocalDateTime.now(ZoneOffset.UTC);
     }
-    
+
     public void updateScreenshot(String screenshotKey) {
         if (screenshotKey == null || screenshotKey.isBlank()) {
             throw new IllegalArgumentException("Screenshot key cannot be null or blank");
         }
         this.screenshotKey = ScreenshotKey.of(screenshotKey);
-        this.screenshotGeneratedAt = LocalDateTime.now();
-        this.updatedAt = LocalDateTime.now();
+        this.screenshotGeneratedAt = LocalDateTime.now(ZoneOffset.UTC);
+        this.updatedAt = LocalDateTime.now(ZoneOffset.UTC);
     }
 }

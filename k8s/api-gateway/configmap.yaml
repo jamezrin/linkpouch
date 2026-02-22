@@ -28,19 +28,19 @@ data:
                   - "*"
                 allowCredentials: false
           routes:
-            # Stash Service Routes
-            - id: stash-service
+            # Stash Service - stash routes
+            - id: stash-service-stashes
               uri: http://stash-service:8080
               predicates:
                 - Path=/api/stashes/**
               filters:
                 - StripPrefix=1
 
-            # Indexer Service Routes
-            - id: indexer-service
-              uri: http://indexer-service:8080
+            # Stash Service - link routes (including screenshot proxy)
+            - id: stash-service-links
+              uri: http://stash-service:8080
               predicates:
-                - Path=/api/indexer/**
+                - Path=/api/links/**
               filters:
                 - StripPrefix=1
 
@@ -70,5 +70,5 @@ data:
 
     logging:
       level:
-        org.springframework.cloud.gateway: DEBUG
+        org.springframework.cloud.gateway: INFO
         reactor.netty: INFO

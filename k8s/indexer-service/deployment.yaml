@@ -47,6 +47,8 @@ spec:
               key: secret-key
         - name: S3_BUCKET
           value: linkpouch-screenshots
+        - name: STASH_SERVICE_URL
+          value: http://stash-service:8080
         resources:
           requests:
             memory: "512Mi"

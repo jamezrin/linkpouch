@@ -53,6 +53,7 @@ class RedisStreamConsumer:
         if self.redis:
             await self.redis.close()
         await self.stash_client.close()
+        self.storage_service.shutdown()
     
     async def _create_consumer_groups(self) -> None:
         """Create consumer groups for streams."""
@@ -118,34 +119,34 @@ class RedisStreamConsumer:
         msg_data: dict,
         handler: Any,
     ) -> None:
-        """Process a single message."""
+        """Process a single message. Only acks on success; leaves the message
+        pending on failure so it can be reclaimed and retried."""
+        logger.debug(
+            "Processing message",
+            stream=stream,
+            msg_id=msg_id,
+            event_type=msg_data.get("eventType"),
+        )
+
         try:
-            logger.debug(
-                "Processing message",
-                stream=stream,
-                msg_id=msg_id,
-                event_type=msg_data.get("eventType"),
-            )
-            
             await handler(msg_data)
-            
-            # Acknowledge message
-            await self.redis.xack(stream, self.settings.consumer_group, msg_id)  # type: ignore
-            
-            logger.info(
-                "Message processed successfully",
-                stream=stream,
-                msg_id=msg_id,
-            )
-            
         except Exception as e:
             logger.error(
-                "Failed to process message",
+                "Failed to process message — leaving pending for retry",
                 stream=stream,
                 msg_id=msg_id,
                 error=str(e),
                 exc_info=True,
             )
+            return
+
+        # Acknowledge only after successful processing
+        await self.redis.xack(stream, self.settings.consumer_group, msg_id)  # type: ignore
+        logger.info(
+            "Message processed and acknowledged",
+            stream=stream,
+            msg_id=msg_id,
+        )
     
     async def _handle_link_event(self, data: dict) -> None:
         """Handle link.added event."""

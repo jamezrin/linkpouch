@@ -5,6 +5,7 @@ import lombok.Getter;
 import lombok.ToString;
 
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
@@ -29,7 +30,7 @@ public class Stash {
     public Stash(UUID id, LocalDateTime createdAt, LocalDateTime updatedAt, 
                  StashName name, SecretKey secretKey, Set<Link> links) {
         this.id = id != null ? id : UUID.randomUUID();
-        this.createdAt = createdAt != null ? createdAt : LocalDateTime.now();
+        this.createdAt = createdAt != null ? createdAt : LocalDateTime.now(ZoneOffset.UTC);
         this.updatedAt = updatedAt != null ? updatedAt : this.createdAt;
         this.name = name != null ? name : StashName.of("Untitled Stash");
         this.secretKey = secretKey != null ? secretKey : SecretKey.generate();
@@ -42,15 +43,15 @@ public class Stash {
     
     public void updateName(String newName) {
         this.name = StashName.of(newName);
-        this.updatedAt = LocalDateTime.now();
+        this.updatedAt = LocalDateTime.now(ZoneOffset.UTC);
     }
-    
+
     public void addLink(Link link) {
         if (!this.id.equals(link.getStashId())) {
             throw new IllegalArgumentException("Link " + link.getId() + " does not belong to stash " + this.id);
         }
         this.links.add(link);
-        this.updatedAt = LocalDateTime.now();
+        this.updatedAt = LocalDateTime.now(ZoneOffset.UTC);
     }
 
     public void removeLink(Link link) {
@@ -58,7 +59,7 @@ public class Stash {
             throw new IllegalArgumentException("Link " + link.getId() + " does not belong to stash " + this.id);
         }
         this.links.remove(link);
-        this.updatedAt = LocalDateTime.now();
+        this.updatedAt = LocalDateTime.now(ZoneOffset.UTC);
     }
     
     public Set<Link> getLinks() {
