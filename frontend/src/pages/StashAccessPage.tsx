@@ -74,15 +74,14 @@ const LinkItem = ({ link, isSelected, isMultiSelectMode, onSelect, style }: Link
   );
 };
 
-const Row = ({
-  index,
-  style,
-  ariaAttributes,
-  links,
-  selectedLinkIds,
-  isMultiSelectMode,
-  onSelectLink,
-}: {
+interface RowData {
+  links: LinkType[];
+  selectedLinkIds: Set<string>;
+  isMultiSelectMode: boolean;
+  onSelectLink: (linkId: string, isCtrlClick: boolean) => void;
+}
+
+interface RowComponentProps {
   index: number;
   style: CSSProperties;
   ariaAttributes: {
@@ -90,11 +89,18 @@ const Row = ({
     'aria-setsize': number;
     role: 'listitem';
   };
-  links: LinkType[];
-  selectedLinkIds: Set<string>;
-  isMultiSelectMode: boolean;
-  onSelectLink: (linkId: string, isCtrlClick: boolean) => void;
-}) => {
+  data?: RowData;
+}
+
+const Row = ({
+  index,
+  style,
+  ariaAttributes,
+  data,
+}: RowComponentProps) => {
+  if (!data) return null;
+  
+  const { links, selectedLinkIds, isMultiSelectMode, onSelectLink } = data;
   const link = links[index];
 
   if (!link) return null;
@@ -467,17 +473,17 @@ export default function StashAccessPage() {
                     className="h-full"
                   >
                     <List
-                      {...({
-                        listRef,
-                        defaultHeight: window.innerHeight - 200,
-                        rowCount: filteredLinks.length,
-                        rowHeight: 80,
-                        rowComponent: Row,
+                      listRef={listRef}
+                      defaultHeight={window.innerHeight - 200}
+                      rowCount={filteredLinks.length}
+                      rowHeight={80}
+                      rowComponent={Row}
+                      rowProps={{
                         links: filteredLinks,
                         selectedLinkIds,
                         isMultiSelectMode,
                         onSelectLink: handleSelectLink
-                      } as any)}
+                      } as any}
                     />
                     {provided.placeholder}
                   </div>
