@@ -8,12 +8,15 @@ import com.linkpouch.stash.domain.port.outbound.EventPublisher;
 import com.linkpouch.stash.domain.port.outbound.LinkRepository;
 import com.linkpouch.stash.domain.port.outbound.StashRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+
+@Slf4j
 
 /**
  * Application Service: Link Management
@@ -91,8 +94,16 @@ public class LinkManagementService implements LinkManagementUseCase {
     @Override
     @Transactional
     public void requestScreenshotRefresh(UUID linkId) {
-        Link link = linkRepository.findById(linkId)
-                .orElseThrow(() -> new NotFoundException("Link not found: " + linkId));
+        log.info("Requesting screenshot refresh for link: {}", linkId);
+        
+        Optional<Link> linkOptional = linkRepository.findById(linkId);
+        if (linkOptional.isEmpty()) {
+            log.warn("Link not found in database: {}", linkId);
+            throw new NotFoundException("Link not found: " + linkId);
+        }
+        
+        Link link = linkOptional.get();
+        log.info("Found link with URL: {}, publishing refresh event", link.getUrl().getValue());
 
         eventPublisher.publishScreenshotRefreshRequested(
                 new EventPublisher.ScreenshotRefreshEvent(
