@@ -34,7 +34,7 @@ function AppContent() {
   return (
     <StashSearchContext.Provider value={{ searchQuery, setSearchQuery }}>
       <div className={`flex flex-col ${isStashPage ? 'h-screen overflow-hidden' : 'min-h-screen'}`}>
-        <header className="h-14 flex-shrink-0 bg-slate-950 border-b border-slate-800 flex items-center px-6 gap-3">
+        <header className="h-14 flex-shrink-0 bg-slate-950 border-b border-slate-800 flex items-center px-6 gap-3 relative">
           {/* Logo / home link */}
           <a href="/" className="flex items-center gap-2.5 group flex-shrink-0">
             <div className="w-7 h-7 bg-indigo-600 rounded-lg flex items-center justify-center flex-shrink-0 group-hover:bg-indigo-500 transition-colors">
@@ -55,10 +55,10 @@ function AppContent() {
             </>
           )}
 
-          {/* Search bar — only on stash pages, fills remaining space */}
+          {/* Search bar — absolutely centered in the header */}
           {isStashPage ? (
-            <div className="flex-1 flex items-center">
-              <div className="relative w-full max-w-sm">
+            <div className="absolute left-1/2 -translate-x-1/2 w-full max-w-sm px-4 pointer-events-none">
+              <div className="relative pointer-events-auto">
                 <svg
                   className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-500 pointer-events-none"
                   fill="none"
@@ -79,6 +79,9 @@ function AppContent() {
           ) : (
             <div className="flex-1" />
           )}
+
+          {/* Spacer to push demo button right when on stash page */}
+          {isStashPage && <div className="flex-1" />}
 
           {/* Demo button — only on stash pages, gated by feature flag */}
           {features.demoButton && isStashPage && stashId && signature && (
