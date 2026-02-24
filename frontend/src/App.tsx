@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
-import { QueryClient, QueryClientProvider, useQuery } from '@tanstack/react-query';
+import { QueryClient, QueryClientProvider, useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import HomePage from './pages/HomePage';
 import StashAccessPage from './pages/StashAccessPage';
 import DemoButton from './components/DemoButton';
@@ -21,15 +21,68 @@ function AppContent() {
   const signature = stashMatch?.[2];
 
   const [searchQuery, setSearchQuery] = useState('');
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [editedName, setEditedName] = useState('');
+  const queryClient = useQueryClient();
 
   const { data: stash } = useQuery({
     queryKey: ['stash', stashId],
     queryFn: async () => {
       const res = await stashApi.getStash(stashId!, signature!);
+      setEditedName(res.data.name);
       return res.data;
     },
     enabled: !!stashId && !!signature,
   });
+
+  const updateStashMutation = useMutation({
+    mutationFn: async (name: string) => {
+      const res = await stashApi.updateStash(stashId!, signature!, { name });
+      return res.data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['stash', stashId] });
+      setEditedName(data.name);
+      setIsEditingName(false);
+    },
+    onError: () => {
+      alert('Failed to rename pouch');
+      setEditedName(stash?.name || '');
+      setIsEditingName(false);
+    },
+  });
+
+  const handleNameClick = () => {
+    setIsEditingName(true);
+  };
+
+  const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setEditedName(e.target.value);
+  };
+
+  const handleNameSave = () => {
+    const trimmedName = editedName.trim();
+    if (!trimmedName) {
+      setEditedName(stash?.name || '');
+      setIsEditingName(false);
+      return;
+    }
+    if (trimmedName !== stash?.name) {
+      updateStashMutation.mutate(trimmedName);
+    } else {
+      setIsEditingName(false);
+    }
+  };
+
+  const handleNameKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleNameSave();
+    } else if (e.key === 'Escape') {
+      setEditedName(stash?.name || '');
+      setIsEditingName(false);
+    }
+  };
 
   return (
     <StashSearchContext.Provider value={{ searchQuery, setSearchQuery }}>
@@ -49,9 +102,26 @@ function AppContent() {
           {isStashPage && (
             <>
               <span className="text-slate-700 text-sm flex-shrink-0 select-none">/</span>
-              <span className="text-[14px] font-medium text-slate-300 truncate max-w-[180px] flex-shrink-0">
-                {stash?.name ?? '…'}
-              </span>
+              {isEditingName ? (
+                <input
+                  type="text"
+                  value={editedName}
+                  onChange={handleNameChange}
+                  onBlur={handleNameSave}
+                  onKeyDown={handleNameKeyDown}
+                  autoFocus
+                  className="text-[14px] font-medium text-slate-100 bg-slate-800/60 border border-indigo-500/70 rounded px-2 py-0.5 max-w-[180px] flex-shrink-0 focus:outline-none focus:ring-1 focus:ring-indigo-500/30"
+                  disabled={updateStashMutation.isPending}
+                />
+              ) : (
+                <span
+                  onClick={handleNameClick}
+                  className="text-[14px] font-medium text-slate-300 truncate max-w-[180px] flex-shrink-0 cursor-pointer hover:text-indigo-400 transition-colors"
+                  title="Click to rename"
+                >
+                  {stash?.name ?? '…'}
+                </span>
+              )}
             </>
           )}
 

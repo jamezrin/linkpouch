@@ -11,7 +11,7 @@ import {
   DraggableProvidedDragHandleProps,
 } from '@hello-pangea/dnd';
 import { stashApi, linkApi } from '../services/api';
-import { Link as LinkType, Stash } from '../types';
+import { Link as LinkType } from '../types';
 import { useStashSearch } from '../contexts/stashSearch';
 
 // ─── Icons ───────────────────────────────────────────────────────────────────
@@ -166,9 +166,6 @@ export default function StashAccessPage() {
   const [links, setLinks] = useState<LinkType[]>([]);
   const [screenshotModalOpen, setScreenshotModalOpen] = useState(false);
   const [iframeLoading, setIframeLoading] = useState(false);
-  const [stash, setStash] = useState<Stash | null>(null);
-  const [isEditingName, setIsEditingName] = useState(false);
-  const [editedName, setEditedName] = useState('');
   const queryClient = useQueryClient();
 
   if (!stashId || !signature) {
@@ -179,8 +176,6 @@ export default function StashAccessPage() {
     queryKey: ['stash', stashId],
     queryFn: async () => {
       const res = await stashApi.getStash(stashId, signature);
-      setStash(res.data);
-      setEditedName(res.data.name);
       return res.data;
     },
     enabled: !!stashId && !!signature,
@@ -269,24 +264,6 @@ export default function StashAccessPage() {
     },
   });
 
-  const updateStashMutation = useMutation({
-    mutationFn: async (name: string) => {
-      const res = await stashApi.updateStash(stashId!, signature!, { name });
-      return res.data;
-    },
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['stash', stashId] });
-      setStash(data);
-      setEditedName(data.name);
-      setIsEditingName(false);
-    },
-    onError: () => {
-      alert('Failed to rename pouch');
-      setEditedName(stash?.name || '');
-      setIsEditingName(false);
-    },
-  });
-
   // ─── Handlers ────────────────────────────────────────────────────────────────
 
   const handleItemClick = useCallback((linkId: string) => {
@@ -352,39 +329,6 @@ export default function StashAccessPage() {
     linkApi.reorderLinks(stashId!, signature!, newOrder.map((l) => l.id));
   };
 
-  // Stash name editing handlers
-  const handleNameClick = () => {
-    setIsEditingName(true);
-  };
-
-  const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setEditedName(e.target.value);
-  };
-
-  const handleNameSave = () => {
-    const trimmedName = editedName.trim();
-    if (!trimmedName) {
-      setEditedName(stash?.name || '');
-      setIsEditingName(false);
-      return;
-    }
-    if (trimmedName !== stash?.name) {
-      updateStashMutation.mutate(trimmedName);
-    } else {
-      setIsEditingName(false);
-    }
-  };
-
-  const handleNameKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      handleNameSave();
-    } else if (e.key === 'Escape') {
-      setEditedName(stash?.name || '');
-      setIsEditingName(false);
-    }
-  };
-
   // ─── Error / Loading states ───────────────────────────────────────────────────
 
   if (stashError instanceof AxiosError && stashError.response?.status === 401) {
@@ -423,30 +367,6 @@ export default function StashAccessPage() {
     <div className="h-full w-full flex overflow-hidden">
       {/* ── Sidebar ─────────────────────────────────────────────────────────── */}
       <div className="w-80 flex-shrink-0 h-full flex flex-col bg-slate-950 border-r border-slate-800">
-        {/* Stash name header */}
-        <div className="px-3 py-3 border-b border-slate-800/70">
-          {isEditingName ? (
-            <input
-              type="text"
-              value={editedName}
-              onChange={handleNameChange}
-              onBlur={handleNameSave}
-              onKeyDown={handleNameKeyDown}
-              autoFocus
-              className="w-full px-2 py-1 bg-slate-800/60 border border-indigo-500/70 rounded text-[14px] font-semibold text-slate-100 focus:outline-none focus:ring-1 focus:ring-indigo-500/30"
-              disabled={updateStashMutation.isPending}
-            />
-          ) : (
-            <h1
-              onClick={handleNameClick}
-              className="text-[14px] font-semibold text-slate-100 cursor-pointer hover:text-indigo-400 transition-colors truncate"
-              title="Click to rename"
-            >
-              {stash?.name || 'Loading...'}
-            </h1>
-          )}
-        </div>
-
         {/* Add link */}
         <form onSubmit={handleAddLink} className="px-3 py-2.5 border-b border-slate-800/70">
           <div className="flex gap-2">
