@@ -569,6 +569,14 @@ export default function StashAccessPage() {
                 <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-50 z-10">
                   <div className="w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
                   <p className="text-slate-500 text-sm mt-3">Loading archive…</p>
+                  <a
+                    href="https://archive.org"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs text-slate-400 hover:text-indigo-500 transition-colors mt-1"
+                  >
+                    Powered by archive.org
+                  </a>
                 </div>
               )}
               <iframe
