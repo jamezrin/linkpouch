@@ -12,6 +12,7 @@ import {
 } from '@hello-pangea/dnd';
 import { stashApi, linkApi } from '../services/api';
 import { Link as LinkType } from '../types';
+import { useStashSearch } from '../contexts/stashSearch';
 
 // ─── Icons ───────────────────────────────────────────────────────────────────
 
@@ -181,7 +182,7 @@ export default function StashAccessPage() {
   const { stashId, signature } = useParams<{ stashId: string; signature: string }>();
   const [selectedLinkIds, setSelectedLinkIds] = useState<Set<string>>(new Set());
   const [activeLinkId, setActiveLinkId] = useState<string | null>(null);
-  const [searchQuery, setSearchQuery] = useState('');
+  const { searchQuery } = useStashSearch();
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [newLinkUrl, setNewLinkUrl] = useState('');
   const [links, setLinks] = useState<LinkType[]>([]);
@@ -191,7 +192,7 @@ export default function StashAccessPage() {
     return <Navigate to="/" replace />;
   }
 
-  const { data: stash, isLoading: stashLoading, error: stashError } = useQuery({
+  const { isLoading: stashLoading, error: stashError } = useQuery({
     queryKey: ['stash', stashId],
     queryFn: async () => {
       const res = await stashApi.getStash(stashId, signature);
@@ -371,42 +372,6 @@ export default function StashAccessPage() {
     <div className="h-full w-full flex overflow-hidden">
       {/* ── Sidebar ─────────────────────────────────────────────────────────── */}
       <div className="w-80 flex-shrink-0 h-full flex flex-col bg-slate-950 border-r border-slate-800">
-        {/* Pouch header */}
-        <div className="px-4 pt-3 pb-3 border-b border-slate-800/70">
-          <a
-            href="/"
-            className="inline-flex items-center gap-1 text-[11px] text-slate-600 hover:text-slate-400 transition-colors mb-2"
-          >
-            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
-            Home
-          </a>
-          <h1 className="text-sm font-semibold text-slate-100 truncate">{stash?.name}</h1>
-          <p className="text-xs text-slate-600 mt-0.5">{links.length} links</p>
-        </div>
-
-        {/* Search */}
-        <div className="px-3 py-2.5 border-b border-slate-800/70">
-          <div className="relative">
-            <svg
-              className="absolute left-2.5 top-2.5 w-3.5 h-3.5 text-slate-500 pointer-events-none"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search links…"
-              className="w-full pl-8 pr-3 py-2 bg-slate-800/60 border border-slate-700/70 rounded-lg text-[13px] text-slate-200 placeholder-slate-600 focus:outline-none focus:border-indigo-500/70 focus:ring-1 focus:ring-indigo-500/20"
-            />
-          </div>
-        </div>
-
         {/* Add link */}
         <form onSubmit={handleAddLink} className="px-3 py-2.5 border-b border-slate-800/70">
           <div className="flex gap-2">
