@@ -27,8 +27,8 @@ public class ScreenshotController {
     @Value("${linkpouch.s3.bucket}")
     private String s3Bucket;
 
-    @GetMapping(value = "/links/{linkId}/screenshot", produces = MediaType.IMAGE_PNG_VALUE)
-    public ResponseEntity<byte[]> getScreenshot(@PathVariable UUID linkId) {
+    @GetMapping("/links/{linkId}/screenshot")
+    public ResponseEntity<byte[]> getScreenshot(@PathVariable("linkId") UUID linkId) {
         var link = linkService.findLinkById(linkId)
                 .orElseThrow(() -> new NotFoundException("Link not found: " + linkId));
 
