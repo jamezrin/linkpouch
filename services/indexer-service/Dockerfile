@@ -34,7 +34,8 @@ COPY pyproject.toml .
 # Install Python dependencies
 RUN pip install --no-cache-dir -e "."
 
-# Install Playwright browsers
+# Install Playwright browsers to a fixed path so any user can access them
+ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
 RUN playwright install chromium
 RUN playwright install-deps chromium
 
