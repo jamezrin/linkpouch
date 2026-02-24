@@ -51,4 +51,9 @@ public interface LinkManagementUseCase {
      * Request a screenshot refresh for a link.
      */
     void requestScreenshotRefresh(UUID linkId);
+
+    /**
+     * Reorder links in a stash to match the given ordered list.
+     */
+    void reorderLinks(UUID stashId, List<UUID> orderedLinkIds);
 }

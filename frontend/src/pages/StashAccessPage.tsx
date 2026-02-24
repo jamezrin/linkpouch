@@ -186,6 +186,8 @@ export default function StashAccessPage() {
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [newLinkUrl, setNewLinkUrl] = useState('');
   const [links, setLinks] = useState<LinkType[]>([]);
+  const [screenshotModalOpen, setScreenshotModalOpen] = useState(false);
+  const [iframeLoading, setIframeLoading] = useState(false);
   const queryClient = useQueryClient();
 
   if (!stashId || !signature) {
@@ -223,6 +225,12 @@ export default function StashAccessPage() {
       setActiveLinkId(null);
     }
   }, [links, activeLinkId]);
+
+  // Reset modal + restart iframe loading shimmer when a different link is selected
+  useEffect(() => {
+    setScreenshotModalOpen(false);
+    setIframeLoading(true);
+  }, [activeLinkId]);
 
   // Debounce search query to avoid an API call on every keypress
   useEffect(() => {
@@ -332,6 +340,7 @@ export default function StashAccessPage() {
     const [moved] = items.splice(result.source.index, 1);
     items.splice(result.destination.index, 0, moved);
     setLinks(items);
+    linkApi.reorderLinks(stashId!, signature!, items.map((l) => l.id));
   };
 
   // ─── Error / Loading states ───────────────────────────────────────────────────
@@ -535,78 +544,55 @@ export default function StashAccessPage() {
                   )}
                 </div>
 
-                <div className="flex items-center gap-1 flex-shrink-0">
-                  <button
-                    onClick={() => window.open(activeLink.url, '_blank')}
-                    title="Open in new tab"
-                    className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                    </svg>
-                  </button>
-                  <button
-                    onClick={() => refreshScreenshotMutation.mutate(activeLink.id)}
-                    title="Refresh screenshot"
-                    disabled={refreshScreenshotMutation.isPending}
-                    className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors disabled:opacity-40"
-                  >
-                    <svg
-                      className={`w-4 h-4 ${refreshScreenshotMutation.isPending ? 'animate-spin' : ''}`}
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
+                {/* Screenshot thumbnail */}
+                <div className="flex-shrink-0">
+                  {activeLink.screenshotUrl ? (
+                    <button
+                      onClick={() => setScreenshotModalOpen(true)}
+                      className="w-24 h-16 rounded-lg overflow-hidden border border-slate-200 hover:border-indigo-400 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      title="View screenshot"
                     >
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                    </svg>
-                  </button>
-                  <button
-                    onClick={() => {
-                      if (confirm('Delete this link?')) {
-                        deleteLinkMutation.mutate(activeLink.id);
-                      }
-                    }}
-                    title="Delete link"
-                    disabled={deleteLinkMutation.isPending}
-                    className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-40"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                    </svg>
-                  </button>
+                      <img
+                        src={activeLink.screenshotUrl}
+                        alt="Screenshot thumbnail"
+                        className="w-full h-full object-cover object-top"
+                      />
+                    </button>
+                  ) : (
+                    <div className="w-24 h-16 rounded-lg border border-slate-200 bg-slate-50 flex flex-col items-center justify-center gap-1">
+                      <svg className="w-5 h-5 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      </svg>
+                      <button
+                        onClick={() => refreshScreenshotMutation.mutate(activeLink.id)}
+                        disabled={refreshScreenshotMutation.isPending}
+                        className="text-[10px] text-indigo-500 hover:text-indigo-700 disabled:opacity-50"
+                      >
+                        {refreshScreenshotMutation.isPending ? 'Generating…' : 'Generate'}
+                      </button>
+                    </div>
+                  )}
                 </div>
+
               </div>
             </div>
 
-            {/* Screenshot */}
-            <div className="flex-1 overflow-auto p-6">
-              {activeLink.screenshotUrl ? (
-                <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-                  <img
-                    src={activeLink.screenshotUrl}
-                    alt={`Screenshot of ${activeLink.title || activeLink.url}`}
-                    className="w-full h-auto block"
-                  />
-                </div>
-              ) : (
-                <div className="h-full flex items-center justify-center">
-                  <div className="text-center">
-                    <div className="w-20 h-20 bg-slate-200 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                      <svg className="w-10 h-10 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                      </svg>
-                    </div>
-                    <p className="text-slate-500 mb-4 text-sm">No screenshot yet</p>
-                    <button
-                      onClick={() => refreshScreenshotMutation.mutate(activeLink.id)}
-                      disabled={refreshScreenshotMutation.isPending}
-                      className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-sm transition-colors disabled:opacity-50 font-medium"
-                    >
-                      {refreshScreenshotMutation.isPending ? 'Generating…' : 'Generate Screenshot'}
-                    </button>
-                  </div>
+            {/* Wayback Machine iframe */}
+            <div className="flex-1 overflow-hidden relative">
+              {iframeLoading && (
+                <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-50 z-10">
+                  <div className="w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+                  <p className="text-slate-500 text-sm mt-3">Loading archive…</p>
                 </div>
               )}
+              <iframe
+                key={activeLink.id}
+                src={`https://web.archive.org/web/${activeLink.url}`}
+                title={`Archived page: ${activeLink.title || activeLink.url}`}
+                className="w-full h-full border-0"
+                sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox"
+                onLoad={() => setIframeLoading(false)}
+              />
             </div>
           </>
         ) : (
@@ -634,6 +620,34 @@ export default function StashAccessPage() {
                   <p className="text-slate-400 text-sm mt-1">Click any link in the sidebar to see its screenshot here</p>
                 </>
               )}
+            </div>
+          </div>
+        )}
+
+        {/* Screenshot modal */}
+        {screenshotModalOpen && activeLink?.screenshotUrl && (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm"
+            onClick={() => setScreenshotModalOpen(false)}
+          >
+            <button
+              onClick={() => setScreenshotModalOpen(false)}
+              className="absolute top-4 right-4 p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors"
+              title="Close"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+            <div
+              className="max-w-5xl w-full mx-4"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <img
+                src={activeLink.screenshotUrl}
+                alt={`Screenshot of ${activeLink.title || activeLink.url}`}
+                className="w-full max-h-[85vh] object-contain rounded-xl shadow-2xl"
+              />
             </div>
           </div>
         )}

@@ -35,6 +35,7 @@ public class LinkManagementService implements LinkManagementUseCase {
         stashRepository.findById(stashId)
                 .orElseThrow(() -> new NotFoundException("Stash not found: " + stashId));
 
+        linkRepository.shiftPositionsDown(stashId);
         Link link = Link.create(stashId, url);
         Link saved = linkRepository.save(link);
 
@@ -110,6 +111,12 @@ public class LinkManagementService implements LinkManagementUseCase {
                         link.getUrl().getValue()
                 )
         );
+    }
+
+    @Override
+    @Transactional
+    public void reorderLinks(UUID stashId, List<UUID> orderedLinkIds) {
+        linkRepository.reorderLinks(stashId, orderedLinkIds);
     }
 
     @Transactional(readOnly = true)

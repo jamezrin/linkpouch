@@ -49,7 +49,10 @@ public class LinkJpaEntity {
     
     @Column(name = "screenshot_generated_at")
     private LocalDateTime screenshotGeneratedAt;
-    
+
+    @Column(name = "position", nullable = false)
+    private int position;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
