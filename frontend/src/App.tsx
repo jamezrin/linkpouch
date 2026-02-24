@@ -10,15 +10,18 @@ function AppContent() {
   const isStashPage = location.pathname.startsWith('/s/');
 
   return (
-    <div className={`min-h-screen bg-gray-50 ${isStashPage ? 'overflow-hidden' : ''}`}>
-      <header className="bg-white shadow">
-        <div className={`${isStashPage ? 'w-full' : 'max-w-7xl'} mx-auto px-4 py-4`}>
-          <h1 className="text-2xl font-bold text-gray-900">
-            <a href="/">Linkpouch</a>
-          </h1>
-        </div>
+    <div className={`flex flex-col ${isStashPage ? 'h-screen overflow-hidden' : 'min-h-screen'}`}>
+      <header className="h-14 flex-shrink-0 bg-slate-950 border-b border-slate-800 flex items-center px-6 gap-3">
+        <a href="/" className="flex items-center gap-2.5 group">
+          <div className="w-7 h-7 bg-indigo-600 rounded-lg flex items-center justify-center flex-shrink-0 group-hover:bg-indigo-500 transition-colors">
+            <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+            </svg>
+          </div>
+          <span className="text-[15px] font-semibold text-white tracking-tight">linkpouch</span>
+        </a>
       </header>
-      <main className={`${isStashPage ? 'h-[calc(100vh-64px)] w-full overflow-hidden p-0' : 'max-w-7xl mx-auto px-4 py-8'}`}>
+      <main className={`flex-1 ${isStashPage ? 'overflow-hidden' : ''}`}>
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/s/:stashId/:signature" element={<StashAccessPage />} />
