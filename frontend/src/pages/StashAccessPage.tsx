@@ -182,6 +182,7 @@ export default function StashAccessPage() {
   const [selectedLinkIds, setSelectedLinkIds] = useState<Set<string>>(new Set());
   const [activeLinkId, setActiveLinkId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [newLinkUrl, setNewLinkUrl] = useState('');
   const [links, setLinks] = useState<LinkType[]>([]);
   const queryClient = useQueryClient();
@@ -200,9 +201,9 @@ export default function StashAccessPage() {
   });
 
   const { data: linksData, isLoading: linksLoading } = useQuery({
-    queryKey: ['links', stashId],
+    queryKey: ['links', stashId, debouncedSearch],
     queryFn: async () => {
-      const res = await linkApi.listLinks(stashId, signature, undefined, 0, 100);
+      const res = await linkApi.listLinks(stashId, signature, debouncedSearch || undefined, 0, 100);
       return res.data;
     },
     enabled: !!stashId && !!signature,
@@ -222,18 +223,15 @@ export default function StashAccessPage() {
     }
   }, [links, activeLinkId]);
 
-  const isSearching = searchQuery.trim().length > 0;
+  // Debounce search query to avoid an API call on every keypress
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchQuery.trim());
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
-  const filteredLinks = useMemo(() => {
-    if (!isSearching) return links;
-    const q = searchQuery.toLowerCase();
-    return links.filter(
-      (l) =>
-        l.title?.toLowerCase().includes(q) ||
-        l.url.toLowerCase().includes(q) ||
-        l.description?.toLowerCase().includes(q)
-    );
-  }, [links, searchQuery, isSearching]);
+  const isSearching = searchQuery.trim().length > 0;
 
   const activeLink = useMemo(
     () => (activeLinkId ? links.find((l) => l.id === activeLinkId) ?? null : null),
@@ -482,7 +480,7 @@ export default function StashAccessPage() {
             <div className="flex items-center justify-center h-full">
               <div className="w-6 h-6 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
             </div>
-          ) : filteredLinks.length === 0 ? (
+          ) : links.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-center px-6 pb-8">
               <div className="w-12 h-12 bg-slate-800 rounded-xl flex items-center justify-center mb-3">
                 <svg className="w-6 h-6 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -502,7 +500,7 @@ export default function StashAccessPage() {
                     {...provided.droppableProps}
                     className="h-full overflow-y-auto"
                   >
-                    {filteredLinks.map((link, index) => (
+                    {links.map((link, index) => (
                       <Draggable
                         key={link.id}
                         draggableId={link.id}
@@ -534,7 +532,7 @@ export default function StashAccessPage() {
         </div>
 
         {/* Search + drag notice */}
-        {isSearching && filteredLinks.length > 0 && (
+        {isSearching && links.length > 0 && (
           <div className="px-3 py-2 border-t border-slate-800/70 text-[11px] text-slate-700 text-center">
             Drag reordering disabled during search
           </div>
