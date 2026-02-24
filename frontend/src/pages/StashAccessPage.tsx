@@ -428,7 +428,7 @@ export default function StashAccessPage() {
         </form>
 
         {/* Selection actions bar */}
-        {selectedLinkIds.size > 1 && (
+        {selectedLinkIds.size > 0 && (
           <div className="px-3 py-2 border-b border-slate-800/70 bg-slate-900/60 flex items-center gap-1.5">
             <span className="text-[12px] text-slate-400 flex-1 font-medium">
               {selectedLinkIds.size} selected
