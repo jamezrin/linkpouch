@@ -16,12 +16,11 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-@Slf4j
-
 /**
  * Application Service: Link Management
  * Implements use cases with transaction boundaries at the application layer.
  */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class LinkManagementService implements LinkManagementUseCase {
