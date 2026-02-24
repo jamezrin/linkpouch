@@ -25,6 +25,13 @@ export const stashApi = {
         'X-Stash-Signature': signature,
       },
     }),
+  
+  updateStash: (id: string, signature: string, data: { name: string }) => 
+    api.patch<Stash>(`/stashes/${id}`, data, {
+      headers: {
+        'X-Stash-Signature': signature,
+      },
+    }),
 };
 
 export const linkApi = {

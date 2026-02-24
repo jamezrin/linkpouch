@@ -83,6 +83,43 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
+    patch:
+      summary: Update stash name
+      operationId: updateStash
+      tags:
+        - Stashes
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateStashRequest'
+      responses:
+        '200':
+          description: Stash updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StashResponse'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Invalid or missing signature
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Stash not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
     delete:
       summary: Delete stash by ID
       operationId: deleteStash
@@ -538,6 +575,17 @@ components:
           items:
             type: string
             format: uuid
+
+    UpdateStashRequest:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 255
+          description: New name for the stash
 
     ErrorResponse:
       type: object
