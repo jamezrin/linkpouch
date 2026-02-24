@@ -35,4 +35,14 @@ public interface LinkRepository {
      * Delete a link by ID.
      */
     void deleteById(UUID id);
+
+    /**
+     * Increment position of all links in stash by 1 (make room for new link at position 0).
+     */
+    void shiftPositionsDown(UUID stashId);
+
+    /**
+     * Set position of each link to its index in the given ordered list.
+     */
+    void reorderLinks(UUID stashId, List<UUID> orderedLinkIds);
 }

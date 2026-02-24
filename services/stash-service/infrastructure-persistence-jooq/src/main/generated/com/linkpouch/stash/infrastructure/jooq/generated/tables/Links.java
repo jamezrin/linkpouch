@@ -132,6 +132,11 @@ public class Links extends TableImpl<LinksRecord> {
     @Deprecated
     public final TableField<LinksRecord, Object> SEARCH_VECTOR = createField(DSL.name("search_vector"), DefaultDataType.getDefaultDataType("\"pg_catalog\".\"tsvector\""), this, "");
 
+    /**
+     * The column <code>public.links.position</code>.
+     */
+    public final TableField<LinksRecord, Integer> POSITION = createField(DSL.name("position"), SQLDataType.INTEGER.nullable(false).defaultValue(DSL.field(DSL.raw("0"), SQLDataType.INTEGER)), this, "");
+
     private Links(Name alias, Table<LinksRecord> aliased) {
         this(alias, aliased, (Field<?>[]) null, null);
     }

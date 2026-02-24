@@ -29,11 +29,12 @@ public class Link {
     private Url finalUrl;
     private ScreenshotKey screenshotKey;
     private LocalDateTime screenshotGeneratedAt;
-    
+    private int position;
+
     public Link(UUID id, UUID stashId, LocalDateTime createdAt, LocalDateTime updatedAt,
                 Url url, LinkTitle title, LinkDescription description, Url faviconUrl,
-                String pageContent, Url finalUrl, ScreenshotKey screenshotKey, 
-                LocalDateTime screenshotGeneratedAt) {
+                String pageContent, Url finalUrl, ScreenshotKey screenshotKey,
+                LocalDateTime screenshotGeneratedAt, int position) {
         this.id = id != null ? id : UUID.randomUUID();
         this.stashId = stashId;
         this.createdAt = createdAt != null ? createdAt : LocalDateTime.now(ZoneOffset.UTC);
@@ -46,11 +47,12 @@ public class Link {
         this.finalUrl = finalUrl;
         this.screenshotKey = screenshotKey;
         this.screenshotGeneratedAt = screenshotGeneratedAt;
+        this.position = position;
     }
-    
+
     public static Link create(UUID stashId, String url) {
-        return new Link(null, stashId, null, null, Url.of(url), 
-                       null, null, null, null, null, null, null);
+        return new Link(null, stashId, null, null, Url.of(url),
+                       null, null, null, null, null, null, null, 0);
     }
     
     public void updateMetadata(String title, String description, String faviconUrl, 

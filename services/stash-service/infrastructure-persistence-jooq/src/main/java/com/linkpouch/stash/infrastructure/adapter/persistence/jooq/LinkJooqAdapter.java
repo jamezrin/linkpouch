@@ -20,6 +20,8 @@ import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.IntStream;
+import org.jooq.Query;
 
 import static com.linkpouch.stash.infrastructure.jooq.generated.Tables.LINKS;
 
@@ -64,10 +66,10 @@ public class LinkJooqAdapter implements LinkRepository {
     
     @Override
     public List<Link> findByStashIdOrderByCreatedAtDesc(UUID stashId) {
-        // Use jOOQ for custom query with proper ordering
+        // Use jOOQ for custom query with position-based ordering
         return dsl.selectFrom(LINKS)
                 .where(LINKS.STASH_ID.eq(stashId))
-                .orderBy(LINKS.CREATED_AT.desc())
+                .orderBy(LINKS.POSITION.asc())
                 .fetch()
                 .map(this::mapIn);  // mapIn: from jOOQ record TO domain
     }
@@ -89,11 +91,30 @@ public class LinkJooqAdapter implements LinkRepository {
     public void deleteById(UUID id) {
         jpaRepository.deleteById(id);
     }
+
+    @Override
+    public void shiftPositionsDown(UUID stashId) {
+        dsl.update(LINKS)
+                .set(LINKS.POSITION, LINKS.POSITION.add(1))
+                .where(LINKS.STASH_ID.eq(stashId))
+                .execute();
+    }
+
+    @Override
+    public void reorderLinks(UUID stashId, List<UUID> orderedLinkIds) {
+        var queries = IntStream.range(0, orderedLinkIds.size())
+                .mapToObj(i -> (Query) dsl.update(LINKS)
+                        .set(LINKS.POSITION, i)
+                        .where(LINKS.ID.eq(orderedLinkIds.get(i)).and(LINKS.STASH_ID.eq(stashId))))
+                .toList();
+        dsl.batch(queries).execute();
+    }
     
     /**
      * Maps FROM jOOQ record TO domain (mapIn pattern).
      */
     private Link mapIn(org.jooq.Record record) {
+        Integer pos = record.get(LINKS.POSITION);
         return new Link(
                 record.get(LINKS.ID),
                 record.get(LINKS.STASH_ID),
@@ -106,7 +127,8 @@ public class LinkJooqAdapter implements LinkRepository {
                 record.get(LINKS.PAGE_CONTENT),
                 record.get(LINKS.FINAL_URL) != null ? Url.of(record.get(LINKS.FINAL_URL)) : null,
                 record.get(LINKS.SCREENSHOT_KEY) != null ? ScreenshotKey.of(record.get(LINKS.SCREENSHOT_KEY)) : null,
-                record.get(LINKS.SCREENSHOT_GENERATED_AT) != null ? record.get(LINKS.SCREENSHOT_GENERATED_AT).withOffsetSameInstant(ZoneOffset.UTC).toLocalDateTime() : null
+                record.get(LINKS.SCREENSHOT_GENERATED_AT) != null ? record.get(LINKS.SCREENSHOT_GENERATED_AT).withOffsetSameInstant(ZoneOffset.UTC).toLocalDateTime() : null,
+                pos != null ? pos : 0
         );
     }
 }

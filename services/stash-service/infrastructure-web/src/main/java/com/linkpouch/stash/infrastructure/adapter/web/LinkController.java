@@ -103,6 +103,19 @@ public class LinkController implements LinksApi {
         return ResponseEntity.ok(toResponse(link));
     }
 
+    @Override
+    public ResponseEntity<Void> reorderLinks(UUID stashId, String xStashSignature, ReorderLinksRequestDTO reorderLinksRequestDTO) {
+        var stash = stashService.findStashById(stashId)
+                .orElseThrow(() -> new NotFoundException("Stash not found: " + stashId));
+
+        if (!signatureService.validateSignature(stashId, stash.getSecretKey().getValue(), xStashSignature)) {
+            throw new UnauthorizedException("Invalid signature");
+        }
+
+        linkService.reorderLinks(stashId, reorderLinksRequestDTO.getLinkIds());
+        return ResponseEntity.noContent().build();
+    }
+
     private LinkResponseDTO toResponse(Link link) {
         var dto = mapper.mapOut(link);
         if (link.getScreenshotKey() != null) {

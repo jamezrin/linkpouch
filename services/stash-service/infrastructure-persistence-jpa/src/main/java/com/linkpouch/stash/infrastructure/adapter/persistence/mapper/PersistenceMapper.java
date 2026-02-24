@@ -47,6 +47,7 @@ public interface PersistenceMapper {
     @Mapping(target = "screenshotGeneratedAt", source = "screenshotGeneratedAt")
     @Mapping(target = "createdAt", source = "createdAt")
     @Mapping(target = "updatedAt", source = "updatedAt")
+    @Mapping(target = "position", source = "position")
     Link mapIn(LinkJpaEntity entity);
     
     // ==================== LINK: mapOut (Domain -> JPA) ====================
@@ -63,6 +64,7 @@ public interface PersistenceMapper {
     @Mapping(target = "screenshotGeneratedAt", source = "screenshotGeneratedAt")
     @Mapping(target = "createdAt", source = "createdAt")
     @Mapping(target = "updatedAt", source = "updatedAt")
+    @Mapping(target = "position", source = "position")
     LinkJpaEntity mapOut(Link link);
     
     // ==================== LINK LIST MAPPINGS ====================
@@ -83,6 +85,7 @@ public interface PersistenceMapper {
     @Mapping(target = "screenshotGeneratedAt", source = "screenshotGeneratedAt")
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
+    @Mapping(target = "position", source = "position")
     void updateEntity(Link link, @MappingTarget LinkJpaEntity entity);
     
     // ==================== VALUE OBJECT CONVERTERS ====================

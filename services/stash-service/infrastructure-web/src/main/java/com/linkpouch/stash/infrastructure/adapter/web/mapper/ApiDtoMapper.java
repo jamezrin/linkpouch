@@ -45,6 +45,7 @@ public interface ApiDtoMapper {
     @Mapping(target = "screenshotGeneratedAt", source = "screenshotGeneratedAt", qualifiedByName = "toOffsetDateTime")
     @Mapping(target = "createdAt", source = "createdAt", qualifiedByName = "toOffsetDateTime")
     @Mapping(target = "updatedAt", source = "updatedAt", qualifiedByName = "toOffsetDateTime")
+    @Mapping(target = "position", source = "position")
     LinkResponseDTO mapOut(Link link);
 
     List<LinkResponseDTO> mapOutLinks(List<Link> links);

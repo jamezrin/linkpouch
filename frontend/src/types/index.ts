@@ -18,6 +18,7 @@ export interface Link {
   screenshotGeneratedAt?: string;
   createdAt: string;
   updatedAt: string;
+  position?: number;
 }
 
 export interface PagedLinkResponse {

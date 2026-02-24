@@ -215,6 +215,20 @@ public class LinksRecord extends UpdatableRecordImpl<LinksRecord> {
         return get(12);
     }
 
+    /**
+     * Setter for <code>public.links.position</code>.
+     */
+    public void setPosition(Integer value) {
+        set(13, value);
+    }
+
+    /**
+     * Getter for <code>public.links.position</code>.
+     */
+    public Integer getPosition() {
+        return (Integer) get(13);
+    }
+
     // -------------------------------------------------------------------------
     // Primary key information
     // -------------------------------------------------------------------------
@@ -238,7 +252,7 @@ public class LinksRecord extends UpdatableRecordImpl<LinksRecord> {
     /**
      * Create a detached, initialised LinksRecord
      */
-    public LinksRecord(UUID id, UUID stashId, String url, String title, String description, String faviconUrl, String pageContent, String finalUrl, String screenshotKey, OffsetDateTime screenshotGeneratedAt, OffsetDateTime createdAt, OffsetDateTime updatedAt, Object searchVector) {
+    public LinksRecord(UUID id, UUID stashId, String url, String title, String description, String faviconUrl, String pageContent, String finalUrl, String screenshotKey, OffsetDateTime screenshotGeneratedAt, OffsetDateTime createdAt, OffsetDateTime updatedAt, Object searchVector, Integer position) {
         super(Links.LINKS);
 
         setId(id);
@@ -254,6 +268,7 @@ public class LinksRecord extends UpdatableRecordImpl<LinksRecord> {
         setCreatedAt(createdAt);
         setUpdatedAt(updatedAt);
         setSearchVector(searchVector);
+        setPosition(position);
         resetChangedOnNotNull();
     }
 }

@@ -49,6 +49,11 @@ export const linkApi = {
   deleteLink: (linkId: string) => 
     api.delete(`/links/${linkId}`),
   
-  refreshScreenshot: (linkId: string) => 
+  refreshScreenshot: (linkId: string) =>
     api.post(`/links/${linkId}/refresh-screenshot`),
+
+  reorderLinks: (stashId: string, signature: string, linkIds: string[]) =>
+    api.patch(`/stashes/${stashId}/links`, { linkIds }, {
+      headers: { 'X-Stash-Signature': signature },
+    }),
 };
