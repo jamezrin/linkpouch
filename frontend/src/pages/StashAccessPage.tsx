@@ -16,17 +16,6 @@ import { useStashSearch } from '../contexts/stashSearch';
 
 // ─── Icons ───────────────────────────────────────────────────────────────────
 
-const GripIcon = () => (
-  <svg width="12" height="16" viewBox="0 0 12 16" fill="currentColor">
-    <circle cx="3.5" cy="3" r="1.3" />
-    <circle cx="3.5" cy="8" r="1.3" />
-    <circle cx="3.5" cy="13" r="1.3" />
-    <circle cx="8.5" cy="3" r="1.3" />
-    <circle cx="8.5" cy="8" r="1.3" />
-    <circle cx="8.5" cy="13" r="1.3" />
-  </svg>
-);
-
 const CheckIcon = () => (
   <svg className="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 20 20">
     <path
@@ -89,8 +78,10 @@ const LinkItem = forwardRef<HTMLDivElement, LinkItemProps>(
       <div
         ref={ref}
         {...draggableProps}
+        {...(dragHandleProps ?? {})}
         className={[
-          'relative flex items-center gap-2 px-3 py-2.5 cursor-pointer select-none',
+          'relative flex items-center gap-2 px-3 py-2.5 select-none',
+          isDragDisabled ? 'cursor-pointer' : 'cursor-grab active:cursor-grabbing',
           'border-b border-slate-800/50 transition-colors duration-100',
           isDragging
             ? 'bg-slate-700 shadow-2xl rounded-lg'
@@ -108,19 +99,6 @@ const LinkItem = forwardRef<HTMLDivElement, LinkItemProps>(
         onMouseLeave={() => setHovered(false)}
         onClick={() => onItemClick(link.id)}
       >
-        {/* Drag handle */}
-        {!isDragDisabled && dragHandleProps && (
-          <div
-            {...dragHandleProps}
-            className={`flex-shrink-0 text-slate-600 hover:text-slate-400 transition-opacity cursor-grab active:cursor-grabbing ${
-              hovered ? 'opacity-100' : 'opacity-0'
-            }`}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <GripIcon />
-          </div>
-        )}
-
         {/* Checkbox */}
         <div
           className={`flex-shrink-0 transition-opacity ${showCheckbox ? 'opacity-100' : 'opacity-0'}`}
@@ -269,14 +247,6 @@ export default function StashAccessPage() {
     },
   });
 
-  const deleteLinkMutation = useMutation({
-    mutationFn: (linkId: string) => linkApi.deleteLink(linkId),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['links', stashId] });
-      setSelectedLinkIds(new Set());
-    },
-  });
-
   const batchDeleteMutation = useMutation({
     mutationFn: async (ids: string[]) => {
       await Promise.all(ids.map((id) => linkApi.deleteLink(id)));
@@ -335,12 +305,28 @@ export default function StashAccessPage() {
   };
 
   const onDragEnd = (result: DropResult) => {
-    if (!result.destination || isSearching) return;
-    const items = Array.from(links);
-    const [moved] = items.splice(result.source.index, 1);
-    items.splice(result.destination.index, 0, moved);
-    setLinks(items);
-    linkApi.reorderLinks(stashId!, signature!, items.map((l) => l.id));
+    const dest = result.destination;
+    if (!dest || isSearching) return;
+    if (result.source.index === dest.index) return;
+
+    const selected = links.filter((l) => selectedLinkIds.has(l.id));
+    const unselected = links.filter((l) => !selectedLinkIds.has(l.id));
+
+    // When moving down, the group anchors after the destination; when moving up, before it.
+    const isMovingDown = dest.index > result.source.index;
+    const insertAt = unselected.filter((l) => {
+      const origIdx = links.indexOf(l);
+      return isMovingDown ? origIdx <= dest.index : origIdx < dest.index;
+    }).length;
+
+    const newOrder = [
+      ...unselected.slice(0, insertAt),
+      ...selected,
+      ...unselected.slice(insertAt),
+    ];
+
+    setLinks(newOrder);
+    linkApi.reorderLinks(stashId!, signature!, newOrder.map((l) => l.id));
   };
 
   // ─── Error / Loading states ───────────────────────────────────────────────────
@@ -479,7 +465,7 @@ export default function StashAccessPage() {
                         key={link.id}
                         draggableId={link.id}
                         index={index}
-                        isDragDisabled={isSearching}
+                        isDragDisabled={!selectedLinkIds.has(link.id) || isSearching}
                       >
                         {(dragProvided, dragSnapshot) => (
                           <LinkItem
