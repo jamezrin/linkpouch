@@ -1,23 +1,22 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useMutation } from '@tanstack/react-query';
 import { stashApi } from '../services/api';
-import { Stash } from '../types';
 
 export default function HomePage() {
   const [newStashName, setNewStashName] = useState('');
-  const [createdStash, setCreatedStash] = useState<Stash | null>(null);
-  const [showModal, setShowModal] = useState(false);
-  const [copied, setCopied] = useState(false);
+  const navigate = useNavigate();
 
   const createMutation = useMutation({
     mutationFn: (name: string) => stashApi.createStash({ name }),
     onSuccess: (response) => {
-      setCreatedStash(response.data);
-      setShowModal(true);
-      setNewStashName('');
+      const signedUrl = response.data.signedUrl;
+      if (signedUrl) {
+        navigate(new URL(signedUrl).pathname);
+      }
     },
     onError: (error: unknown) => {
-      const message = error instanceof Error ? error.message : 'Failed to create stash';
+      const message = error instanceof Error ? error.message : 'Failed to create pouch';
       alert(`Error: ${message}`);
     },
   });
@@ -27,12 +26,6 @@ export default function HomePage() {
     if (newStashName.trim()) {
       createMutation.mutate(newStashName.trim());
     }
-  };
-
-  const copyToClipboard = async (text: string) => {
-    await navigator.clipboard.writeText(text);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
   };
 
   return (
@@ -46,7 +39,6 @@ export default function HomePage() {
               'radial-gradient(ellipse at 20% 50%, rgba(99,102,241,0.18) 0%, transparent 55%), radial-gradient(ellipse at 80% 20%, rgba(139,92,246,0.12) 0%, transparent 50%)',
           }}
         />
-        {/* Subtle grid */}
         <div
           className="absolute inset-0 opacity-[0.03]"
           style={{
@@ -73,7 +65,7 @@ export default function HomePage() {
           </h1>
 
           <p className="text-lg md:text-xl text-slate-400 max-w-xl mx-auto mb-12 leading-relaxed">
-            Private link collections with auto screenshots and full-text search.
+            Private pouches with auto screenshots and full-text search.
             Just a secure URL — zero setup, zero accounts.
           </p>
 
@@ -82,7 +74,7 @@ export default function HomePage() {
               type="text"
               value={newStashName}
               onChange={(e) => setNewStashName(e.target.value)}
-              placeholder="Name your collection..."
+              placeholder="Name your pouch..."
               className="flex-1 px-5 py-3.5 bg-slate-800/80 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 text-[15px]"
             />
             <button
@@ -126,7 +118,7 @@ export default function HomePage() {
                   </svg>
                 ),
                 title: 'Auto screenshots',
-                desc: 'Every link gets a visual snapshot. Browse your collection like a gallery.',
+                desc: 'Every link gets a visual snapshot. Browse your pouch like a gallery.',
               },
               {
                 color: 'emerald',
@@ -173,8 +165,8 @@ export default function HomePage() {
             {[
               {
                 n: '01',
-                title: 'Create a collection',
-                desc: 'Give it a name. Your stash is created instantly with a unique secret key.',
+                title: 'Create a pouch',
+                desc: 'Give it a name. Your pouch is created instantly with a unique secret key.',
               },
               {
                 n: '02',
@@ -204,7 +196,7 @@ export default function HomePage() {
       {/* Bottom CTA */}
       <section className="py-20 px-6 bg-slate-950 text-center">
         <h2 className="text-2xl font-bold text-white mb-3">Ready to start?</h2>
-        <p className="text-slate-500 mb-8">Create your first collection above — it takes 5 seconds.</p>
+        <p className="text-slate-500 mb-8">Create your first pouch above — it takes 5 seconds.</p>
         <button
           onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
           className="px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-xl transition-colors"
@@ -212,65 +204,6 @@ export default function HomePage() {
           Get started →
         </button>
       </section>
-
-      {/* Success Modal */}
-      {showModal && createdStash && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl p-8 max-w-md w-full shadow-2xl">
-            <div className="text-center mb-6">
-              <div className="w-14 h-14 bg-emerald-50 rounded-full flex items-center justify-center mx-auto mb-4">
-                <svg className="w-7 h-7 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-                </svg>
-              </div>
-              <h3 className="text-xl font-bold text-slate-900 mb-1">Collection created!</h3>
-              <p className="text-slate-500 text-sm">
-                Save this URL — it's the only way to access{' '}
-                <strong className="text-slate-700">"{createdStash.name}"</strong>
-              </p>
-            </div>
-
-            <div className="bg-slate-50 rounded-xl p-4 mb-5 border border-slate-200">
-              <code className="text-xs text-slate-600 break-all leading-relaxed block">
-                {createdStash.signedUrl}
-              </code>
-            </div>
-
-            <div className="flex gap-3">
-              <button
-                onClick={() => copyToClipboard(createdStash.signedUrl!)}
-                className="flex-1 py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-xl transition-colors flex items-center justify-center gap-2 text-sm"
-              >
-                {copied ? (
-                  <>
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                    </svg>
-                    Copied!
-                  </>
-                ) : (
-                  <>
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                    </svg>
-                    Copy URL
-                  </>
-                )}
-              </button>
-              <button
-                onClick={() => {
-                  setShowModal(false);
-                  setCreatedStash(null);
-                  setCopied(false);
-                }}
-                className="px-4 py-3 border border-slate-200 text-slate-600 font-semibold rounded-xl hover:bg-slate-50 transition-colors text-sm"
-              >
-                Another
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

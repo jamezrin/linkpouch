@@ -361,7 +361,7 @@ export default function StashAccessPage() {
       <div className="h-full w-full flex items-center justify-center bg-slate-950">
         <div className="flex flex-col items-center gap-4">
           <div className="w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
-          <p className="text-slate-500 text-sm">Loading stash…</p>
+          <p className="text-slate-500 text-sm">Loading pouch…</p>
         </div>
       </div>
     );
@@ -373,8 +373,17 @@ export default function StashAccessPage() {
     <div className="h-full w-full flex overflow-hidden">
       {/* ── Sidebar ─────────────────────────────────────────────────────────── */}
       <div className="w-80 flex-shrink-0 h-full flex flex-col bg-slate-950 border-r border-slate-800">
-        {/* Stash header */}
-        <div className="px-4 pt-4 pb-3 border-b border-slate-800/70">
+        {/* Pouch header */}
+        <div className="px-4 pt-3 pb-3 border-b border-slate-800/70">
+          <a
+            href="/"
+            className="inline-flex items-center gap-1 text-[11px] text-slate-600 hover:text-slate-400 transition-colors mb-2"
+          >
+            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+            Home
+          </a>
           <h1 className="text-sm font-semibold text-slate-100 truncate">{stash?.name}</h1>
           <p className="text-xs text-slate-600 mt-0.5">{links.length} links</p>
         </div>
@@ -481,7 +490,7 @@ export default function StashAccessPage() {
                 </svg>
               </div>
               <p className="text-slate-500 text-sm">
-                {isSearching ? 'No links match your search' : 'No links yet — add one above'}
+                {isSearching ? 'No links match your search' : 'No links yet — paste one above'}
               </p>
             </div>
           ) : (
