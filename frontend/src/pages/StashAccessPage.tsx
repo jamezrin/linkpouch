@@ -650,8 +650,8 @@ export default function StashAccessPage() {
           </div>
         )}
 
-        {/* Link list */}
-        <div className="flex-1 overflow-hidden">
+        {/* Link list — flex-1 + min-h-0 constrains height so overflow-y-auto actually scrolls */}
+        <div ref={scrollContainerRef} className="flex-1 min-h-0 overflow-y-auto">
           {linksLoading ? (
             <div className="flex items-center justify-center h-full">
               <div className="w-6 h-6 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
@@ -678,18 +678,18 @@ export default function StashAccessPage() {
               </p>
             </div>
           ) : (
-            <DndContext
-              sensors={sensors}
-              collisionDetection={closestCenter}
-              modifiers={[restrictToVerticalAxis, restrictToParentElement]}
-              onDragStart={handleDragStart}
-              onDragEnd={handleDragEnd}
-            >
-              <SortableContext
-                items={links.map((l) => l.id)}
-                strategy={verticalListSortingStrategy}
+            <>
+              <DndContext
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                modifiers={[restrictToVerticalAxis, restrictToParentElement]}
+                onDragStart={handleDragStart}
+                onDragEnd={handleDragEnd}
               >
-                <div ref={scrollContainerRef} className="h-full overflow-y-auto">
+                <SortableContext
+                  items={links.map((l) => l.id)}
+                  strategy={verticalListSortingStrategy}
+                >
                   {links.map((link) => (
                     <SortableLinkItem
                       key={link.id}
@@ -702,20 +702,20 @@ export default function StashAccessPage() {
                       onCheckboxClick={handleCheckboxClick}
                     />
                   ))}
-                  {/* Infinite scroll sentinel — observed against the scroll container */}
-                  <div ref={sentinelRef} className="h-px" />
-                  {isFetchingNextPage && (
-                    <div className="flex items-center justify-center py-3">
-                      <div className="w-4 h-4 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
-                    </div>
-                  )}
+                </SortableContext>
+                {/* DragOverlay renders as a portal; restrictToParentElement keeps it inside the sidebar */}
+                <DragOverlay dropAnimation={null}>
+                  {draggingId ? <DragPreview links={selectedLinks} /> : null}
+                </DragOverlay>
+              </DndContext>
+              {/* Infinite scroll sentinel — observed against the scroll container (this div) */}
+              <div ref={sentinelRef} className="h-px" />
+              {isFetchingNextPage && (
+                <div className="flex items-center justify-center py-3">
+                  <div className="w-4 h-4 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
                 </div>
-              </SortableContext>
-              {/* DragOverlay renders as a portal but restrictToParentElement keeps it inside the sidebar */}
-              <DragOverlay dropAnimation={null}>
-                {draggingId ? <DragPreview links={selectedLinks} /> : null}
-              </DragOverlay>
-            </DndContext>
+              )}
+            </>
           )}
         </div>
 
