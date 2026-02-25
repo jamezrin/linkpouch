@@ -53,7 +53,8 @@ public interface LinkManagementUseCase {
     void requestScreenshotRefresh(UUID linkId);
 
     /**
-     * Reorder links in a stash to match the given ordered list.
+     * Move movedLinkIds to the position immediately after insertAfterId.
+     * If insertAfterId is null, moved links are placed at the beginning.
      */
-    void reorderLinks(UUID stashId, List<UUID> orderedLinkIds);
+    void reorderLinks(UUID stashId, List<UUID> movedLinkIds, UUID insertAfterId);
 }

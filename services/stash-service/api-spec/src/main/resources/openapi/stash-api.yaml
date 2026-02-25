@@ -575,6 +575,11 @@ components:
           items:
             type: string
             format: uuid
+        insertAfterId:
+          type: string
+          format: uuid
+          nullable: true
+          description: Insert the moved links after this link ID. Null means insert at the beginning.
 
     UpdateStashRequest:
       type: object

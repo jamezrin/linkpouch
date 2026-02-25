@@ -59,8 +59,8 @@ export const linkApi = {
   refreshScreenshot: (linkId: string) =>
     api.post(`/links/${linkId}/refresh-screenshot`),
 
-  reorderLinks: (stashId: string, signature: string, linkIds: string[]) =>
-    api.patch(`/stashes/${stashId}/links`, { linkIds }, {
+  reorderLinks: (stashId: string, signature: string, linkIds: string[], insertAfterId: string | null) =>
+    api.patch(`/stashes/${stashId}/links`, { linkIds, insertAfterId }, {
       headers: { 'X-Stash-Signature': signature },
     }),
 };

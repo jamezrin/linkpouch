@@ -1,6 +1,6 @@
-import React, { useState, useMemo, useCallback, useEffect, forwardRef } from 'react';
+import React, { useState, useMemo, useCallback, useEffect, useRef, forwardRef } from 'react';
 import { useParams, Navigate } from 'react-router-dom';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { AxiosError } from 'axios';
 import {
   DragDropContext,
@@ -166,6 +166,7 @@ export default function StashAccessPage() {
   const [links, setLinks] = useState<LinkType[]>([]);
   const [screenshotModalOpen, setScreenshotModalOpen] = useState(false);
   const [iframeLoading, setIframeLoading] = useState(false);
+  const sentinelRef = useRef<HTMLDivElement>(null);
   const queryClient = useQueryClient();
 
   if (!stashId || !signature) {
@@ -181,19 +182,32 @@ export default function StashAccessPage() {
     enabled: !!stashId && !!signature,
   });
 
-  const { data: linksData, isLoading: linksLoading } = useQuery({
+  const {
+    data: linksData,
+    isLoading: linksLoading,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useInfiniteQuery({
     queryKey: ['links', stashId, debouncedSearch],
-    queryFn: async () => {
-      const res = await linkApi.listLinks(stashId, signature, debouncedSearch || undefined, 0, 100);
+    queryFn: async ({ pageParam = 0 }) => {
+      const res = await linkApi.listLinks(stashId, signature, debouncedSearch || undefined, pageParam as number, 20);
       return res.data;
     },
+    getNextPageParam: (lastPage) => {
+      const currentPage = lastPage.number ?? 0;
+      const totalPages = lastPage.totalPages ?? 1;
+      return currentPage + 1 < totalPages ? currentPage + 1 : undefined;
+    },
+    initialPageParam: 0,
     enabled: !!stashId && !!signature,
   });
 
+  // Flatten all pages into the local links array
   useEffect(() => {
     if (linksData) {
-      const arr = Array.isArray(linksData) ? linksData : linksData.content;
-      if (Array.isArray(arr)) setLinks(arr);
+      const allLinks = linksData.pages.flatMap((page) => page.content ?? []);
+      setLinks(allLinks);
     }
   }, [linksData]);
 
@@ -217,6 +231,22 @@ export default function StashAccessPage() {
     }, 300);
     return () => clearTimeout(timer);
   }, [searchQuery]);
+
+  // Infinite scroll: load next page when sentinel enters viewport
+  useEffect(() => {
+    const el = sentinelRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasNextPage && !isFetchingNextPage) {
+          fetchNextPage();
+        }
+      },
+      { threshold: 0.1 }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
   const isSearching = searchQuery.trim().length > 0;
 
@@ -326,7 +356,10 @@ export default function StashAccessPage() {
     ];
 
     setLinks(newOrder);
-    linkApi.reorderLinks(stashId!, signature!, newOrder.map((l) => l.id));
+
+    // Send only the moved IDs + the anchor link (the link they land after, or null for start).
+    const insertAfterId = insertAt > 0 ? unselected[insertAt - 1].id : null;
+    linkApi.reorderLinks(stashId!, signature!, selected.map((l) => l.id), insertAfterId);
   };
 
   // ─── Error / Loading states ───────────────────────────────────────────────────
@@ -484,6 +517,13 @@ export default function StashAccessPage() {
                       </Draggable>
                     ))}
                     {provided.placeholder}
+                    {/* Infinite scroll sentinel */}
+                    <div ref={sentinelRef} className="h-px" />
+                    {isFetchingNextPage && (
+                      <div className="flex items-center justify-center py-3">
+                        <div className="w-4 h-4 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+                      </div>
+                    )}
                   </div>
                 )}
               </Droppable>

@@ -115,8 +115,8 @@ public class LinkManagementService implements LinkManagementUseCase {
 
     @Override
     @Transactional
-    public void reorderLinks(UUID stashId, List<UUID> orderedLinkIds) {
-        linkRepository.reorderLinks(stashId, orderedLinkIds);
+    public void reorderLinks(UUID stashId, List<UUID> movedLinkIds, UUID insertAfterId) {
+        linkRepository.reorderLinks(stashId, movedLinkIds, insertAfterId);
     }
 
     @Transactional(readOnly = true)
@@ -131,23 +131,21 @@ public class LinkManagementService implements LinkManagementUseCase {
             throw new IllegalArgumentException("size must be <= 100");
         }
 
-        List<Link> links;
         if (search != null && !search.isEmpty()) {
-            links = searchLinks(stashId, search);
-        } else {
-            links = getLinksByStashId(stashId);
+            List<Link> results = searchLinks(stashId, search);
+            int totalElements = results.size();
+            int totalPages = (int) Math.ceil((double) totalElements / size);
+            int fromIndex = page * size;
+            int toIndex = Math.min(fromIndex + size, totalElements);
+            List<Link> paginatedLinks = fromIndex < totalElements
+                    ? results.subList(fromIndex, toIndex)
+                    : List.of();
+            return new PagedResult<>(paginatedLinks, totalElements, totalPages, size, page);
         }
 
-        int totalElements = links.size();
+        long totalElements = linkRepository.countByStashId(stashId);
         int totalPages = (int) Math.ceil((double) totalElements / size);
-
-        int fromIndex = page * size;
-        int toIndex = Math.min(fromIndex + size, totalElements);
-
-        List<Link> paginatedLinks = fromIndex < totalElements
-                ? links.subList(fromIndex, toIndex)
-                : List.of();
-
-        return new PagedResult<>(paginatedLinks, totalElements, totalPages, size, page);
+        List<Link> links = linkRepository.findByStashIdPaged(stashId, page, size);
+        return new PagedResult<>(links, (int) totalElements, totalPages, size, page);
     }
 }
