@@ -357,7 +357,7 @@ export default function StashAccessPage() {
     );
     observer.observe(el);
     return () => observer.disconnect();
-  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage, links.length]);
 
   const isSearching = searchQuery.trim().length > 0;
 
