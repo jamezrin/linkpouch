@@ -266,7 +266,6 @@ export default function StashAccessPage() {
   const [screenshotModalOpen, setScreenshotModalOpen] = useState(false);
   const [iframeLoading, setIframeLoading] = useState(false);
   const [draggingId, setDraggingId] = useState<string | null>(null);
-  const sentinelRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const queryClient = useQueryClient();
 
@@ -339,22 +338,38 @@ export default function StashAccessPage() {
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
-  // Infinite scroll: load next page when sentinel enters the scroll container's viewport
+  // Keep refs to latest pagination state so the scroll handler never sees stale closures
+  const hasNextPageRef = useRef(hasNextPage);
+  hasNextPageRef.current = hasNextPage;
+  const isFetchingNextPageRef = useRef(isFetchingNextPage);
+  isFetchingNextPageRef.current = isFetchingNextPage;
+  const fetchNextPageRef = useRef(fetchNextPage);
+  fetchNextPageRef.current = fetchNextPage;
+
+  // Infinite scroll — scroll event: fire when user scrolls within 300px of the bottom
   useEffect(() => {
-    const el = sentinelRef.current;
     const container = scrollContainerRef.current;
-    if (!el || !container) return;
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting && hasNextPage && !isFetchingNextPage) {
-          fetchNextPage();
-        }
-      },
-      { root: container, rootMargin: '200px', threshold: 0 }
-    );
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
+    if (!container) return;
+    const onScroll = () => {
+      if (!hasNextPageRef.current || isFetchingNextPageRef.current) return;
+      const distanceFromBottom =
+        container.scrollHeight - container.scrollTop - container.clientHeight;
+      if (distanceFromBottom < 300) {
+        fetchNextPageRef.current();
+      }
+    };
+    container.addEventListener('scroll', onScroll, { passive: true });
+    return () => container.removeEventListener('scroll', onScroll);
+  }, []); // set up once; refs always point to latest values
+
+  // Infinite scroll — auto-load: if loaded content doesn't fill the container, keep paging
+  useEffect(() => {
+    const container = scrollContainerRef.current;
+    if (!container || !hasNextPage || isFetchingNextPage || links.length === 0) return;
+    if (container.scrollHeight <= container.clientHeight) {
+      fetchNextPage();
+    }
+  }, [links.length, hasNextPage, isFetchingNextPage, fetchNextPage]);
 
   const isSearching = searchQuery.trim().length > 0;
 
@@ -708,8 +723,6 @@ export default function StashAccessPage() {
                   {draggingId ? <DragPreview links={selectedLinks} /> : null}
                 </DragOverlay>
               </DndContext>
-              {/* Infinite scroll sentinel — observed against the scroll container (this div) */}
-              <div ref={sentinelRef} className="h-px" />
               {isFetchingNextPage && (
                 <div className="flex items-center justify-center py-3">
                   <div className="w-4 h-4 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
