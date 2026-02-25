@@ -7,6 +7,7 @@ import {
   Droppable,
   Draggable,
   DropResult,
+  DragStart,
   DraggableProvidedDraggableProps,
   DraggableProvidedDragHandleProps,
 } from '@hello-pangea/dnd';
@@ -53,6 +54,10 @@ interface LinkItemProps {
   dragHandleProps: DraggableProvidedDragHandleProps | null;
   isDragging: boolean;
   isDragDisabled: boolean;
+  /** True when another selected item is being dragged — this item drags along visually */
+  isGroupDragging: boolean;
+  /** Total number of items in the drag group (shown as badge on the dragged item) */
+  dragGroupSize: number;
 }
 
 const LinkItem = forwardRef<HTMLDivElement, LinkItemProps>(
@@ -67,6 +72,8 @@ const LinkItem = forwardRef<HTMLDivElement, LinkItemProps>(
       dragHandleProps,
       isDragging,
       isDragDisabled,
+      isGroupDragging,
+      dragGroupSize,
     },
     ref
   ) => {
@@ -85,6 +92,8 @@ const LinkItem = forwardRef<HTMLDivElement, LinkItemProps>(
           'border-b border-slate-800/50 transition-colors duration-100',
           isDragging
             ? 'bg-slate-700 shadow-2xl rounded-lg'
+            : isGroupDragging
+            ? 'opacity-40 bg-indigo-500/10'
             : isActive
             ? 'bg-indigo-500/20 border-l-2 border-l-indigo-400'
             : isSelected
@@ -140,11 +149,19 @@ const LinkItem = forwardRef<HTMLDivElement, LinkItemProps>(
           <p className="text-[11px] text-slate-500 truncate mt-0.5">{link.url}</p>
         </div>
 
-        {/* Meta */}
+        {/* Meta / drag group badge */}
         <div className="flex-shrink-0 flex flex-col items-end gap-1">
-          <span className="text-[11px] text-slate-600">{formatDate(link.createdAt)}</span>
-          {link.screenshotUrl && (
-            <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full" title="Screenshot available" />
+          {isDragging && dragGroupSize > 1 ? (
+            <span className="text-[11px] font-semibold bg-indigo-500 text-white rounded-full px-1.5 py-0.5 leading-none">
+              {dragGroupSize}
+            </span>
+          ) : (
+            <>
+              <span className="text-[11px] text-slate-600">{formatDate(link.createdAt)}</span>
+              {link.screenshotUrl && (
+                <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full" title="Screenshot available" />
+              )}
+            </>
           )}
         </div>
       </div>
@@ -166,6 +183,7 @@ export default function StashAccessPage() {
   const [links, setLinks] = useState<LinkType[]>([]);
   const [screenshotModalOpen, setScreenshotModalOpen] = useState(false);
   const [iframeLoading, setIframeLoading] = useState(false);
+  const [draggingId, setDraggingId] = useState<string | null>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
   const queryClient = useQueryClient();
 
@@ -334,7 +352,12 @@ export default function StashAccessPage() {
     selectedLinkIds.forEach((id) => refreshScreenshotMutation.mutate(id));
   };
 
+  const onDragStart = (start: DragStart) => {
+    setDraggingId(start.draggableId);
+  };
+
   const onDragEnd = (result: DropResult) => {
+    setDraggingId(null);
     const dest = result.destination;
     if (!dest || isSearching) return;
     if (result.source.index === dest.index) return;
@@ -485,7 +508,7 @@ export default function StashAccessPage() {
               </p>
             </div>
           ) : (
-            <DragDropContext onDragEnd={onDragEnd}>
+            <DragDropContext onDragStart={onDragStart} onDragEnd={onDragEnd}>
               <Droppable droppableId="links">
                 {(provided) => (
                   <div
@@ -507,6 +530,12 @@ export default function StashAccessPage() {
                             dragHandleProps={dragProvided.dragHandleProps}
                             isDragging={dragSnapshot.isDragging}
                             isDragDisabled={isSearching}
+                            isGroupDragging={
+                              draggingId !== null &&
+                              draggingId !== link.id &&
+                              selectedLinkIds.has(link.id)
+                            }
+                            dragGroupSize={selectedLinkIds.size}
                             link={link}
                             isSelected={selectedLinkIds.has(link.id)}
                             isActive={link.id === activeLinkId}
