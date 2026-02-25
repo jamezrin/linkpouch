@@ -37,12 +37,23 @@ public interface LinkRepository {
     void deleteById(UUID id);
 
     /**
+     * Find a paginated slice of links in a stash, ordered by position ascending.
+     */
+    List<Link> findByStashIdPaged(UUID stashId, int page, int size);
+
+    /**
+     * Count total links in a stash.
+     */
+    long countByStashId(UUID stashId);
+
+    /**
      * Increment position of all links in stash by 1 (make room for new link at position 0).
      */
     void shiftPositionsDown(UUID stashId);
 
     /**
-     * Set position of each link to its index in the given ordered list.
+     * Move movedLinkIds to the position immediately after insertAfterId.
+     * If insertAfterId is null, moved links are placed at the beginning.
      */
-    void reorderLinks(UUID stashId, List<UUID> orderedLinkIds);
+    void reorderLinks(UUID stashId, List<UUID> movedLinkIds, UUID insertAfterId);
 }

@@ -17,8 +17,11 @@ import org.springframework.stereotype.Component;
 
 import java.time.ZoneOffset;
 
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.IntStream;
 import org.jooq.Query;
@@ -93,6 +96,26 @@ public class LinkJooqAdapter implements LinkRepository {
     }
 
     @Override
+    public List<Link> findByStashIdPaged(UUID stashId, int page, int size) {
+        return dsl.selectFrom(LINKS)
+                .where(LINKS.STASH_ID.eq(stashId))
+                .orderBy(LINKS.POSITION.asc())
+                .limit(size)
+                .offset((long) page * size)
+                .fetch()
+                .map(this::mapIn);
+    }
+
+    @Override
+    public long countByStashId(UUID stashId) {
+        Long count = dsl.selectCount()
+                .from(LINKS)
+                .where(LINKS.STASH_ID.eq(stashId))
+                .fetchOne(0, Long.class);
+        return count != null ? count : 0L;
+    }
+
+    @Override
     public void shiftPositionsDown(UUID stashId) {
         dsl.update(LINKS)
                 .set(LINKS.POSITION, LINKS.POSITION.add(1))
@@ -101,13 +124,47 @@ public class LinkJooqAdapter implements LinkRepository {
     }
 
     @Override
-    public void reorderLinks(UUID stashId, List<UUID> orderedLinkIds) {
-        var queries = IntStream.range(0, orderedLinkIds.size())
-                .mapToObj(i -> (Query) dsl.update(LINKS)
-                        .set(LINKS.POSITION, i)
-                        .where(LINKS.ID.eq(orderedLinkIds.get(i)).and(LINKS.STASH_ID.eq(stashId))))
-                .toList();
-        dsl.batch(queries).execute();
+    public void reorderLinks(UUID stashId, List<UUID> movedLinkIds, UUID insertAfterId) {
+        // Load all IDs in position order (cheap — only fetching IDs, not full rows)
+        List<UUID> allIds = dsl.select(LINKS.ID)
+                .from(LINKS)
+                .where(LINKS.STASH_ID.eq(stashId))
+                .orderBy(LINKS.POSITION.asc())
+                .fetch(LINKS.ID);
+
+        // Remove moved IDs from their current positions
+        Set<UUID> movedSet = new HashSet<>(movedLinkIds);
+        List<UUID> remaining = new ArrayList<>(allIds.size());
+        for (UUID id : allIds) {
+            if (!movedSet.contains(id)) {
+                remaining.add(id);
+            }
+        }
+
+        // Find insertion point: after the anchor, or at start if anchor is null
+        int insertionIndex;
+        if (insertAfterId == null) {
+            insertionIndex = 0;
+        } else {
+            int anchorPos = remaining.indexOf(insertAfterId);
+            insertionIndex = anchorPos >= 0 ? anchorPos + 1 : remaining.size();
+        }
+
+        // Build the new full order
+        List<UUID> newOrder = new ArrayList<>(allIds.size());
+        newOrder.addAll(remaining.subList(0, insertionIndex));
+        newOrder.addAll(movedLinkIds);
+        newOrder.addAll(remaining.subList(insertionIndex, remaining.size()));
+
+        // Batch update positions
+        if (!newOrder.isEmpty()) {
+            var queries = IntStream.range(0, newOrder.size())
+                    .mapToObj(i -> (Query) dsl.update(LINKS)
+                            .set(LINKS.POSITION, i)
+                            .where(LINKS.ID.eq(newOrder.get(i)).and(LINKS.STASH_ID.eq(stashId))))
+                    .toList();
+            dsl.batch(queries).execute();
+        }
     }
     
     /**

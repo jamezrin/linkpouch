@@ -112,7 +112,11 @@ public class LinkController implements LinksApi {
             throw new UnauthorizedException("Invalid signature");
         }
 
-        linkService.reorderLinks(stashId, reorderLinksRequestDTO.getLinkIds());
+        var insertAfterIdNullable = reorderLinksRequestDTO.getInsertAfterId();
+        UUID insertAfterId = insertAfterIdNullable != null && insertAfterIdNullable.isPresent()
+                ? insertAfterIdNullable.get()
+                : null;
+        linkService.reorderLinks(stashId, reorderLinksRequestDTO.getLinkIds(), insertAfterId);
         return ResponseEntity.noContent().build();
     }
 
