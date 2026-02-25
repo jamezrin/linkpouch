@@ -48,7 +48,8 @@
         <spotless.version>2.44.3</spotless.version>
         <google-java-format.version>1.25.2</google-java-format.version>
         <error-prone.version>2.36.0</error-prone.version>
-        <rewrite.version>6.2.2</rewrite.version>
+        <rewrite-maven-plugin.version>6.2.2</rewrite-maven-plugin.version>
+        <rewrite-java.version>8.47.3</rewrite-java.version>
     </properties>
     
     <dependencyManagement>
@@ -169,31 +170,23 @@
                             <style>AOSP</style>
                             <reflowLongStrings>true</reflowLongStrings>
                         </googleJavaFormat>
-                        
+
                         <!-- Remove unused imports -->
                         <removeUnusedImports>
                             <engine>google-java-format</engine>
                         </removeUnusedImports>
-                        
+
                         <!-- Import order -->
                         <importOrder>
                             <order>java,javax,jakarta,org,com,com.linkpouch</order>
                         </importOrder>
+
+                        <!-- Exclude generated code from formatting -->
+                        <excludes>
+                            <exclude>**/generated/**/*.java</exclude>
+                            <exclude>**/target/generated-sources/**/*.java</exclude>
+                        </excludes>
                     </java>
-                    <formats>
-                        <format>
-                            <includes>
-                                <include>*.xml</include>
-                                <include>*.yml</include>
-                                <include>*.yaml</include>
-                            </includes>
-                            <trimTrailingWhitespace></trimTrailingWhitespace>
-                            <endWithNewline></endWithNewline>
-                            <indent>
-                                <spaces>2</spaces>
-                            </indent>
-                        </format>
-                    </formats>
                 </configuration>
                 <executions>
                     <execution>
@@ -208,19 +201,24 @@
             <plugin>
                 <groupId>org.openrewrite.maven</groupId>
                 <artifactId>rewrite-maven-plugin</artifactId>
-                <version>${rewrite.version}</version>
+                <version>${rewrite-maven-plugin.version}</version>
                 <configuration>
                     <activeRecipes>
-                        <recipe>org.openrewrite.java.cleanup.FinalizePrivateFields</recipe>
-                        <recipe>org.openrewrite.java.cleanup.FinalizeMethodArguments</recipe>
-                        <recipe>org.openrewrite.java.cleanup.FinalizeLocalVariables</recipe>
+                        <recipe>org.openrewrite.staticanalysis.FinalizePrivateFields</recipe>
+                        <recipe>org.openrewrite.staticanalysis.FinalizeMethodArguments</recipe>
+                        <recipe>org.openrewrite.staticanalysis.FinalizeLocalVariables</recipe>
                     </activeRecipes>
                 </configuration>
                 <dependencies>
                     <dependency>
+                        <groupId>org.openrewrite</groupId>
+                        <artifactId>rewrite-java</artifactId>
+                        <version>${rewrite-java.version}</version>
+                    </dependency>
+                    <dependency>
                         <groupId>org.openrewrite.recipe</groupId>
-                        <artifactId>rewrite-java-cleanup</artifactId>
-                        <version>${rewrite.version}</version>
+                        <artifactId>rewrite-static-analysis</artifactId>
+                        <version>2.3.0</version>
                     </dependency>
                 </dependencies>
             </plugin>

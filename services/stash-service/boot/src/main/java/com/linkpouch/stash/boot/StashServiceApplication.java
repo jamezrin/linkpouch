@@ -9,7 +9,7 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 @EnableJpaRepositories(basePackages = "com.linkpouch.stash.infrastructure.adapter.persistence.jpa")
 @EntityScan(basePackages = "com.linkpouch.stash.infrastructure.adapter.persistence.jpa.entity")
 public class StashServiceApplication {
-    public static void main(String[] args) {
+    public static void main(final String[] args) {
         SpringApplication.run(StashServiceApplication.class, args);
     }
 }

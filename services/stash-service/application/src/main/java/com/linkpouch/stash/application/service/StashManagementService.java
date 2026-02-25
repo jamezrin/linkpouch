@@ -1,19 +1,20 @@
 package com.linkpouch.stash.application.service;
 
-import com.linkpouch.stash.domain.model.Stash;
-import com.linkpouch.stash.domain.port.inbound.StashManagementUseCase;
-import com.linkpouch.stash.domain.port.outbound.StashRepository;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
-import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.linkpouch.stash.domain.model.Stash;
+import com.linkpouch.stash.domain.port.inbound.StashManagementUseCase;
+import com.linkpouch.stash.domain.port.outbound.StashRepository;
+
+import lombok.RequiredArgsConstructor;
+
 /**
- * Application Service: Stash Management
- * Implements use cases with transaction boundaries at the application layer.
+ * Application Service: Stash Management Implements use cases with transaction boundaries at the
+ * application layer.
  */
 @Service
 @RequiredArgsConstructor
@@ -23,29 +24,32 @@ public class StashManagementService implements StashManagementUseCase {
 
     @Override
     @Transactional
-    public Stash createStash(String name) {
-        Stash stash = Stash.create(name);
+    public Stash createStash(final String name) {
+        final Stash stash = Stash.create(name);
         return stashRepository.save(stash);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public Optional<Stash> findStashById(UUID stashId) {
+    public Optional<Stash> findStashById(final UUID stashId) {
         return stashRepository.findById(stashId);
     }
 
     @Override
     @Transactional
-    public Stash updateStashName(UUID stashId, String newName) {
-        Stash stash = stashRepository.findById(stashId)
-                .orElseThrow(() -> new IllegalArgumentException("Stash not found: " + stashId));
+    public Stash updateStashName(final UUID stashId, final String newName) {
+        final Stash stash =
+                stashRepository
+                        .findById(stashId)
+                        .orElseThrow(
+                                () -> new IllegalArgumentException("Stash not found: " + stashId));
         stash.updateName(newName);
         return stashRepository.save(stash);
     }
 
     @Override
     @Transactional
-    public void deleteStash(UUID stashId) {
+    public void deleteStash(final UUID stashId) {
         stashRepository.deleteById(stashId);
     }
 }

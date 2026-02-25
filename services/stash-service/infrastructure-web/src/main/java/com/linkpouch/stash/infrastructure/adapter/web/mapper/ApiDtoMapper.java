@@ -1,18 +1,19 @@
 package com.linkpouch.stash.infrastructure.adapter.web.mapper;
 
-import com.linkpouch.stash.api.model.*;
-import com.linkpouch.stash.application.dto.AddLinkRequest;
-import com.linkpouch.stash.application.dto.CreateStashRequest;
-import com.linkpouch.stash.domain.model.*;
-import org.mapstruct.Mapper;
-import org.mapstruct.Mapping;
-import org.mapstruct.Named;
-
 import java.net.URI;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
+
+import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
+import org.mapstruct.Named;
+
+import com.linkpouch.stash.api.model.*;
+import com.linkpouch.stash.application.dto.AddLinkRequest;
+import com.linkpouch.stash.application.dto.CreateStashRequest;
+import com.linkpouch.stash.domain.model.*;
 
 @Mapper(componentModel = "spring")
 public interface ApiDtoMapper {
@@ -39,10 +40,16 @@ public interface ApiDtoMapper {
     @Mapping(target = "stashId", source = "stashId")
     @Mapping(target = "url", source = "url", qualifiedByName = "urlToUri")
     @Mapping(target = "title", source = "title", qualifiedByName = "linkTitleToString")
-    @Mapping(target = "description", source = "description", qualifiedByName = "linkDescriptionToString")
+    @Mapping(
+            target = "description",
+            source = "description",
+            qualifiedByName = "linkDescriptionToString")
     @Mapping(target = "faviconUrl", source = "faviconUrl", qualifiedByName = "urlToUri")
     @Mapping(target = "screenshotUrl", ignore = true)
-    @Mapping(target = "screenshotGeneratedAt", source = "screenshotGeneratedAt", qualifiedByName = "toOffsetDateTime")
+    @Mapping(
+            target = "screenshotGeneratedAt",
+            source = "screenshotGeneratedAt",
+            qualifiedByName = "toOffsetDateTime")
     @Mapping(target = "createdAt", source = "createdAt", qualifiedByName = "toOffsetDateTime")
     @Mapping(target = "updatedAt", source = "updatedAt", qualifiedByName = "toOffsetDateTime")
     @Mapping(target = "position", source = "position")

@@ -1,22 +1,19 @@
 package com.linkpouch.stash.domain.model;
 
-import lombok.EqualsAndHashCode;
-import lombok.Getter;
-import lombok.ToString;
-
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.UUID;
 
-/**
- * Entity: Link
- * Represents a URL with extracted metadata within a stash.
- */
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.ToString;
+
+/** Entity: Link Represents a URL with extracted metadata within a stash. */
 @Getter
 @EqualsAndHashCode(of = "id")
 @ToString
 public class Link {
-    
+
     private final UUID id;
     private final UUID stashId;
     private final LocalDateTime createdAt;
@@ -31,10 +28,20 @@ public class Link {
     private LocalDateTime screenshotGeneratedAt;
     private int position;
 
-    public Link(UUID id, UUID stashId, LocalDateTime createdAt, LocalDateTime updatedAt,
-                Url url, LinkTitle title, LinkDescription description, Url faviconUrl,
-                String pageContent, Url finalUrl, ScreenshotKey screenshotKey,
-                LocalDateTime screenshotGeneratedAt, int position) {
+    public Link(
+            final UUID id,
+            final UUID stashId,
+            final LocalDateTime createdAt,
+            final LocalDateTime updatedAt,
+            final Url url,
+            final LinkTitle title,
+            final LinkDescription description,
+            final Url faviconUrl,
+            final String pageContent,
+            final Url finalUrl,
+            final ScreenshotKey screenshotKey,
+            final LocalDateTime screenshotGeneratedAt,
+            final int position) {
         this.id = id != null ? id : UUID.randomUUID();
         this.stashId = stashId;
         this.createdAt = createdAt != null ? createdAt : LocalDateTime.now(ZoneOffset.UTC);
@@ -50,13 +57,29 @@ public class Link {
         this.position = position;
     }
 
-    public static Link create(UUID stashId, String url) {
-        return new Link(null, stashId, null, null, Url.of(url),
-                       null, null, null, null, null, null, null, 0);
+    public static Link create(final UUID stashId, final String url) {
+        return new Link(
+                null,
+                stashId,
+                null,
+                null,
+                Url.of(url),
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                0);
     }
-    
-    public void updateMetadata(String title, String description, String faviconUrl, 
-                              String pageContent, String finalUrl) {
+
+    public void updateMetadata(
+            final String title,
+            final String description,
+            final String faviconUrl,
+            final String pageContent,
+            final String finalUrl) {
         this.title = title != null ? LinkTitle.of(title) : null;
         this.description = description != null ? LinkDescription.of(description) : null;
         this.faviconUrl = faviconUrl != null ? Url.of(faviconUrl) : null;
@@ -65,7 +88,7 @@ public class Link {
         this.updatedAt = LocalDateTime.now(ZoneOffset.UTC);
     }
 
-    public void updateScreenshot(String screenshotKey) {
+    public void updateScreenshot(final String screenshotKey) {
         if (screenshotKey == null || screenshotKey.isBlank()) {
             throw new IllegalArgumentException("Screenshot key cannot be null or blank");
         }

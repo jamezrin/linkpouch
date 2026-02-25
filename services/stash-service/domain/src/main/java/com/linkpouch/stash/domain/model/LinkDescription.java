@@ -4,23 +4,21 @@ import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.ToString;
 
-/**
- * Value Object: LinkDescription
- */
+/** Value Object: LinkDescription */
 @Getter
 @EqualsAndHashCode
 @ToString
 public final class LinkDescription {
-    
+
     private static final int MAX_LENGTH = 2000;
-    
+
     private final String value;
-    
-    private LinkDescription(String value) {
+
+    private LinkDescription(final String value) {
         this.value = value;
     }
-    
-    public static LinkDescription of(String value) {
+
+    public static LinkDescription of(final String value) {
         if (value == null) {
             return null;
         }

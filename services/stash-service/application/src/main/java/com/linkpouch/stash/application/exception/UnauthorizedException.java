@@ -1,16 +1,16 @@
 package com.linkpouch.stash.application.exception;
 
 /**
- * Exception thrown when a request lacks valid authentication/authorization.
- * Maps to HTTP 401 Unauthorized.
+ * Exception thrown when a request lacks valid authentication/authorization. Maps to HTTP 401
+ * Unauthorized.
  */
 public class UnauthorizedException extends RuntimeException {
-    
-    public UnauthorizedException(String message) {
+
+    public UnauthorizedException(final String message) {
         super(message);
     }
-    
-    public UnauthorizedException(String message, Throwable cause) {
+
+    public UnauthorizedException(final String message, final Throwable cause) {
         super(message, cause);
     }
 }
