@@ -81,16 +81,24 @@ public class LinkJooqAdapter implements LinkRepository {
 
     @Override
     public List<Link> searchByStashIdAndQuery(final UUID stashId, final String query) {
-        // Use PostgreSQL full-text search with jOOQ
-        final String tsQuery = query.replaceAll("\\s+", " & ");
+        // Use PostgreSQL full-text search combined with trigram ILIKE fallback.
+        // The FTS path handles natural-language content (title, description, page_content).
+        // The ILIKE path catches URL substring matches (e.g. "pnpm" matching "https://pnpm.io")
+        // and is fast because GIN trigram indexes (idx_links_url_trgm, idx_links_title_trgm)
+        // are used by PostgreSQL for patterns longer than 2 characters.
+        final String likePattern = "%" + query.toLowerCase() + "%";
 
         return dsl.selectFrom(LINKS)
                 .where(LINKS.STASH_ID.eq(stashId))
-                .and(DSL.condition("search_vector @@ plainto_tsquery('english', {0})", query))
+                .and(
+                        DSL.condition("search_vector @@ plainto_tsquery('english', {0})", query)
+                                .or(DSL.condition("LOWER(url) LIKE {0}", likePattern))
+                                .or(DSL.condition("LOWER(title) LIKE {0}", likePattern))
+                                .or(DSL.condition("LOWER(description) LIKE {0}", likePattern)))
                 .orderBy(
                         DSL.field(
-                                "ts_rank(search_vector, plainto_tsquery('english', {0})) DESC",
-                                query))
+                                        "ts_rank(search_vector, plainto_tsquery('english', {0})) DESC",
+                                        query))
                 .fetch()
                 .map(this::mapIn); // mapIn: from jOOQ record TO domain
     }
