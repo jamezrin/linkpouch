@@ -147,6 +147,64 @@ const FAQS = [
   },
 ];
 
+const ROADMAP: Array<{ icon: React.ReactNode; title: string; desc: string }> = [
+  {
+    icon: (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+      </svg>
+    ),
+    title: 'Password-protected pouches',
+    desc: 'Add an optional passphrase on top of the signed URL — for sharing with a specific audience without exposing access to everyone.',
+  },
+  {
+    icon: (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+      </svg>
+    ),
+    title: 'Bulk link import',
+    desc: 'Paste a list of URLs or drop in a file to populate your pouch all at once — great for migrating from other bookmark managers.',
+  },
+  {
+    icon: (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
+      </svg>
+    ),
+    title: 'Mobile-ready interface',
+    desc: 'A fully responsive layout optimized for managing your collection from phones and tablets, without compromise.',
+  },
+  {
+    icon: (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+      </svg>
+    ),
+    title: 'Adaptive link preview',
+    desc: "Automatic fallback to archive.org when a direct preview can't load, with a one-click toggle between live and archived view.",
+  },
+  {
+    icon: (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+      </svg>
+    ),
+    title: 'Real-time processing status',
+    desc: 'Color-coded indicators show which links are still gathering screenshots or metadata, and which ones ran into issues.',
+  },
+  {
+    icon: (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+      </svg>
+    ),
+    title: 'Improved full-text search',
+    desc: 'Better relevance ranking, smarter metadata indexing, and faster suggestions across your entire link collection.',
+  },
+];
+
 // ─── App UI Mockup ────────────────────────────────────────────────────────────
 
 function AppMockup() {
@@ -556,6 +614,56 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* ── Roadmap ───────────────────────────────────────────────────────── */}
+      <section className="py-24 px-6 bg-slate-50">
+        <div className="max-w-5xl mx-auto">
+          <div className="text-center mb-16">
+            <div className="inline-flex items-center gap-2 bg-emerald-50 border border-emerald-200 rounded-full px-4 py-1.5 mb-6">
+              <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
+              <span className="text-sm text-emerald-700 font-medium">Actively developed</span>
+            </div>
+            <h2
+              className="text-3xl md:text-4xl font-bold text-slate-900 mb-3 tracking-tight"
+              style={SERIF}
+            >
+              More on the way
+            </h2>
+            <p className="text-slate-500 text-lg max-w-xl mx-auto">
+              Linkpouch ships improvements regularly. Here's what's on the horizon.
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {ROADMAP.map((item) => (
+              <div
+                key={item.title}
+                className="bg-white rounded-2xl border border-slate-100 p-5 flex gap-4 items-start hover:border-slate-200 hover:shadow-sm transition-all duration-200"
+              >
+                <div className="w-9 h-9 rounded-xl bg-indigo-50 text-indigo-500 flex items-center justify-center flex-shrink-0 mt-0.5">
+                  {item.icon}
+                </div>
+                <div>
+                  <h3 className="font-semibold text-slate-900 mb-1 text-[15px]">{item.title}</h3>
+                  <p className="text-slate-500 text-sm leading-relaxed">{item.desc}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <p className="text-center text-slate-400 text-sm mt-10">
+            Have a suggestion?{' '}
+            <a
+              href="https://github.com/jamezrin"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-indigo-500 hover:text-indigo-600 font-medium transition-colors"
+            >
+              Open an issue on GitHub →
+            </a>
+          </p>
+        </div>
+      </section>
+
       {/* ── CTA + Footer ──────────────────────────────────────────────────── */}
       <section className="py-24 px-6 bg-slate-950 relative overflow-hidden text-center">
         {/* Gradient orb */}
@@ -599,7 +707,31 @@ export default function HomePage() {
             </div>
             <span className="text-sm font-semibold text-slate-500">linkpouch</span>
           </div>
-          <p className="text-slate-700 text-xs">Save links. Find them fast.</p>
+          <p className="text-slate-700 text-xs mb-5">Save links. Find them fast.</p>
+          <div className="flex items-center justify-center gap-4">
+            <a
+              href="https://x.com/jamezrin"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-slate-600 hover:text-slate-300 transition-colors"
+              title="Follow on X"
+            >
+              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.745l7.73-8.835L1.254 2.25H8.08l4.213 5.567z" />
+              </svg>
+            </a>
+            <a
+              href="https://github.com/jamezrin"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-slate-600 hover:text-slate-300 transition-colors"
+              title="GitHub"
+            >
+              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 0C5.374 0 0 5.373 0 12c0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23A11.509 11.509 0 0112 5.803c1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576C20.566 21.797 24 17.3 24 12c0-6.627-5.373-12-12-12z" />
+              </svg>
+            </a>
+          </div>
         </div>
       </section>
     </div>
