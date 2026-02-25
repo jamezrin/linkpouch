@@ -509,7 +509,63 @@ export default function StashAccessPage() {
             </div>
           ) : (
             <DragDropContext onDragStart={onDragStart} onDragEnd={onDragEnd}>
-              <Droppable droppableId="links">
+              <Droppable
+                droppableId="links"
+                renderClone={(provided, _snapshot, rubric) => {
+                  const draggedLink = links[rubric.source.index];
+                  const extraCount = Math.min(selectedLinkIds.size - 1, 2);
+                  const faviconUrl = getFaviconUrl(draggedLink.url, draggedLink.faviconUrl);
+                  return (
+                    <div
+                      ref={provided.innerRef}
+                      {...provided.draggableProps}
+                      {...provided.dragHandleProps}
+                      className="relative cursor-grabbing"
+                    >
+                      {/* Shadow cards offset behind for a stacked effect */}
+                      {Array.from({ length: extraCount }).map((_, i) => (
+                        <div
+                          key={i}
+                          className="absolute inset-0 bg-slate-700 rounded-lg border border-slate-600/60"
+                          style={{
+                            transform: `translate(${(i + 1) * 3}px, ${(i + 1) * 3}px)`,
+                            zIndex: -(i + 1),
+                          }}
+                        />
+                      ))}
+                      {/* Main card */}
+                      <div className="relative z-10 flex items-center gap-2 px-3 py-2.5 bg-slate-700 shadow-2xl rounded-lg border border-slate-600/60 select-none">
+                        <div className="flex-shrink-0 w-4 h-4 rounded border-[1.5px] bg-indigo-500 border-indigo-500 flex items-center justify-center">
+                          <CheckIcon />
+                        </div>
+                        <div className="flex-shrink-0 w-4 h-4 flex items-center justify-center">
+                          {faviconUrl ? (
+                            <img
+                              src={faviconUrl}
+                              alt=""
+                              className="w-4 h-4 rounded-sm object-contain"
+                              onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                            />
+                          ) : (
+                            <div className="w-3 h-3 bg-slate-600 rounded-sm" />
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[13px] font-medium text-slate-200 truncate leading-tight">
+                            {draggedLink.title || draggedLink.url}
+                          </p>
+                          <p className="text-[11px] text-slate-500 truncate mt-0.5">{draggedLink.url}</p>
+                        </div>
+                        {selectedLinkIds.size > 1 && (
+                          <span className="flex-shrink-0 text-[11px] font-bold bg-indigo-500 text-white rounded-full w-5 h-5 flex items-center justify-center">
+                            {selectedLinkIds.size}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  );
+                }}
+              >
                 {(provided) => (
                   <div
                     ref={provided.innerRef}
@@ -523,17 +579,15 @@ export default function StashAccessPage() {
                         index={index}
                         isDragDisabled={!selectedLinkIds.has(link.id) || isSearching}
                       >
-                        {(dragProvided, dragSnapshot) => (
+                        {(dragProvided) => (
                           <LinkItem
                             ref={dragProvided.innerRef}
                             draggableProps={dragProvided.draggableProps}
                             dragHandleProps={dragProvided.dragHandleProps}
-                            isDragging={dragSnapshot.isDragging}
+                            isDragging={false}
                             isDragDisabled={isSearching}
                             isGroupDragging={
-                              draggingId !== null &&
-                              draggingId !== link.id &&
-                              selectedLinkIds.has(link.id)
+                              draggingId !== null && selectedLinkIds.has(link.id)
                             }
                             dragGroupSize={selectedLinkIds.size}
                             link={link}
