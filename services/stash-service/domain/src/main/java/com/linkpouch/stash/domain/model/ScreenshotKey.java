@@ -4,21 +4,19 @@ import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.ToString;
 
-/**
- * Value Object: ScreenshotKey
- */
+/** Value Object: ScreenshotKey */
 @Getter
 @EqualsAndHashCode
 @ToString
 public final class ScreenshotKey {
-    
+
     private final String value;
-    
-    private ScreenshotKey(String value) {
+
+    private ScreenshotKey(final String value) {
         this.value = value;
     }
-    
-    public static ScreenshotKey of(String value) {
+
+    public static ScreenshotKey of(final String value) {
         if (value == null || value.trim().isEmpty()) {
             throw new IllegalArgumentException("ScreenshotKey cannot be null or blank");
         }

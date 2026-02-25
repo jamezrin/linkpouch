@@ -1,5 +1,3 @@
 package com.linkpouch.stash.application.dto;
 
-public record CreateStashRequest(
-    String name
-) {}
+public record CreateStashRequest(String name) {}
