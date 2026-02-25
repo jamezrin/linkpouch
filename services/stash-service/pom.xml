@@ -44,6 +44,11 @@
         <aws-sdk.version>2.29.52</aws-sdk.version>
         <!-- jOOQ codegen: set to true to skip (e.g. in Docker builds) -->
         <jooq.codegen.skip>false</jooq.codegen.skip>
+        <!-- Spotless formatter -->
+        <spotless.version>2.44.3</spotless.version>
+        <google-java-format.version>1.25.2</google-java-format.version>
+        <error-prone.version>2.36.0</error-prone.version>
+        <rewrite.version>6.2.2</rewrite.version>
     </properties>
     
     <dependencyManagement>
@@ -112,6 +117,27 @@
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-compiler-plugin</artifactId>
                     <version>3.13.0</version>
+                    <configuration>
+                        <compilerArgs>
+                            <arg>-J--add-exports=jdk.compiler/com.sun.tools.javac.api=ALL-UNNAMED</arg>
+                            <arg>-J--add-exports=jdk.compiler/com.sun.tools.javac.file=ALL-UNNAMED</arg>
+                            <arg>-J--add-exports=jdk.compiler/com.sun.tools.javac.main=ALL-UNNAMED</arg>
+                            <arg>-J--add-exports=jdk.compiler/com.sun.tools.javac.model=ALL-UNNAMED</arg>
+                            <arg>-J--add-exports=jdk.compiler/com.sun.tools.javac.parser=ALL-UNNAMED</arg>
+                            <arg>-J--add-exports=jdk.compiler/com.sun.tools.javac.processing=ALL-UNNAMED</arg>
+                            <arg>-J--add-exports=jdk.compiler/com.sun.tools.javac.tree=ALL-UNNAMED</arg>
+                            <arg>-J--add-exports=jdk.compiler/com.sun.tools.javac.util=ALL-UNNAMED</arg>
+                            <arg>-J--add-opens=jdk.compiler/com.sun.tools.javac.code=ALL-UNNAMED</arg>
+                            <arg>-J--add-opens=jdk.compiler/com.sun.tools.javac.comp=ALL-UNNAMED</arg>
+                        </compilerArgs>
+                        <annotationProcessorPaths>
+                            <path>
+                                <groupId>com.google.errorprone</groupId>
+                                <artifactId>error_prone_core</artifactId>
+                                <version>${error-prone.version}</version>
+                            </path>
+                        </annotationProcessorPaths>
+                    </configuration>
                 </plugin>
                 <plugin>
                     <groupId>org.springframework.boot</groupId>
@@ -123,7 +149,81 @@
                     <artifactId>flyway-maven-plugin</artifactId>
                     <version>${flyway.version}</version>
                 </plugin>
+                <plugin>
+                    <groupId>com.diffplug.spotless</groupId>
+                    <artifactId>spotless-maven-plugin</artifactId>
+                    <version>${spotless.version}</version>
+                </plugin>
             </plugins>
         </pluginManagement>
+        
+        <plugins>
+            <plugin>
+                <groupId>com.diffplug.spotless</groupId>
+                <artifactId>spotless-maven-plugin</artifactId>
+                <configuration>
+                    <java>
+                        <!-- Use google-java-format for consistent formatting -->
+                        <googleJavaFormat>
+                            <version>${google-java-format.version}</version>
+                            <style>AOSP</style>
+                            <reflowLongStrings>true</reflowLongStrings>
+                        </googleJavaFormat>
+                        
+                        <!-- Remove unused imports -->
+                        <removeUnusedImports>
+                            <engine>google-java-format</engine>
+                        </removeUnusedImports>
+                        
+                        <!-- Import order -->
+                        <importOrder>
+                            <order>java,javax,jakarta,org,com,com.linkpouch</order>
+                        </importOrder>
+                    </java>
+                    <formats>
+                        <format>
+                            <includes>
+                                <include>*.xml</include>
+                                <include>*.yml</include>
+                                <include>*.yaml</include>
+                            </includes>
+                            <trimTrailingWhitespace></trimTrailingWhitespace>
+                            <endWithNewline></endWithNewline>
+                            <indent>
+                                <spaces>2</spaces>
+                            </indent>
+                        </format>
+                    </formats>
+                </configuration>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
+                        <phase>verify</phase>
+                    </execution>
+                </executions>
+            </plugin>
+            
+            <plugin>
+                <groupId>org.openrewrite.maven</groupId>
+                <artifactId>rewrite-maven-plugin</artifactId>
+                <version>${rewrite.version}</version>
+                <configuration>
+                    <activeRecipes>
+                        <recipe>org.openrewrite.java.cleanup.FinalizePrivateFields</recipe>
+                        <recipe>org.openrewrite.java.cleanup.FinalizeMethodArguments</recipe>
+                        <recipe>org.openrewrite.java.cleanup.FinalizeLocalVariables</recipe>
+                    </activeRecipes>
+                </configuration>
+                <dependencies>
+                    <dependency>
+                        <groupId>org.openrewrite.recipe</groupId>
+                        <artifactId>rewrite-java-cleanup</artifactId>
+                        <version>${rewrite.version}</version>
+                    </dependency>
+                </dependencies>
+            </plugin>
+        </plugins>
     </build>
 </project>
