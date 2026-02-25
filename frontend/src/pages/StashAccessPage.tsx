@@ -509,7 +509,13 @@ export default function StashAccessPage() {
   };
 
   const handleBatchOpen = () => {
-    selectedLinks.forEach((l) => window.open(l.url, '_blank'));
+    selectedLinks.forEach((l) => {
+      const a = document.createElement('a');
+      a.href = l.url;
+      a.target = '_blank';
+      a.rel = 'noopener noreferrer';
+      a.click();
+    });
   };
 
   const handleBatchRefresh = () => {
