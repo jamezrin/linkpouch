@@ -653,7 +653,7 @@ export default function HomePage() {
           <p className="text-center text-slate-400 text-sm mt-10">
             Have a suggestion?{' '}
             <a
-              href="https://github.com/jamezrin"
+              href="https://github.com/jamezrin/linkpouch"
               target="_blank"
               rel="noopener noreferrer"
               className="text-indigo-500 hover:text-indigo-600 font-medium transition-colors"
