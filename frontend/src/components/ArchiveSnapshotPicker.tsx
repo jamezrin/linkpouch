@@ -47,25 +47,8 @@ function formatTimestampShort(ts: string): string {
   });
 }
 
-/**
- * Returns the maximum capture count among the given months,
- * used to compute heatmap intensity.
- */
-function getMaxCount(months: WaybackMonthSummary[]): number {
-  return months.reduce((max, m) => Math.max(max, m.count), 1);
-}
-
-/**
- * Maps a capture count to a Tailwind background class for the heatmap.
- */
-function heatmapClass(count: number, maxCount: number): string {
-  const ratio = count / maxCount;
-  if (ratio === 0) return 'bg-slate-100 text-slate-400';
-  if (ratio < 0.25) return 'bg-indigo-100 text-indigo-600';
-  if (ratio < 0.5) return 'bg-indigo-200 text-indigo-700';
-  if (ratio < 0.75) return 'bg-indigo-400 text-white';
-  return 'bg-indigo-600 text-white';
-}
+// No heatmap count logic needed — the CDX API's skipcount field is unreliable.
+// Month cells simply show "has captures" (indigo) vs "no captures" (grey).
 
 // ─── Sub-components ──────────────────────────────────────────────────────────
 
@@ -78,7 +61,6 @@ interface MonthGridProps {
 
 function MonthGrid({ months, selectedYear, onSelectMonth, selectedMonth }: MonthGridProps) {
   const yearMonths = months.filter((m) => m.year === selectedYear);
-  const maxCount = getMaxCount(yearMonths);
 
   return (
     <div className="grid grid-cols-4 gap-1.5 p-3">
@@ -92,10 +74,10 @@ function MonthGrid({ months, selectedYear, onSelectMonth, selectedMonth }: Month
           return (
             <div
               key={monthNum}
-              className="h-10 rounded-md bg-slate-50 flex flex-col items-center justify-center cursor-default opacity-40"
+              className="h-9 rounded-md bg-slate-50 flex items-center justify-center cursor-default"
               title="No captures"
             >
-              <span className="text-[11px] font-medium text-slate-400">
+              <span className="text-[11px] font-medium text-slate-300">
                 {MONTH_NAMES[i]}
               </span>
             </div>
@@ -106,17 +88,14 @@ function MonthGrid({ months, selectedYear, onSelectMonth, selectedMonth }: Month
           <button
             key={monthNum}
             onClick={() => onSelectMonth(monthData)}
-            className={`h-10 rounded-md flex flex-col items-center justify-center transition-all hover:ring-2 hover:ring-indigo-400 hover:ring-offset-1 ${
-              isSelected ? 'ring-2 ring-indigo-600 ring-offset-1' : ''
-            } ${heatmapClass(monthData.count, maxCount)}`}
-            title={`${monthData.count.toLocaleString()} capture${monthData.count !== 1 ? 's' : ''}`}
+            className={`h-9 rounded-md flex items-center justify-center transition-all hover:ring-2 hover:ring-indigo-400 hover:ring-offset-1 ${
+              isSelected
+                ? 'bg-indigo-600 text-white ring-2 ring-indigo-600 ring-offset-1'
+                : 'bg-indigo-100 text-indigo-700 hover:bg-indigo-200'
+            }`}
+            title={`${MONTH_NAMES[i]} ${selectedYear} — has captures`}
           >
             <span className="text-[11px] font-semibold">{MONTH_NAMES[i]}</span>
-            <span className="text-[9px] opacity-80 leading-none mt-0.5">
-              {monthData.count >= 1000
-                ? `${Math.round(monthData.count / 1000)}k`
-                : monthData.count}
-            </span>
           </button>
         );
       })}

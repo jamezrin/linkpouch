@@ -44,6 +44,15 @@ data:
               filters:
                 - StripPrefix=1
 
+            # Wayback Machine CDX API proxy (avoids CORS restrictions)
+            - id: wayback-cdx-proxy
+              uri: https://web.archive.org
+              predicates:
+                - Path=/api/wayback/cdx
+              filters:
+                - StripPrefix=2
+                - SetRequestHeader=Host, web.archive.org
+
             # Health check route
             - id: health
               uri: http://stash-service:8080
