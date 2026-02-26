@@ -50,7 +50,7 @@ data:
               predicates:
                 - Path=/api/wayback/cdx
               filters:
-                - StripPrefix=2
+                - RewritePath=/api/wayback/cdx, /cdx/search/cdx
                 - SetRequestHeader=Host, web.archive.org
 
             # Health check route

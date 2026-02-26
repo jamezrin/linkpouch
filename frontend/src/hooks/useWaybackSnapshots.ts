@@ -38,7 +38,11 @@ async function fetchMonthSummaries(url: string): Promise<WaybackMonthSummary[]> 
   });
 
   const res = await fetch(`${CDX_PROXY}?${params.toString()}`);
-  if (!res.ok) throw new Error(`CDX proxy error: ${res.status}`);
+  if (!res.ok) {
+    const err = new Error(`CDX proxy error: ${res.status}`) as Error & { status: number };
+    err.status = res.status;
+    throw err;
+  }
 
   const json: string[][] = await res.json();
   const rows = parseCdxJson(json);
