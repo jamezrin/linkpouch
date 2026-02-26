@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useWaybackMonths, useWaybackSnapshotsForMonth } from '../hooks/useWaybackSnapshots';
 import { WaybackMonthSummary } from '../types';
 
@@ -192,16 +192,32 @@ export interface ArchiveSnapshotPickerProps {
   url: string;
   selectedTimestamp: string | null;
   onSelect: (timestamp: string | null) => void;
+  /** Label shown when no specific snapshot is selected. Defaults to "Latest". */
+  nullLabel?: string;
+  /** Fully overrides the trigger button's className. */
+  triggerClassName?: string;
+  /** Called when the dropdown is about to open. */
+  onOpen?: () => void;
+  /** Gates the CDX data fetch. Defaults to true. */
+  fetchEnabled?: boolean;
 }
 
-export function ArchiveSnapshotPicker({ url, selectedTimestamp, onSelect }: ArchiveSnapshotPickerProps) {
+export function ArchiveSnapshotPicker({
+  url,
+  selectedTimestamp,
+  onSelect,
+  nullLabel = 'Latest',
+  triggerClassName,
+  onOpen,
+  fetchEnabled = true,
+}: ArchiveSnapshotPickerProps) {
   const [open, setOpen] = useState(false);
   const [selectedYear, setSelectedYear] = useState<number | null>(null);
   const [expandedMonth, setExpandedMonth] = useState<WaybackMonthSummary | null>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
 
-  const { data: months, isLoading, isError, error } = useWaybackMonths(url, true);
+  const { data: months, isLoading, isError, error } = useWaybackMonths(url, fetchEnabled);
   const isExcluded = isError && (error as Error & { status?: number })?.status === 403;
 
   // Derive available years (newest first)
@@ -220,6 +236,26 @@ export function ArchiveSnapshotPicker({ url, selectedTimestamp, onSelect }: Arch
   useEffect(() => {
     setExpandedMonth(null);
   }, [selectedYear]);
+
+  // Keep the dropdown panel within the horizontal viewport bounds.
+  // Runs synchronously before paint so the user never sees a flash.
+  useLayoutEffect(() => {
+    if (!open || !panelRef.current) return;
+    const panel = panelRef.current;
+    // Reset any previous correction so we measure from the CSS default
+    panel.style.right = '';
+    panel.style.left = '';
+    const rect = panel.getBoundingClientRect();
+    const margin = 8;
+    if (rect.right > window.innerWidth - margin) {
+      // Shift left until the right edge has `margin` px clearance
+      panel.style.right = `${rect.right - window.innerWidth + margin}px`;
+    } else if (rect.left < margin) {
+      // Shift right until the left edge has `margin` px clearance
+      panel.style.right = 'auto';
+      panel.style.left = `${margin - rect.left}px`;
+    }
+  }, [open]);
 
   // Close panel when clicking outside
   useEffect(() => {
@@ -256,36 +292,50 @@ export function ArchiveSnapshotPicker({ url, selectedTimestamp, onSelect }: Arch
 
   const buttonLabel = selectedTimestamp
     ? formatTimestampShort(selectedTimestamp)
-    : 'Latest';
+    : nullLabel;
 
   return (
     <div className="relative flex-shrink-0">
       {/* Trigger button */}
       <button
         ref={buttonRef}
-        onClick={() => setOpen((v) => !v)}
-        className={`flex items-center gap-1 px-2.5 py-1 rounded-md border text-[12px] font-medium transition-colors ${
-          open
-            ? 'bg-indigo-50 border-indigo-300 text-indigo-700'
-            : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50 hover:border-slate-300'
-        }`}
+        onClick={() => {
+          if (!open) onOpen?.();
+          setOpen((v) => !v);
+        }}
+        className={
+          triggerClassName ??
+          `flex items-center gap-1 px-2.5 py-1 rounded-md border text-[12px] font-medium transition-colors ${
+            open
+              ? 'bg-indigo-50 border-indigo-300 text-indigo-700'
+              : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50 hover:border-slate-300'
+          }`
+        }
         title="Select archive snapshot"
       >
-        <svg className="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-          />
-        </svg>
-        <span className="max-w-[120px] truncate">{buttonLabel}</span>
+        {!triggerClassName && (
+          <svg className="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+            />
+          </svg>
+        )}
+        <span className={triggerClassName ? undefined : 'max-w-[120px] truncate'}>{buttonLabel}</span>
         {isLoading && (
-          <div className="w-2.5 h-2.5 border border-indigo-400 border-t-transparent rounded-full animate-spin ml-0.5" />
+          <div
+            className={`w-2.5 h-2.5 border border-t-transparent rounded-full animate-spin ml-0.5 ${
+              triggerClassName ? 'border-current opacity-60' : 'border-indigo-400'
+            }`}
+          />
         )}
         {!isLoading && (
           <svg
-            className={`w-3 h-3 text-slate-400 transition-transform ${open ? 'rotate-180' : ''}`}
+            className={`w-3 h-3 transition-transform ${open ? 'rotate-180' : ''} ${
+              triggerClassName ? 'opacity-50' : 'text-slate-400'
+            }`}
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -299,7 +349,7 @@ export function ArchiveSnapshotPicker({ url, selectedTimestamp, onSelect }: Arch
       {open && (
         <div
           ref={panelRef}
-          className="absolute top-full left-0 mt-1.5 w-64 bg-white border border-slate-200 rounded-xl shadow-lg z-50 overflow-hidden"
+          className="absolute top-full right-0 mt-1.5 w-64 bg-white border border-slate-200 rounded-xl shadow-lg z-50 overflow-hidden"
         >
           {/* Header */}
           <div className="flex items-center justify-between px-3 py-2 border-b border-slate-100 bg-slate-50">

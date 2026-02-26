@@ -818,118 +818,143 @@ export default function StashAccessPage() {
       <div className="flex-1 h-full flex flex-col overflow-hidden bg-slate-50">
         {activeLink ? (
           <>
-            {/* Header */}
-            <div className="flex-shrink-0 bg-white border-b border-slate-200 px-6 py-4">
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    {activeLink.faviconUrl && (
-                      <img
-                        src={activeLink.faviconUrl}
-                        alt=""
-                        className="w-4 h-4 rounded-sm flex-shrink-0"
-                      />
-                    )}
-                    <h2 className="text-[15px] font-semibold text-slate-900 truncate">
-                      {activeLink.title || activeLink.url}
-                    </h2>
-                  </div>
-                  <a
-                    href={activeLink.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-[13px] text-indigo-600 hover:text-indigo-800 truncate block"
-                  >
-                    {activeLink.url}
-                  </a>
-                  {activeLink.description && (
-                    <p className="text-[13px] text-slate-500 mt-2 line-clamp-2 leading-relaxed">
-                      {activeLink.description}
-                    </p>
-                  )}
-
-                  {/* Preview controls */}
-                  <div className="flex items-center gap-3 mt-3 flex-wrap">
-                    <div className="flex rounded-lg overflow-hidden border border-slate-200 text-[12px] font-medium flex-shrink-0">
-                      <button
-                        onClick={switchToLive}
-                        disabled={liveFailed}
-                        className={`px-3 py-1 transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
-                          previewMode === 'live'
-                            ? 'bg-indigo-600 text-white'
-                            : 'bg-white text-slate-500 hover:bg-slate-50'
-                        }`}
-                      >
-                        Live
-                      </button>
-                      <button
-                        onClick={switchToArchive}
-                        className={`px-3 py-1 border-l border-slate-200 transition-colors ${
-                          previewMode === 'archive'
-                            ? 'bg-indigo-600 text-white'
-                            : 'bg-white text-slate-500 hover:bg-slate-50'
-                        }`}
-                      >
-                        Archive
-                      </button>
-                    </div>
-
-                    {previewMode === 'archive' && (
-                      <ArchiveSnapshotPicker
-                        url={activeLink.url}
-                        selectedTimestamp={selectedArchiveTimestamp}
-                        onSelect={(ts) => {
-                          setSelectedArchiveTimestamp(ts);
-                          setArchiveLoading(true);
-                        }}
-                      />
-                    )}
-
-                    {showArchiveSuggestion && previewMode === 'live' && (
-                      <div className="flex items-center gap-1.5 text-[12px]">
-                        <svg
-                          className="w-3.5 h-3.5 text-amber-500 flex-shrink-0"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-                          />
-                        </svg>
-                        <span className="text-slate-500">Page may not be loading.</span>
-                        <button
-                          onClick={switchToArchive}
-                          className="text-indigo-600 hover:text-indigo-800 font-medium"
-                        >
-                          View in archive.org →
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Screenshot thumbnail */}
-                <div className="flex-shrink-0">
-                  {activeLink.screenshotUrl ? (
-                    <button
-                      onClick={() => setScreenshotModalOpen(true)}
-                      className="w-24 h-16 rounded-lg overflow-hidden border border-slate-200 hover:border-indigo-400 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                      title="View screenshot"
+            {/* Header — single fixed-height row */}
+            <div className="flex-shrink-0 bg-white border-b border-slate-200 px-4 h-11 flex items-center gap-3">
+              {/* Identity: favicon · title · url — shrinks to give space to right-side controls */}
+              <div className="flex-1 flex items-center gap-1.5 min-w-0">
+                {activeLink.faviconUrl && (
+                  <img
+                    src={activeLink.faviconUrl}
+                    alt=""
+                    className="w-4 h-4 rounded-sm flex-shrink-0"
+                  />
+                )}
+                <span className="text-[13px] font-semibold text-slate-800 truncate shrink-0 max-w-[45%]">
+                  {activeLink.title || activeLink.url}
+                </span>
+                {activeLink.title && (
+                  <>
+                    <span className="text-slate-300 text-[11px] flex-shrink-0">·</span>
+                    <a
+                      href={activeLink.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-[12px] text-indigo-500 hover:text-indigo-700 truncate"
                     >
-                      <img
-                        src={activeLink.screenshotUrl}
-                        alt="Screenshot thumbnail"
-                        className="w-full h-full object-cover object-top"
-                      />
-                    </button>
-                  ) : (
-                    <div className="w-24 h-16 rounded-lg border border-slate-200 bg-slate-50 flex flex-col items-center justify-center gap-1">
+                      {activeLink.url}
+                    </a>
+                  </>
+                )}
+              </div>
+
+              {/* Slow-load warning — inline, only in live mode */}
+              {showArchiveSuggestion && previewMode === 'live' && (
+                <div className="flex items-center gap-1 flex-shrink-0">
+                  <svg
+                    className="w-3 h-3 text-amber-500 flex-shrink-0"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                    />
+                  </svg>
+                  <button
+                    onClick={switchToArchive}
+                    className="text-[11px] text-indigo-600 hover:text-indigo-700 font-medium"
+                  >
+                    Try archive →
+                  </button>
+                </div>
+              )}
+
+              {/* Live / Archive toggle with integrated snapshot picker.
+                  Split into individual bordered buttons (no overflow-hidden wrapper)
+                  so the picker's dropdown panel isn't clipped. */}
+              <div className="flex text-[11px] font-medium flex-shrink-0">
+                <button
+                  onClick={switchToLive}
+                  disabled={liveFailed}
+                  className={`px-2.5 py-1 rounded-l-md border border-slate-200 border-r-0 transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
+                    previewMode === 'live'
+                      ? 'bg-indigo-600 text-white'
+                      : 'bg-white text-slate-500 hover:bg-slate-50'
+                  }`}
+                >
+                  Live
+                </button>
+                <ArchiveSnapshotPicker
+                  url={activeLink.url}
+                  selectedTimestamp={previewMode === 'archive' ? selectedArchiveTimestamp : null}
+                  onSelect={(ts) => {
+                    setSelectedArchiveTimestamp(ts);
+                    setArchiveLoading(true);
+                  }}
+                  nullLabel={previewMode === 'archive' ? 'Latest' : 'Archive'}
+                  triggerClassName={`px-2.5 py-1 rounded-r-md border border-slate-200 transition-colors flex items-center gap-1 ${
+                    previewMode === 'archive'
+                      ? 'bg-indigo-600 text-white'
+                      : 'bg-white text-slate-500 hover:bg-slate-50'
+                  }`}
+                  onOpen={() => {
+                    if (previewMode !== 'archive') switchToArchive();
+                  }}
+                  fetchEnabled={previewMode === 'archive'}
+                />
+              </div>
+
+              {/* Screenshot thumbnail */}
+              <div className="flex-shrink-0">
+                {activeLink.screenshotUrl ? (
+                  <button
+                    onClick={() => setScreenshotModalOpen(true)}
+                    className="w-16 h-8 rounded overflow-hidden border border-slate-200 hover:border-indigo-400 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    title="View screenshot"
+                  >
+                    <img
+                      src={activeLink.screenshotUrl}
+                      alt="Screenshot"
+                      className="w-full h-full object-cover object-top"
+                    />
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => refreshScreenshotMutation.mutate(activeLink.id)}
+                    disabled={refreshScreenshotMutation.isPending}
+                    title={
+                      refreshScreenshotMutation.isPending
+                        ? 'Generating screenshot…'
+                        : 'Generate screenshot'
+                    }
+                    className="w-16 h-8 rounded border border-dashed border-slate-200 bg-slate-50 hover:bg-slate-100 hover:border-slate-300 transition-colors flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {refreshScreenshotMutation.isPending ? (
                       <svg
-                        className="w-5 h-5 text-slate-300"
+                        className="w-3 h-3 text-slate-400 animate-spin"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                      >
+                        <circle
+                          className="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="4"
+                        />
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8v4l3-3-3-3v4a8 8 0 00-8 8h4z"
+                        />
+                      </svg>
+                    ) : (
+                      <svg
+                        className="w-3 h-3 text-slate-300"
                         fill="none"
                         stroke="currentColor"
                         viewBox="0 0 24 24"
@@ -941,16 +966,9 @@ export default function StashAccessPage() {
                           d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
                         />
                       </svg>
-                      <button
-                        onClick={() => refreshScreenshotMutation.mutate(activeLink.id)}
-                        disabled={refreshScreenshotMutation.isPending}
-                        className="text-[10px] text-indigo-500 hover:text-indigo-700 disabled:opacity-50"
-                      >
-                        {refreshScreenshotMutation.isPending ? 'Generating…' : 'Generate'}
-                      </button>
-                    </div>
-                  )}
-                </div>
+                    )}
+                  </button>
+                )}
               </div>
             </div>
 
