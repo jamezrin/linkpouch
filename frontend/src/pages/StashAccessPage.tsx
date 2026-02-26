@@ -577,22 +577,39 @@ export default function StashAccessPage() {
     const elapsed = Date.now() - liveLoadStartRef.current;
 
     let blocked = false;
+    let definitelyBlocked = false;
     try {
       const doc = liveIframeRef.current?.contentDocument;
       // Some browsers expose an empty document instead of throwing
       if (doc && (!doc.body || doc.body.innerHTML.trim() === '')) {
         blocked = true;
+        definitelyBlocked = true;
       }
     } catch {
-      // SecurityError: chrome-error:// page (blocked) OR real cross-origin load.
-      // Use timing to tell them apart — blocks always resolve in < 300 ms.
-      if (elapsed < 300) {
+      // SecurityError: either a chrome-error:// page (CSP/XFO blocked) or a
+      // legitimate cross-origin load. Distinguish by timing:
+      //
+      //   Blocked page → browser fires onLoad after exactly ONE request
+      //   (the page itself). No subresources are fetched. The only time
+      //   spent is TCP + TLS + one HTTP round-trip.  Even on high-latency
+      //   connections this stays well under 3 s.
+      //
+      //   Real embeddable page → onLoad fires only after every image, script,
+      //   stylesheet and font has finished loading.  Even a minimal page
+      //   takes several seconds; typical sites take 3–10 s.
+      //
+      // 3000 ms gives a comfortable margin that covers CSP blocks on slow
+      // connections (≥ 1 s RTT) while leaving room for fast real pages.
+      // If we're wrong the user can still click "Live" to override (we only
+      // permanently disable the button for the high-confidence empty-body case).
+      if (elapsed < 3000) {
         blocked = true;
+        // definitelyBlocked stays false — timing-based, keep Live button enabled
       }
     }
 
     if (blocked) {
-      setLiveFailed(true);
+      if (definitelyBlocked) setLiveFailed(true);
       setPreviewMode('archive');
       setArchiveLoading(true);
       setShowArchiveSuggestion(false);
