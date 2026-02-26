@@ -16,10 +16,7 @@ public class UrlEmbeddabilityService implements UrlEmbeddabilityUseCase {
     private final UrlInfoPort urlInfoPort;
 
     @Override
-    @Cacheable(
-            value = "embeddability",
-            key = "#a0",
-            unless = "#result.reason() == 'unreachable'")
+    @Cacheable(value = "embeddability", key = "#a0", unless = "#result.reason() == 'unreachable'")
     public EmbeddabilityResult checkEmbeddability(final String url) {
         final var info = urlInfoPort.fetch(url);
 

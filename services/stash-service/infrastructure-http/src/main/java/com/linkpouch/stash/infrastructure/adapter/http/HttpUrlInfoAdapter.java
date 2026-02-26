@@ -42,8 +42,7 @@ public class HttpUrlInfoAdapter implements UrlInfoPort {
                 .uri(url)
                 .exchange(
                         (req, res) -> {
-                            if (res.getStatusCode()
-                                            .isSameCodeAs(HttpStatus.METHOD_NOT_ALLOWED)
+                            if (res.getStatusCode().isSameCodeAs(HttpStatus.METHOD_NOT_ALLOWED)
                                     && method == HttpMethod.HEAD) {
                                 return fetchHeaders(url, HttpMethod.GET);
                             }
@@ -64,8 +63,7 @@ public class HttpUrlInfoAdapter implements UrlInfoPort {
 
         final String scheme = uri.getScheme();
         if (!"http".equalsIgnoreCase(scheme) && !"https".equalsIgnoreCase(scheme)) {
-            throw new IllegalArgumentException(
-                    "URL scheme must be http or https, got: " + scheme);
+            throw new IllegalArgumentException("URL scheme must be http or https, got: " + scheme);
         }
 
         final String host = uri.getHost();
@@ -76,20 +74,17 @@ public class HttpUrlInfoAdapter implements UrlInfoPort {
         try {
             final InetAddress address = InetAddress.getByName(host);
             if (address.isLoopbackAddress()) {
-                throw new IllegalArgumentException(
-                        "URL resolves to loopback address: " + url);
+                throw new IllegalArgumentException("URL resolves to loopback address: " + url);
             }
             if (address.isSiteLocalAddress()) {
                 throw new IllegalArgumentException(
                         "URL resolves to site-local (private) address: " + url);
             }
             if (address.isLinkLocalAddress()) {
-                throw new IllegalArgumentException(
-                        "URL resolves to link-local address: " + url);
+                throw new IllegalArgumentException("URL resolves to link-local address: " + url);
             }
             if (address.isMulticastAddress()) {
-                throw new IllegalArgumentException(
-                        "URL resolves to multicast address: " + url);
+                throw new IllegalArgumentException("URL resolves to multicast address: " + url);
             }
         } catch (final UnknownHostException e) {
             throw new IllegalArgumentException("Cannot resolve host: " + host);

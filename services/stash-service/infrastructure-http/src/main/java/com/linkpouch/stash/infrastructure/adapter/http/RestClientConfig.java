@@ -19,8 +19,7 @@ public class RestClientConfig {
                         .setConnectionRequestTimeout(5, TimeUnit.SECONDS)
                         .setResponseTimeout(5, TimeUnit.SECONDS)
                         .build();
-        final var httpClient =
-                HttpClients.custom().setDefaultRequestConfig(requestConfig).build();
+        final var httpClient = HttpClients.custom().setDefaultRequestConfig(requestConfig).build();
         final var factory = new HttpComponentsClientHttpRequestFactory(httpClient);
         return RestClient.builder().requestFactory(factory).build();
     }
