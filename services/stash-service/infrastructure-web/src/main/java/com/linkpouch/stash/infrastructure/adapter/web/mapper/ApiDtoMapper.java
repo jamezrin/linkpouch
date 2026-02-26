@@ -57,6 +57,10 @@ public interface ApiDtoMapper {
 
     List<LinkResponseDTO> mapOutLinks(List<Link> links);
 
+    // ==================== EMBEDDABILITY RESPONSE MAPPER ====================
+
+    EmbeddabilityCheckResponseDTO mapOut(EmbeddabilityResult result);
+
     // ==================== VALUE OBJECT CONVERTERS ====================
 
     @Named("stashNameToString")

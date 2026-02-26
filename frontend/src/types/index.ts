@@ -51,3 +51,8 @@ export interface WaybackSnapshot {
   timestamp: string; // e.g. "20231115142032"
   statuscode: string;
 }
+
+export interface EmbeddabilityCheckResponse {
+  embeddable: boolean;
+  reason?: string;
+}

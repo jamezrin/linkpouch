@@ -20,6 +20,7 @@
         <module>infrastructure-persistence-jpa</module>
         <module>infrastructure-persistence-jooq</module>
         <module>infrastructure-redis</module>
+        <module>infrastructure-http</module>
         <module>infrastructure-web</module>
         <module>boot</module>
     </modules>
@@ -101,6 +102,11 @@
             <dependency>
                 <groupId>com.linkpouch</groupId>
                 <artifactId>infrastructure-redis</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.linkpouch</groupId>
+                <artifactId>infrastructure-http</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>

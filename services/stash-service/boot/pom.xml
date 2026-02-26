@@ -31,6 +31,18 @@
 
         <dependency>
             <groupId>com.linkpouch</groupId>
+            <artifactId>infrastructure-http</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <!-- Spring Cache -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-cache</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.linkpouch</groupId>
             <artifactId>infrastructure-persistence-jpa</artifactId>
             <version>${project.version}</version>
         </dependency>

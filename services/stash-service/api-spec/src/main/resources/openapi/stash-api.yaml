@@ -402,6 +402,32 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
+  /embeddable-check:
+    get:
+      summary: Check if a URL can be embedded in an iframe
+      operationId: checkEmbeddability
+      tags:
+        - Utils
+      parameters:
+        - name: url
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Embeddability check result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmbeddabilityCheckResponse'
+        '400':
+          description: Invalid or private URL
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
   /links/{linkId}/refresh-screenshot:
     parameters:
       - name: linkId
@@ -591,6 +617,14 @@ components:
           minLength: 1
           maxLength: 255
           description: New name for the stash
+
+    EmbeddabilityCheckResponse:
+      type: object
+      properties:
+        embeddable:
+          type: boolean
+        reason:
+          type: string
 
     ErrorResponse:
       type: object
