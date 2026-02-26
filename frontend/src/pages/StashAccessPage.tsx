@@ -297,6 +297,7 @@ export default function StashAccessPage() {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const liveIframeRef = useRef<HTMLIFrameElement>(null);
   const blockTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const liveLoadStartRef = useRef<number>(0);
   const queryClient = useQueryClient();
 
   if (!stashId || !signature) {
@@ -362,6 +363,7 @@ export default function StashAccessPage() {
     setArchiveLoading(false);
     setShowArchiveSuggestion(false);
     setLiveFailed(false);
+    liveLoadStartRef.current = Date.now();
     if (blockTimerRef.current) clearTimeout(blockTimerRef.current);
     if (activeLinkId) {
       blockTimerRef.current = setTimeout(() => setShowArchiveSuggestion(true), 6000);
@@ -560,21 +562,36 @@ export default function StashAccessPage() {
       clearTimeout(blockTimerRef.current);
       blockTimerRef.current = null;
     }
-    // Detect CSP / X-Frame-Options blocking: the browser substitutes a blank
-    // document — contentDocument is accessible but body is empty. Keep the
-    // loading overlay covering the iframe so the user never sees the error.
+
+    // Detect CSP / X-Frame-Options blocking while the loading overlay still
+    // covers the iframe so the user never sees the browser error page.
+    //
+    // When a site is blocked, Chrome navigates the iframe to a chrome-error://
+    // page. Accessing contentDocument on that page throws a SecurityError —
+    // the same exception thrown for legitimate cross-origin loads — so we
+    // cannot distinguish them by DOM inspection alone.
+    //
+    // The reliable signal is TIMING: a rejection fires onLoad in < 100 ms
+    // because the browser refuses after reading response headers. A real page
+    // (even a cached one) always takes longer to fully initialize.
+    const elapsed = Date.now() - liveLoadStartRef.current;
+
     let blocked = false;
     try {
       const doc = liveIframeRef.current?.contentDocument;
+      // Some browsers expose an empty document instead of throwing
       if (doc && (!doc.body || doc.body.innerHTML.trim() === '')) {
         blocked = true;
       }
     } catch {
-      // SecurityError = real cross-origin content loaded successfully
+      // SecurityError: chrome-error:// page (blocked) OR real cross-origin load.
+      // Use timing to tell them apart — blocks always resolve in < 300 ms.
+      if (elapsed < 300) {
+        blocked = true;
+      }
     }
 
     if (blocked) {
-      // Auto-switch while the live loading overlay is still visible
       setLiveFailed(true);
       setPreviewMode('archive');
       setArchiveLoading(true);
@@ -603,6 +620,7 @@ export default function StashAccessPage() {
     setPreviewMode('live');
     setLiveLoading(true);
     setShowArchiveSuggestion(false);
+    liveLoadStartRef.current = Date.now();
     blockTimerRef.current = setTimeout(() => setShowArchiveSuggestion(true), 6000);
   }, []);
 
