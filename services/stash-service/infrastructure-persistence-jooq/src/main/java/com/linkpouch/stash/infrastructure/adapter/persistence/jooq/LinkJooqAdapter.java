@@ -97,8 +97,8 @@ public class LinkJooqAdapter implements LinkRepository {
                                 .or(DSL.condition("LOWER(description) LIKE {0}", likePattern)))
                 .orderBy(
                         DSL.field(
-                                        "ts_rank(search_vector, plainto_tsquery('english', {0})) DESC",
-                                        query))
+                                "ts_rank(search_vector, plainto_tsquery('english', {0})) DESC",
+                                query))
                 .fetch()
                 .map(this::mapIn); // mapIn: from jOOQ record TO domain
     }
