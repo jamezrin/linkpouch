@@ -39,3 +39,15 @@ export interface AddLinkRequest {
   title?: string;
   description?: string;
 }
+
+export interface WaybackMonthSummary {
+  year: number;
+  month: number; // 1-12
+  count: number;
+  latestTimestamp: string; // e.g. "20231115142032"
+}
+
+export interface WaybackSnapshot {
+  timestamp: string; // e.g. "20231115142032"
+  statuscode: string;
+}

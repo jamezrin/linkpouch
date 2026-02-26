@@ -22,6 +22,7 @@ import { restrictToVerticalAxis, restrictToParentElement } from '@dnd-kit/modifi
 import { stashApi, linkApi } from '../services/api';
 import { Link as LinkType } from '../types';
 import { useStashSearch } from '../contexts/stashSearch';
+import { ArchiveSnapshotPicker } from '../components/ArchiveSnapshotPicker';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -292,6 +293,7 @@ export default function StashAccessPage() {
   const [archiveLoading, setArchiveLoading] = useState(false);
   const [showArchiveSuggestion, setShowArchiveSuggestion] = useState(false);
   const [liveFailed, setLiveFailed] = useState(false);
+  const [selectedArchiveTimestamp, setSelectedArchiveTimestamp] = useState<string | null>(null);
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -363,6 +365,7 @@ export default function StashAccessPage() {
     setArchiveLoading(false);
     setShowArchiveSuggestion(false);
     setLiveFailed(false);
+    setSelectedArchiveTimestamp(null);
     liveLoadStartRef.current = Date.now();
     if (blockTimerRef.current) clearTimeout(blockTimerRef.current);
     if (activeLinkId) {
@@ -901,6 +904,17 @@ export default function StashAccessPage() {
                       </button>
                     </div>
 
+                    {previewMode === 'archive' && (
+                      <ArchiveSnapshotPicker
+                        url={activeLink.url}
+                        selectedTimestamp={selectedArchiveTimestamp}
+                        onSelect={(ts) => {
+                          setSelectedArchiveTimestamp(ts);
+                          setArchiveLoading(true);
+                        }}
+                      />
+                    )}
+
                     {showArchiveSuggestion && previewMode === 'live' && (
                       <div className="flex items-center gap-1.5 text-[12px]">
                         <svg
@@ -1014,8 +1028,12 @@ export default function StashAccessPage() {
                     </div>
                   )}
                   <iframe
-                    key={`archive-${activeLink.id}`}
-                    src={`https://web.archive.org/web/${activeLink.url}`}
+                    key={`archive-${activeLink.id}-${selectedArchiveTimestamp ?? 'latest'}`}
+                    src={
+                      selectedArchiveTimestamp
+                        ? `https://web.archive.org/web/${selectedArchiveTimestamp}/${activeLink.url}`
+                        : `https://web.archive.org/web/${activeLink.url}`
+                    }
                     title={`Archived page: ${activeLink.title || activeLink.url}`}
                     className="w-full h-full border-0"
                     sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox"
