@@ -291,6 +291,7 @@ export default function StashAccessPage() {
   const [liveLoading, setLiveLoading] = useState(false);
   const [archiveLoading, setArchiveLoading] = useState(false);
   const [showArchiveSuggestion, setShowArchiveSuggestion] = useState(false);
+  const [liveFailed, setLiveFailed] = useState(false);
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -360,6 +361,7 @@ export default function StashAccessPage() {
     setLiveLoading(true);
     setArchiveLoading(false);
     setShowArchiveSuggestion(false);
+    setLiveFailed(false);
     if (blockTimerRef.current) clearTimeout(blockTimerRef.current);
     if (activeLinkId) {
       blockTimerRef.current = setTimeout(() => setShowArchiveSuggestion(true), 6000);
@@ -554,19 +556,32 @@ export default function StashAccessPage() {
   };
 
   const handleLiveLoad = useCallback(() => {
-    setLiveLoading(false);
     if (blockTimerRef.current) {
       clearTimeout(blockTimerRef.current);
       blockTimerRef.current = null;
     }
-    // Detect X-Frame-Options blocking: contentDocument accessible but body is empty
+    // Detect CSP / X-Frame-Options blocking: the browser substitutes a blank
+    // document — contentDocument is accessible but body is empty. Keep the
+    // loading overlay covering the iframe so the user never sees the error.
+    let blocked = false;
     try {
       const doc = liveIframeRef.current?.contentDocument;
       if (doc && (!doc.body || doc.body.innerHTML.trim() === '')) {
-        setShowArchiveSuggestion(true);
+        blocked = true;
       }
     } catch {
-      // SecurityError = cross-origin content loaded successfully
+      // SecurityError = real cross-origin content loaded successfully
+    }
+
+    if (blocked) {
+      // Auto-switch while the live loading overlay is still visible
+      setLiveFailed(true);
+      setPreviewMode('archive');
+      setArchiveLoading(true);
+      setShowArchiveSuggestion(false);
+      setLiveLoading(false);
+    } else {
+      setLiveLoading(false);
     }
   }, []);
 
@@ -824,6 +839,58 @@ export default function StashAccessPage() {
                       {activeLink.description}
                     </p>
                   )}
+
+                  {/* Preview controls */}
+                  <div className="flex items-center gap-3 mt-3 flex-wrap">
+                    <div className="flex rounded-lg overflow-hidden border border-slate-200 text-[12px] font-medium flex-shrink-0">
+                      <button
+                        onClick={switchToLive}
+                        disabled={liveFailed}
+                        className={`px-3 py-1 transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
+                          previewMode === 'live'
+                            ? 'bg-indigo-600 text-white'
+                            : 'bg-white text-slate-500 hover:bg-slate-50'
+                        }`}
+                      >
+                        Live
+                      </button>
+                      <button
+                        onClick={switchToArchive}
+                        className={`px-3 py-1 border-l border-slate-200 transition-colors ${
+                          previewMode === 'archive'
+                            ? 'bg-indigo-600 text-white'
+                            : 'bg-white text-slate-500 hover:bg-slate-50'
+                        }`}
+                      >
+                        Archive
+                      </button>
+                    </div>
+
+                    {showArchiveSuggestion && previewMode === 'live' && (
+                      <div className="flex items-center gap-1.5 text-[12px]">
+                        <svg
+                          className="w-3.5 h-3.5 text-amber-500 flex-shrink-0"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                          />
+                        </svg>
+                        <span className="text-slate-500">Page may not be loading.</span>
+                        <button
+                          onClick={switchToArchive}
+                          className="text-indigo-600 hover:text-indigo-800 font-medium"
+                        >
+                          View in archive.org →
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 {/* Screenshot thumbnail */}
@@ -868,67 +935,6 @@ export default function StashAccessPage() {
               </div>
             </div>
 
-            {/* Preview toolbar */}
-            <div className="flex-shrink-0 bg-white border-b border-slate-200 px-4 py-2 flex items-center gap-3">
-              {/* Mode toggle */}
-              <div className="flex rounded-lg overflow-hidden border border-slate-200 text-[12px] font-medium flex-shrink-0">
-                <button
-                  onClick={switchToLive}
-                  className={`px-3 py-1.5 transition-colors ${
-                    previewMode === 'live'
-                      ? 'bg-indigo-600 text-white'
-                      : 'bg-white text-slate-500 hover:bg-slate-50'
-                  }`}
-                >
-                  Live
-                </button>
-                <button
-                  onClick={switchToArchive}
-                  className={`px-3 py-1.5 border-l border-slate-200 transition-colors ${
-                    previewMode === 'archive'
-                      ? 'bg-indigo-600 text-white'
-                      : 'bg-white text-slate-500 hover:bg-slate-50'
-                  }`}
-                >
-                  Archive
-                </button>
-              </div>
-
-              {/* Archive suggestion */}
-              {showArchiveSuggestion && previewMode === 'live' && (
-                <div className="flex items-center gap-2 text-[12px] flex-1 min-w-0">
-                  <svg
-                    className="w-3.5 h-3.5 text-amber-500 flex-shrink-0"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-                    />
-                  </svg>
-                  <span className="text-slate-500 truncate">Page can't be embedded.</span>
-                  <button
-                    onClick={switchToArchive}
-                    className="text-indigo-600 hover:text-indigo-800 font-medium whitespace-nowrap"
-                  >
-                    View in archive.org →
-                  </button>
-                </div>
-              )}
-
-              {/* Loading indicator */}
-              {(liveLoading || archiveLoading) && !showArchiveSuggestion && (
-                <div className="flex items-center gap-1.5 text-[11px] text-slate-400 ml-auto">
-                  <div className="w-3 h-3 border-[1.5px] border-indigo-400 border-t-transparent rounded-full animate-spin" />
-                  <span>Loading…</span>
-                </div>
-              )}
-            </div>
-
             {/* iframe area */}
             <div className="flex-1 overflow-hidden relative">
               {previewMode === 'live' ? (
@@ -936,7 +942,7 @@ export default function StashAccessPage() {
                   {liveLoading && (
                     <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-50 z-10">
                       <div className="w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
-                      <p className="text-slate-500 text-sm mt-3">Loading preview…</p>
+                      <p className="text-slate-500 text-sm mt-3">Loading website…</p>
                     </div>
                   )}
                   <iframe
@@ -954,7 +960,14 @@ export default function StashAccessPage() {
                   {archiveLoading && (
                     <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-50 z-10">
                       <div className="w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
-                      <p className="text-slate-500 text-sm mt-3">Loading archive…</p>
+                      {liveFailed && (
+                        <p className="text-amber-600 text-xs mt-3">
+                          Live preview couldn't load — switching to archive
+                        </p>
+                      )}
+                      <p className={`text-slate-500 text-sm ${liveFailed ? 'mt-1' : 'mt-3'}`}>
+                        Loading archive…
+                      </p>
                       <a
                         href="https://archive.org"
                         target="_blank"
