@@ -23,6 +23,10 @@ import { stashApi, linkApi } from '../services/api';
 import { Link as LinkType } from '../types';
 import { useStashSearch } from '../contexts/stashSearch';
 
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+type PreviewMode = 'live' | 'archive';
+
 // ─── Icons ───────────────────────────────────────────────────────────────────
 
 const CheckIcon = () => (
@@ -283,10 +287,15 @@ export default function StashAccessPage() {
   const [newLinkUrl, setNewLinkUrl] = useState('');
   const [links, setLinks] = useState<LinkType[]>([]);
   const [screenshotModalOpen, setScreenshotModalOpen] = useState(false);
-  const [iframeLoading, setIframeLoading] = useState(false);
+  const [previewMode, setPreviewMode] = useState<PreviewMode>('live');
+  const [liveLoading, setLiveLoading] = useState(false);
+  const [archiveLoading, setArchiveLoading] = useState(false);
+  const [showArchiveSuggestion, setShowArchiveSuggestion] = useState(false);
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const liveIframeRef = useRef<HTMLIFrameElement>(null);
+  const blockTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const queryClient = useQueryClient();
 
   if (!stashId || !signature) {
@@ -344,10 +353,23 @@ export default function StashAccessPage() {
     }
   }, [links, activeLinkId]);
 
-  // Reset modal + restart iframe loading shimmer when a different link is selected
+  // Reset preview state when a different link is selected
   useEffect(() => {
     setScreenshotModalOpen(false);
-    setIframeLoading(true);
+    setPreviewMode('live');
+    setLiveLoading(true);
+    setArchiveLoading(false);
+    setShowArchiveSuggestion(false);
+    if (blockTimerRef.current) clearTimeout(blockTimerRef.current);
+    if (activeLinkId) {
+      blockTimerRef.current = setTimeout(() => setShowArchiveSuggestion(true), 6000);
+    }
+    return () => {
+      if (blockTimerRef.current) {
+        clearTimeout(blockTimerRef.current);
+        blockTimerRef.current = null;
+      }
+    };
   }, [activeLinkId]);
 
   // Debounce search query to avoid an API call on every keypress
@@ -530,6 +552,44 @@ export default function StashAccessPage() {
   const handleBatchRefresh = () => {
     selectedLinkIds.forEach((id) => refreshScreenshotMutation.mutate(id));
   };
+
+  const handleLiveLoad = useCallback(() => {
+    setLiveLoading(false);
+    if (blockTimerRef.current) {
+      clearTimeout(blockTimerRef.current);
+      blockTimerRef.current = null;
+    }
+    // Detect X-Frame-Options blocking: contentDocument accessible but body is empty
+    try {
+      const doc = liveIframeRef.current?.contentDocument;
+      if (doc && (!doc.body || doc.body.innerHTML.trim() === '')) {
+        setShowArchiveSuggestion(true);
+      }
+    } catch {
+      // SecurityError = cross-origin content loaded successfully
+    }
+  }, []);
+
+  const switchToArchive = useCallback(() => {
+    if (blockTimerRef.current) {
+      clearTimeout(blockTimerRef.current);
+      blockTimerRef.current = null;
+    }
+    setPreviewMode('archive');
+    setArchiveLoading(true);
+    setShowArchiveSuggestion(false);
+  }, []);
+
+  const switchToLive = useCallback(() => {
+    if (blockTimerRef.current) {
+      clearTimeout(blockTimerRef.current);
+      blockTimerRef.current = null;
+    }
+    setPreviewMode('live');
+    setLiveLoading(true);
+    setShowArchiveSuggestion(false);
+    blockTimerRef.current = setTimeout(() => setShowArchiveSuggestion(true), 6000);
+  }, []);
 
   // ─── Error / Loading states ───────────────────────────────────────────────────
 
@@ -808,30 +868,113 @@ export default function StashAccessPage() {
               </div>
             </div>
 
-            {/* Wayback Machine iframe */}
-            <div className="flex-1 overflow-hidden relative">
-              {iframeLoading && (
-                <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-50 z-10">
-                  <div className="w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
-                  <p className="text-slate-500 text-sm mt-3">Loading archive…</p>
-                  <a
-                    href="https://archive.org"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-xs text-slate-400 hover:text-indigo-500 transition-colors mt-1"
+            {/* Preview toolbar */}
+            <div className="flex-shrink-0 bg-white border-b border-slate-200 px-4 py-2 flex items-center gap-3">
+              {/* Mode toggle */}
+              <div className="flex rounded-lg overflow-hidden border border-slate-200 text-[12px] font-medium flex-shrink-0">
+                <button
+                  onClick={switchToLive}
+                  className={`px-3 py-1.5 transition-colors ${
+                    previewMode === 'live'
+                      ? 'bg-indigo-600 text-white'
+                      : 'bg-white text-slate-500 hover:bg-slate-50'
+                  }`}
+                >
+                  Live
+                </button>
+                <button
+                  onClick={switchToArchive}
+                  className={`px-3 py-1.5 border-l border-slate-200 transition-colors ${
+                    previewMode === 'archive'
+                      ? 'bg-indigo-600 text-white'
+                      : 'bg-white text-slate-500 hover:bg-slate-50'
+                  }`}
+                >
+                  Archive
+                </button>
+              </div>
+
+              {/* Archive suggestion */}
+              {showArchiveSuggestion && previewMode === 'live' && (
+                <div className="flex items-center gap-2 text-[12px] flex-1 min-w-0">
+                  <svg
+                    className="w-3.5 h-3.5 text-amber-500 flex-shrink-0"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
                   >
-                    Powered by archive.org
-                  </a>
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                    />
+                  </svg>
+                  <span className="text-slate-500 truncate">Page can't be embedded.</span>
+                  <button
+                    onClick={switchToArchive}
+                    className="text-indigo-600 hover:text-indigo-800 font-medium whitespace-nowrap"
+                  >
+                    View in archive.org →
+                  </button>
                 </div>
               )}
-              <iframe
-                key={activeLink.id}
-                src={`https://web.archive.org/web/${activeLink.url}`}
-                title={`Archived page: ${activeLink.title || activeLink.url}`}
-                className="w-full h-full border-0"
-                sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox"
-                onLoad={() => setIframeLoading(false)}
-              />
+
+              {/* Loading indicator */}
+              {(liveLoading || archiveLoading) && !showArchiveSuggestion && (
+                <div className="flex items-center gap-1.5 text-[11px] text-slate-400 ml-auto">
+                  <div className="w-3 h-3 border-[1.5px] border-indigo-400 border-t-transparent rounded-full animate-spin" />
+                  <span>Loading…</span>
+                </div>
+              )}
+            </div>
+
+            {/* iframe area */}
+            <div className="flex-1 overflow-hidden relative">
+              {previewMode === 'live' ? (
+                <>
+                  {liveLoading && (
+                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-50 z-10">
+                      <div className="w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+                      <p className="text-slate-500 text-sm mt-3">Loading preview…</p>
+                    </div>
+                  )}
+                  <iframe
+                    ref={liveIframeRef}
+                    key={`live-${activeLink.id}`}
+                    src={activeLink.url}
+                    title={`Live preview: ${activeLink.title || activeLink.url}`}
+                    className="w-full h-full border-0"
+                    sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox"
+                    onLoad={handleLiveLoad}
+                  />
+                </>
+              ) : (
+                <>
+                  {archiveLoading && (
+                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-50 z-10">
+                      <div className="w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+                      <p className="text-slate-500 text-sm mt-3">Loading archive…</p>
+                      <a
+                        href="https://archive.org"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs text-slate-400 hover:text-indigo-500 transition-colors mt-1"
+                      >
+                        Powered by archive.org
+                      </a>
+                    </div>
+                  )}
+                  <iframe
+                    key={`archive-${activeLink.id}`}
+                    src={`https://web.archive.org/web/${activeLink.url}`}
+                    title={`Archived page: ${activeLink.title || activeLink.url}`}
+                    className="w-full h-full border-0"
+                    sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox"
+                    onLoad={() => setArchiveLoading(false)}
+                  />
+                </>
+              )}
             </div>
           </>
         ) : (

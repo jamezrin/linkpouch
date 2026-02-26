@@ -80,8 +80,8 @@ const FEATURES: Array<{ color: FeatureColor; icon: React.ReactNode; title: strin
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
       </svg>
     ),
-    title: 'Archive previews',
-    desc: 'View pages via the Wayback Machine. See saved content even when the original goes offline.',
+    title: 'Adaptive link preview',
+    desc: 'Try the live page first, with automatic fallback to archive.org when a site blocks embedding — plus a one-click toggle between live and archived view.',
   },
   {
     color: 'rose',
@@ -178,12 +178,11 @@ const ROADMAP: Array<{ icon: React.ReactNode; title: string; desc: string }> = [
   {
     icon: (
       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
       </svg>
     ),
-    title: 'Adaptive link preview',
-    desc: "Automatic fallback to archive.org when a direct preview can't load, with a one-click toggle between live and archived view.",
+    title: 'Collections & tags',
+    desc: 'Organise your links into nested collections or tag them freely — group research, projects, and reading lists without any friction.',
   },
   {
     icon: (
