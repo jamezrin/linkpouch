@@ -201,7 +201,8 @@ export function ArchiveSnapshotPicker({ url, selectedTimestamp, onSelect }: Arch
   const panelRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
 
-  const { data: months, isLoading, isError } = useWaybackMonths(url, true);
+  const { data: months, isLoading, isError, error } = useWaybackMonths(url, true);
+  const isExcluded = isError && (error as Error & { status?: number })?.status === 403;
 
   // Derive available years (newest first)
   const years = months
@@ -323,8 +324,10 @@ export function ArchiveSnapshotPicker({ url, selectedTimestamp, onSelect }: Arch
           )}
 
           {isError && (
-            <p className="text-xs text-red-400 text-center py-6 px-4">
-              Could not load archive data. The URL may not be archived yet.
+            <p className="text-xs text-slate-400 text-center py-6 px-4">
+              {isExcluded
+                ? 'This URL has been excluded from the Wayback Machine.'
+                : 'Could not load archive history for this URL.'}
             </p>
           )}
 
