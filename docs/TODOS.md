@@ -1,10 +1,10 @@
 - [x] Rename pouch functionality (by clicking the name)
 - [ ] Improve scalability
 - [ ] Add password protection
-- [ ] Add button to disable preview and turn to plain iframe. Detect inability to load using iframe and put a button to load using archive.org just one time
+- [x] Add button to disable preview and turn to plain iframe. Detect inability to load using iframe and put a button to load using archive.org just one time
 - [ ] Move button to add new link to below, add bulk import
-- [ ] Improve landing page even more, include references to archive.org
-- [ ] Improve search, something weird is going on
+- [x] Improve landing page even more, include references to archive.org
+- [x] Improve search, something weird is going on
 - [ ] Fix bulk actions
 - [ ] Add yellow marker for metadata-gathering in progress, red for failed.
 - [ ] Add automatic updating of links after metadata gathering
