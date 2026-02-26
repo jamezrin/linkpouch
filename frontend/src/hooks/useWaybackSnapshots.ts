@@ -1,7 +1,8 @@
 import { useQuery } from '@tanstack/react-query';
 import { WaybackMonthSummary, WaybackSnapshot } from '../types';
 
-const CDX_BASE = 'https://web.archive.org/cdx/search/cdx';
+// Proxied through our api-gateway to avoid CORS restrictions on the CDX API.
+const CDX_PROXY = '/api/wayback/cdx';
 
 /**
  * Parses a CDX JSON response (first row is header, rest are data rows).
@@ -11,17 +12,20 @@ function parseCdxJson(rows: string[][]): Record<string, string>[] {
   if (rows.length < 2) return [];
   const [header, ...data] = rows;
   return data
-    .filter((row) => row.length === header.length)
+    .filter((row) => Array.isArray(row) && row.length === header.length)
     .map((row) => Object.fromEntries(header.map((key, i) => [key, row[i]])));
 }
 
 /**
- * Phase 1: Fetches one row per month (collapsed by 6-digit timestamp prefix)
- * for the given URL, filtered to HTTP 200 responses only.
- * Also requests showSkipCount and lastSkipTimestamp so we know capture counts.
+ * Phase 1: Fetches one representative row per month (collapsed by 6-digit
+ * timestamp prefix) for the given URL, filtered to HTTP 200 responses only.
  *
  * CDX timestamp format: YYYYMMDDhhmmss (14 digits)
  * collapse=timestamp:6 → collapses to YYYYMM
+ *
+ * Note: showSkipCount is not used because archive.org's CDX API returns null
+ * for the skipcount field on collapsed queries. Month presence (has/has-not)
+ * is sufficient for the heatmap — exact counts are fetched per month in Phase 2.
  */
 async function fetchMonthSummaries(url: string): Promise<WaybackMonthSummary[]> {
   const params = new URLSearchParams({
@@ -30,12 +34,11 @@ async function fetchMonthSummaries(url: string): Promise<WaybackMonthSummary[]> 
     fl: 'timestamp',
     filter: 'statuscode:200',
     collapse: 'timestamp:6',
-    showSkipCount: 'true',
-    lastSkipTimestamp: 'true',
+    limit: '500', // up to ~40 years of monthly data
   });
 
-  const res = await fetch(`${CDX_BASE}?${params.toString()}`);
-  if (!res.ok) throw new Error(`CDX API error: ${res.status}`);
+  const res = await fetch(`${CDX_PROXY}?${params.toString()}`);
+  if (!res.ok) throw new Error(`CDX proxy error: ${res.status}`);
 
   const json: string[][] = await res.json();
   const rows = parseCdxJson(json);
@@ -44,21 +47,18 @@ async function fetchMonthSummaries(url: string): Promise<WaybackMonthSummary[]> 
     const ts = row['timestamp'] ?? '';
     const year = parseInt(ts.slice(0, 4), 10);
     const month = parseInt(ts.slice(4, 6), 10);
-    // skipcount is the number of *additional* captures after the first; add 1 for the representative row itself
-    const skipCount = parseInt(row['skipcount'] ?? '0', 10);
-    const lastTs = row['endtimestamp'] ?? ts;
     return {
       year,
       month,
-      count: skipCount + 1,
-      latestTimestamp: lastTs,
+      count: 1, // placeholder — real counts shown after Phase 2 drill-down
+      latestTimestamp: ts,
     };
   });
 }
 
 /**
  * Phase 2: Fetches individual snapshots within a given year/month,
- * collapsed to one per day (8-digit timestamp prefix), up to 50 results.
+ * collapsed to one per day (8-digit timestamp prefix), up to 62 results.
  */
 async function fetchSnapshotsForMonth(
   url: string,
@@ -66,7 +66,6 @@ async function fetchSnapshotsForMonth(
   month: number,
 ): Promise<WaybackSnapshot[]> {
   const mm = String(month).padStart(2, '0');
-  // Last day of month — use the first day of next month minus 1 second as 'to' approximation
   const nextMonth = month === 12 ? 1 : month + 1;
   const nextYear = month === 12 ? year + 1 : year;
   const nextMM = String(nextMonth).padStart(2, '0');
@@ -79,11 +78,11 @@ async function fetchSnapshotsForMonth(
     from: `${year}${mm}01`,
     to: `${nextYear}${nextMM}01`,
     collapse: 'timestamp:8',
-    limit: '62', // at most ~31 days × 2 for safety
+    limit: '62',
   });
 
-  const res = await fetch(`${CDX_BASE}?${params.toString()}`);
-  if (!res.ok) throw new Error(`CDX API error: ${res.status}`);
+  const res = await fetch(`${CDX_PROXY}?${params.toString()}`);
+  if (!res.ok) throw new Error(`CDX proxy error: ${res.status}`);
 
   const json: string[][] = await res.json();
   const rows = parseCdxJson(json);
@@ -97,7 +96,7 @@ async function fetchSnapshotsForMonth(
 // ─── Hooks ───────────────────────────────────────────────────────────────────
 
 /**
- * Fetches monthly capture summaries for the given URL from the Wayback CDX API.
+ * Fetches monthly capture summaries for the given URL via the CDX proxy.
  * Only runs when `enabled` is true (i.e., when in archive mode).
  */
 export function useWaybackMonths(url: string | null | undefined, enabled: boolean) {
@@ -105,14 +104,14 @@ export function useWaybackMonths(url: string | null | undefined, enabled: boolea
     queryKey: ['wayback-months', url],
     queryFn: () => fetchMonthSummaries(url!),
     enabled: enabled && !!url,
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000,
     gcTime: 10 * 60 * 1000,
     retry: 1,
   });
 }
 
 /**
- * Fetches individual day-level snapshots for a specific year/month.
+ * Fetches individual day-level snapshots for a specific year/month via the CDX proxy.
  * Only runs when `enabled` is true (i.e., when the user has clicked a month).
  */
 export function useWaybackSnapshotsForMonth(
