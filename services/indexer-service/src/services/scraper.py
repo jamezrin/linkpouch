@@ -54,7 +54,7 @@ class LinkScraper:
                 # Navigate to URL
                 response = await page.goto(
                     url,
-                    wait_until="networkidle",
+                    wait_until="load",
                     timeout=self.settings.playwright_timeout,
                 )
                 
@@ -119,7 +119,7 @@ class LinkScraper:
                 # Navigate to URL
                 await page.goto(
                     url,
-                    wait_until="networkidle",
+                    wait_until="load",
                     timeout=self.settings.playwright_timeout,
                 )
                 

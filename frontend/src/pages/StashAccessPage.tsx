@@ -19,7 +19,7 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { restrictToVerticalAxis, restrictToParentElement } from '@dnd-kit/modifiers';
-import { stashApi, linkApi } from '../services/api';
+import { stashApi, linkApi, utilsApi } from '../services/api';
 import { Link as LinkType } from '../types';
 import { useStashSearch } from '../contexts/stashSearch';
 import { ArchiveSnapshotPicker } from '../components/ArchiveSnapshotPicker';
@@ -299,7 +299,6 @@ export default function StashAccessPage() {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const liveIframeRef = useRef<HTMLIFrameElement>(null);
   const blockTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const liveLoadStartRef = useRef<number>(0);
   const queryClient = useQueryClient();
 
   if (!stashId || !signature) {
@@ -366,7 +365,6 @@ export default function StashAccessPage() {
     setShowArchiveSuggestion(false);
     setLiveFailed(false);
     setSelectedArchiveTimestamp(null);
-    liveLoadStartRef.current = Date.now();
     if (blockTimerRef.current) clearTimeout(blockTimerRef.current);
     if (activeLinkId) {
       blockTimerRef.current = setTimeout(() => setShowArchiveSuggestion(true), 6000);
@@ -378,6 +376,38 @@ export default function StashAccessPage() {
       }
     };
   }, [activeLinkId]);
+
+
+  const activeLink = useMemo(
+    () => (activeLinkId ? links.find((l) => l.id === activeLinkId) ?? null : null),
+    [links, activeLinkId]
+  );
+
+  // Server-side embeddability check — fires in parallel with the live iframe load.
+  // Switches to archive mode immediately when the backend reports that the site
+  // blocks embedding, without relying on flaky client-side timing heuristics.
+  useEffect(() => {
+    if (!activeLink) return;
+    let cancelled = false;
+    utilsApi
+      .checkEmbeddable(activeLink.url)
+      .then(({ data }) => {
+        if (cancelled) return;
+        if (!data.embeddable) {
+          setLiveFailed(true);
+          setPreviewMode('archive');
+          setArchiveLoading(true);
+          setShowArchiveSuggestion(false);
+          setLiveLoading(false);
+        }
+      })
+      .catch(() => {
+        // Network error or SSRF rejection — fall back to live iframe attempt
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [activeLink]);
 
   // Debounce search query to avoid an API call on every keypress
   useEffect(() => {
@@ -408,11 +438,6 @@ export default function StashAccessPage() {
   }, [hasNextPage, isFetchingNextPage, fetchNextPage, links.length]);
 
   const isSearching = searchQuery.trim().length > 0;
-
-  const activeLink = useMemo(
-    () => (activeLinkId ? links.find((l) => l.id === activeLinkId) ?? null : null),
-    [links, activeLinkId]
-  );
 
   const selectedLinks = useMemo(
     () => links.filter((l) => selectedLinkIds.has(l.id)),
@@ -565,61 +590,7 @@ export default function StashAccessPage() {
       clearTimeout(blockTimerRef.current);
       blockTimerRef.current = null;
     }
-
-    // Detect CSP / X-Frame-Options blocking while the loading overlay still
-    // covers the iframe so the user never sees the browser error page.
-    //
-    // When a site is blocked, Chrome navigates the iframe to a chrome-error://
-    // page. Accessing contentDocument on that page throws a SecurityError —
-    // the same exception thrown for legitimate cross-origin loads — so we
-    // cannot distinguish them by DOM inspection alone.
-    //
-    // The reliable signal is TIMING: a rejection fires onLoad in < 100 ms
-    // because the browser refuses after reading response headers. A real page
-    // (even a cached one) always takes longer to fully initialize.
-    const elapsed = Date.now() - liveLoadStartRef.current;
-
-    let blocked = false;
-    let definitelyBlocked = false;
-    try {
-      const doc = liveIframeRef.current?.contentDocument;
-      // Some browsers expose an empty document instead of throwing
-      if (doc && (!doc.body || doc.body.innerHTML.trim() === '')) {
-        blocked = true;
-        definitelyBlocked = true;
-      }
-    } catch {
-      // SecurityError: either a chrome-error:// page (CSP/XFO blocked) or a
-      // legitimate cross-origin load. Distinguish by timing:
-      //
-      //   Blocked page → browser fires onLoad after exactly ONE request
-      //   (the page itself). No subresources are fetched. The only time
-      //   spent is TCP + TLS + one HTTP round-trip.  Even on high-latency
-      //   connections this stays well under 3 s.
-      //
-      //   Real embeddable page → onLoad fires only after every image, script,
-      //   stylesheet and font has finished loading.  Even a minimal page
-      //   takes several seconds; typical sites take 3–10 s.
-      //
-      // 3000 ms gives a comfortable margin that covers CSP blocks on slow
-      // connections (≥ 1 s RTT) while leaving room for fast real pages.
-      // If we're wrong the user can still click "Live" to override (we only
-      // permanently disable the button for the high-confidence empty-body case).
-      if (elapsed < 3000) {
-        blocked = true;
-        // definitelyBlocked stays false — timing-based, keep Live button enabled
-      }
-    }
-
-    if (blocked) {
-      if (definitelyBlocked) setLiveFailed(true);
-      setPreviewMode('archive');
-      setArchiveLoading(true);
-      setShowArchiveSuggestion(false);
-      setLiveLoading(false);
-    } else {
-      setLiveLoading(false);
-    }
+    setLiveLoading(false);
   }, []);
 
   const switchToArchive = useCallback(() => {
@@ -640,7 +611,6 @@ export default function StashAccessPage() {
     setPreviewMode('live');
     setLiveLoading(true);
     setShowArchiveSuggestion(false);
-    liveLoadStartRef.current = Date.now();
     blockTimerRef.current = setTimeout(() => setShowArchiveSuggestion(true), 6000);
   }, []);
 

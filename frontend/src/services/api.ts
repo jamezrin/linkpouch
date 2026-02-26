@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { Stash, Link, PagedLinkResponse, CreateStashRequest, AddLinkRequest } from '../types';
+import { Stash, Link, PagedLinkResponse, CreateStashRequest, AddLinkRequest, EmbeddabilityCheckResponse } from '../types';
 
 const api = axios.create({
   baseURL: '/api',
@@ -63,4 +63,9 @@ export const linkApi = {
     api.patch(`/stashes/${stashId}/links`, { linkIds, insertAfterId }, {
       headers: { 'X-Stash-Signature': signature },
     }),
+};
+
+export const utilsApi = {
+  checkEmbeddable: (url: string) =>
+    api.get<EmbeddabilityCheckResponse>('/embeddable-check', { params: { url } }),
 };

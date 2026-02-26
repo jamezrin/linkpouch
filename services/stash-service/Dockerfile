@@ -11,6 +11,7 @@ COPY application/pom.xml application/
 COPY infrastructure-persistence-jpa/pom.xml infrastructure-persistence-jpa/
 COPY infrastructure-persistence-jooq/pom.xml infrastructure-persistence-jooq/
 COPY infrastructure-redis/pom.xml infrastructure-redis/
+COPY infrastructure-http/pom.xml infrastructure-http/
 COPY infrastructure-web/pom.xml infrastructure-web/
 COPY boot/pom.xml boot/
 
@@ -24,6 +25,7 @@ COPY application/src application/src
 COPY infrastructure-persistence-jpa/src infrastructure-persistence-jpa/src
 COPY infrastructure-persistence-jooq/src infrastructure-persistence-jooq/src
 COPY infrastructure-redis/src infrastructure-redis/src
+COPY infrastructure-http/src infrastructure-http/src
 COPY infrastructure-web/src infrastructure-web/src
 COPY boot/src boot/src
 

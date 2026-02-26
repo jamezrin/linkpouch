@@ -44,6 +44,14 @@ data:
               filters:
                 - StripPrefix=1
 
+            # Stash Service - embeddability check
+            - id: stash-service-embeddable-check
+              uri: http://stash-service:8080
+              predicates:
+                - Path=/api/embeddable-check
+              filters:
+                - StripPrefix=1
+
             # Wayback Machine CDX API proxy (avoids CORS restrictions)
             - id: wayback-cdx-proxy
               uri: https://web.archive.org
