@@ -23,6 +23,36 @@ const DEMO_URLS = [
   'https://pnpm.io',
   'https://stripe.com',
   'https://zod.dev',
+  'https://planetscale.com',
+  'https://railway.app',
+  'https://render.com',
+  'https://turso.tech',
+  'https://drizzle-orm.github.io',
+  'https://trpc.io',
+  'https://www.solidjs.com',
+  'https://svelte.dev',
+  'https://astro.build',
+  'https://remix.run',
+  'https://www.radix-ui.com',
+  'https://ui.shadcn.com',
+  'https://storybook.js.org',
+  'https://playwright.dev',
+  'https://vitest.dev',
+  'https://biomejs.dev',
+  'https://oxc.rs',
+  'https://rolldown.rs',
+  'https://esbuild.github.io',
+  'https://swc.rs',
+  'https://turbo.build',
+  'https://nx.dev',
+  'https://lerna.js.org',
+  'https://jsr.io',
+  'https://socket.dev',
+  'https://openai.com',
+  'https://www.anthropic.com',
+  'https://huggingface.co',
+  'https://replicate.com',
+  'https://modal.com',
 ];
 
 interface DemoButtonProps {
@@ -57,7 +87,7 @@ export default function DemoButton({ stashId, signature }: DemoButtonProps) {
       title={
         isLoading
           ? `Adding demo links… ${progress}/${DEMO_URLS.length}`
-          : 'Add 20 demo links'
+          : 'Add 50 demo links'
       }
       className="flex items-center gap-1.5 px-3 py-1.5 bg-violet-500/10 hover:bg-violet-500/20 border border-violet-500/25 hover:border-violet-500/40 text-violet-300 hover:text-violet-200 rounded-lg text-xs font-medium transition-colors disabled:cursor-not-allowed"
     >
