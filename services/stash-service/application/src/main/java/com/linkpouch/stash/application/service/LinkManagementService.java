@@ -10,9 +10,11 @@ import org.springframework.transaction.annotation.Transactional;
 import com.linkpouch.stash.application.dto.PagedResult;
 import com.linkpouch.stash.application.exception.NotFoundException;
 import com.linkpouch.stash.domain.model.Link;
+import com.linkpouch.stash.domain.model.LinkStatus;
 import com.linkpouch.stash.domain.port.inbound.LinkManagementUseCase;
 import com.linkpouch.stash.domain.port.outbound.EventPublisher;
 import com.linkpouch.stash.domain.port.outbound.LinkRepository;
+import com.linkpouch.stash.domain.port.outbound.LinkStatusBroadcaster;
 import com.linkpouch.stash.domain.port.outbound.StashRepository;
 
 import lombok.RequiredArgsConstructor;
@@ -30,6 +32,7 @@ public class LinkManagementService implements LinkManagementUseCase {
     private final LinkRepository linkRepository;
     private final StashRepository stashRepository;
     private final EventPublisher eventPublisher;
+    private final LinkStatusBroadcaster linkStatusBroadcaster;
 
     @Override
     @Transactional
@@ -87,7 +90,9 @@ public class LinkManagementService implements LinkManagementUseCase {
                         .findById(linkId)
                         .orElseThrow(() -> new NotFoundException("Link not found: " + linkId));
         link.updateMetadata(title, description, faviconUrl, pageContent, finalUrl);
-        return linkRepository.save(link);
+        final Link saved = linkRepository.save(link);
+        linkStatusBroadcaster.broadcastLinkUpdated(saved.getStashId(), saved);
+        return saved;
     }
 
     @Override
@@ -98,7 +103,24 @@ public class LinkManagementService implements LinkManagementUseCase {
                         .findById(linkId)
                         .orElseThrow(() -> new NotFoundException("Link not found: " + linkId));
         link.updateScreenshot(screenshotKey);
-        return linkRepository.save(link);
+        final Link saved = linkRepository.save(link);
+        linkStatusBroadcaster.broadcastLinkUpdated(saved.getStashId(), saved);
+        return saved;
+    }
+
+    @Override
+    @Transactional
+    public Link updateLinkStatus(final UUID linkId, final LinkStatus status) {
+        final Link link =
+                linkRepository
+                        .findById(linkId)
+                        .orElseThrow(() -> new NotFoundException("Link not found: " + linkId));
+        if (status == LinkStatus.FAILED) {
+            link.markFailed();
+        }
+        final Link saved = linkRepository.save(link);
+        linkStatusBroadcaster.broadcastLinkUpdated(saved.getStashId(), saved);
+        return saved;
     }
 
     @Override

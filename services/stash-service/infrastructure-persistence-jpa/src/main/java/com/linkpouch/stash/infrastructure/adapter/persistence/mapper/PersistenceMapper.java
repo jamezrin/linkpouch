@@ -55,6 +55,7 @@ public interface PersistenceMapper {
     @Mapping(target = "createdAt", source = "createdAt")
     @Mapping(target = "updatedAt", source = "updatedAt")
     @Mapping(target = "position", source = "position")
+    @Mapping(target = "status", source = "status", qualifiedByName = "stringToLinkStatus")
     Link mapIn(LinkJpaEntity entity);
 
     // ==================== LINK: mapOut (Domain -> JPA) ====================
@@ -78,6 +79,7 @@ public interface PersistenceMapper {
     @Mapping(target = "createdAt", source = "createdAt")
     @Mapping(target = "updatedAt", source = "updatedAt")
     @Mapping(target = "position", source = "position")
+    @Mapping(target = "status", source = "status", qualifiedByName = "linkStatusToString")
     LinkJpaEntity mapOut(Link link);
 
     // ==================== LINK LIST MAPPINGS ====================
@@ -105,6 +107,7 @@ public interface PersistenceMapper {
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
     @Mapping(target = "position", source = "position")
+    @Mapping(target = "status", source = "status", qualifiedByName = "linkStatusToString")
     void updateEntity(Link link, @MappingTarget LinkJpaEntity entity);
 
     // ==================== VALUE OBJECT CONVERTERS ====================
@@ -167,5 +170,20 @@ public interface PersistenceMapper {
     @Named("screenshotKeyToString")
     default String screenshotKeyToString(ScreenshotKey key) {
         return key != null ? key.getValue() : null;
+    }
+
+    @Named("stringToLinkStatus")
+    default LinkStatus stringToLinkStatus(String value) {
+        if (value == null) return LinkStatus.PENDING;
+        try {
+            return LinkStatus.valueOf(value);
+        } catch (IllegalArgumentException e) {
+            return LinkStatus.PENDING;
+        }
+    }
+
+    @Named("linkStatusToString")
+    default String linkStatusToString(LinkStatus status) {
+        return status != null ? status.name() : LinkStatus.PENDING.name();
     }
 }

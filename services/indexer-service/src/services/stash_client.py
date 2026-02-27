@@ -64,6 +64,34 @@ class StashServiceClient:
             )
             raise
     
+    async def update_link_status(
+        self,
+        link_id: str,
+        status: str,
+    ) -> None:
+        """Notify Stash Service of a terminal link status (e.g. FAILED)."""
+        try:
+            response = await self.client.patch(
+                f"/links/{link_id}/status",
+                json={"status": status},
+            )
+            response.raise_for_status()
+
+            logger.info(
+                "Link status updated",
+                link_id=link_id,
+                status=status,
+            )
+
+        except Exception as e:
+            logger.error(
+                "Failed to update link status",
+                link_id=link_id,
+                status=status,
+                error=str(e),
+            )
+            raise
+
     async def update_screenshot(
         self,
         link_id: str,

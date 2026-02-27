@@ -27,6 +27,7 @@ public class Link {
     private ScreenshotKey screenshotKey;
     private LocalDateTime screenshotGeneratedAt;
     private int position;
+    private LinkStatus status;
 
     public Link(
             final UUID id,
@@ -41,7 +42,8 @@ public class Link {
             final Url finalUrl,
             final ScreenshotKey screenshotKey,
             final LocalDateTime screenshotGeneratedAt,
-            final int position) {
+            final int position,
+            final LinkStatus status) {
         this.id = id != null ? id : UUID.randomUUID();
         this.stashId = stashId;
         this.createdAt = createdAt != null ? createdAt : LocalDateTime.now(ZoneOffset.UTC);
@@ -55,6 +57,7 @@ public class Link {
         this.screenshotKey = screenshotKey;
         this.screenshotGeneratedAt = screenshotGeneratedAt;
         this.position = position;
+        this.status = status != null ? status : LinkStatus.PENDING;
     }
 
     public static Link create(final UUID stashId, final String url) {
@@ -71,7 +74,8 @@ public class Link {
                 null,
                 null,
                 null,
-                0);
+                0,
+                LinkStatus.PENDING);
     }
 
     public void updateMetadata(
@@ -85,6 +89,7 @@ public class Link {
         this.faviconUrl = faviconUrl != null ? Url.of(faviconUrl) : null;
         this.pageContent = pageContent;
         this.finalUrl = finalUrl != null ? Url.of(finalUrl) : null;
+        this.status = LinkStatus.INDEXED;
         this.updatedAt = LocalDateTime.now(ZoneOffset.UTC);
     }
 
@@ -94,6 +99,11 @@ public class Link {
         }
         this.screenshotKey = ScreenshotKey.of(screenshotKey);
         this.screenshotGeneratedAt = LocalDateTime.now(ZoneOffset.UTC);
+        this.updatedAt = LocalDateTime.now(ZoneOffset.UTC);
+    }
+
+    public void markFailed() {
+        this.status = LinkStatus.FAILED;
         this.updatedAt = LocalDateTime.now(ZoneOffset.UTC);
     }
 }

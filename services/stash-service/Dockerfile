@@ -13,6 +13,7 @@ COPY infrastructure-persistence-jooq/pom.xml infrastructure-persistence-jooq/
 COPY infrastructure-redis/pom.xml infrastructure-redis/
 COPY infrastructure-http/pom.xml infrastructure-http/
 COPY infrastructure-web/pom.xml infrastructure-web/
+COPY infrastructure-sse/pom.xml infrastructure-sse/
 COPY boot/pom.xml boot/
 
 # Download dependencies
@@ -27,6 +28,7 @@ COPY infrastructure-persistence-jooq/src infrastructure-persistence-jooq/src
 COPY infrastructure-redis/src infrastructure-redis/src
 COPY infrastructure-http/src infrastructure-http/src
 COPY infrastructure-web/src infrastructure-web/src
+COPY infrastructure-sse/src infrastructure-sse/src
 COPY boot/src boot/src
 
 # Copy Flyway migrations

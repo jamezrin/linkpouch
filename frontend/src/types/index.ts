@@ -19,6 +19,7 @@ export interface Link {
   createdAt: string;
   updatedAt: string;
   position?: number;
+  status?: 'PENDING' | 'INDEXED' | 'FAILED';
 }
 
 export interface PagedLinkResponse {

@@ -23,6 +23,7 @@ import { stashApi, linkApi, utilsApi } from '../services/api';
 import { Link as LinkType } from '../types';
 import { useStashSearch } from '../contexts/stashSearch';
 import { ArchiveSnapshotPicker } from '../components/ArchiveSnapshotPicker';
+import { useStashEvents } from '../hooks/useStashEvents';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -203,7 +204,11 @@ const LinkItem = ({
 
       {/* Text */}
       <div className="flex-1 min-w-0">
-        <p className="text-[13px] font-medium text-slate-200 truncate leading-tight">
+        <p className={`text-[13px] font-medium truncate leading-tight ${
+          !link.status || link.status === 'PENDING'
+            ? 'text-slate-400 italic'
+            : 'text-slate-200'
+        }`}>
           {link.title || link.url}
         </p>
         <div className="flex items-center gap-1 mt-0.5 min-w-0">
@@ -231,8 +236,12 @@ const LinkItem = ({
       {/* Meta */}
       <div className="flex-shrink-0 flex flex-col items-end gap-1">
         <span className="text-[11px] text-slate-600">{formatDate(link.createdAt)}</span>
-        {link.screenshotUrl && (
-          <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full" title="Screenshot available" />
+        {link.status === 'FAILED' ? (
+          <div className="w-1.5 h-1.5 bg-red-500 rounded-full" title="Indexing failed" />
+        ) : link.status === 'INDEXED' ? (
+          <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full" title="Indexed" />
+        ) : (
+          <div className="w-1.5 h-1.5 bg-amber-400 rounded-full animate-pulse" title="Indexing…" />
         )}
       </div>
     </div>
@@ -328,6 +337,33 @@ export default function StashAccessPage() {
   if (!stashId || !signature) {
     return <Navigate to="/" replace />;
   }
+
+  // ─── SSE: real-time link updates ─────────────────────────────────────────────
+
+  useStashEvents({
+    stashId,
+    signature,
+    onLinkUpdated: (updatedLink) => {
+      // Update the link in-place inside all pages of the infinite query cache
+      queryClient.setQueryData(
+        ['links', stashId, debouncedSearch],
+        (old: { pages: { content: LinkType[] }[] } | undefined) => {
+          if (!old) return old;
+          return {
+            ...old,
+            pages: old.pages.map((page) => ({
+              ...page,
+              content: page.content.map((l) =>
+                l.id === updatedLink.id ? { ...l, ...updatedLink } : l
+              ),
+            })),
+          };
+        }
+      );
+      // Also mirror the update into the local links state so the sidebar re-renders
+      setLinks((prev) => prev.map((l) => (l.id === updatedLink.id ? { ...l, ...updatedLink } : l)));
+    },
+  });
 
   const { isLoading: stashLoading, error: stashError } = useQuery({
     queryKey: ['stash', stashId],

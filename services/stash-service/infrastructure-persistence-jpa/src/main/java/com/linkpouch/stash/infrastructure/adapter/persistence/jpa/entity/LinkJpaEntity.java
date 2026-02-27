@@ -54,6 +54,9 @@ public class LinkJpaEntity {
     @Column(name = "position", nullable = false)
     private int position;
 
+    @Column(nullable = false)
+    private String status;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
