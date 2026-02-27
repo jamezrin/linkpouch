@@ -18,6 +18,7 @@ class StashServiceClient:
         self.client = httpx.AsyncClient(
             base_url=settings.stash_service_url,
             timeout=settings.stash_service_timeout,
+            headers={"X-Indexer-Secret": settings.indexer_callback_secret},
         )
     
     async def close(self) -> None:

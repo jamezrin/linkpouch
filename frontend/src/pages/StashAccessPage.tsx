@@ -292,8 +292,17 @@ const SortableLinkItem = ({
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
+function getSessionSignature(stashId: string): string | null {
+  try {
+    return sessionStorage.getItem(`sig:${stashId}`);
+  } catch {
+    return null;
+  }
+}
+
 export default function StashAccessPage() {
-  const { stashId, signature } = useParams<{ stashId: string; signature: string }>();
+  const { stashId, signature: urlSignature } = useParams<{ stashId: string; signature?: string }>();
+  const signature = urlSignature ?? (stashId ? getSessionSignature(stashId) : null);
   const [selectedLinkIds, setSelectedLinkIds] = useState<Set<string>>(new Set());
   const [activeLinkId, setActiveLinkId] = useState<string | null>(null);
   const { searchQuery } = useStashSearch();
@@ -548,7 +557,7 @@ export default function StashAccessPage() {
 
   const batchDeleteMutation = useMutation({
     mutationFn: async (ids: string[]) => {
-      await Promise.all(ids.map((id) => linkApi.deleteLink(id)));
+      await Promise.all(ids.map((id) => linkApi.deleteLink(stashId!, signature!, id)));
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['links', stashId] });
@@ -557,7 +566,7 @@ export default function StashAccessPage() {
   });
 
   const refreshScreenshotMutation = useMutation({
-    mutationFn: (linkId: string) => linkApi.refreshScreenshot(linkId),
+    mutationFn: (linkId: string) => linkApi.refreshScreenshot(stashId!, signature!, linkId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['links', stashId] });
     },
@@ -950,7 +959,7 @@ export default function StashAccessPage() {
                     title="View screenshot"
                   >
                     <img
-                      src={activeLink.screenshotUrl}
+                      src={`${activeLink.screenshotUrl}?sig=${signature}`}
                       alt="Screenshot"
                       className="w-full h-full object-cover object-top"
                     />
@@ -1142,7 +1151,7 @@ export default function StashAccessPage() {
             </button>
             <div className="max-w-5xl w-full mx-4" onClick={(e) => e.stopPropagation()}>
               <img
-                src={activeLink.screenshotUrl}
+                src={`${activeLink.screenshotUrl}?sig=${signature}`}
                 alt={`Screenshot of ${activeLink.title || activeLink.url}`}
                 className="w-full max-h-[85vh] object-contain rounded-xl shadow-2xl"
               />

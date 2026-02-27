@@ -9,16 +9,18 @@ spring:
         cors-configurations:
           '[/**]':
             allowedOrigins:
-              - "*"
+              - "https://linkpou.ch"
+              - "http://localhost:3000"
+              - "http://localhost:5173"
             allowedMethods:
               - GET
               - POST
-              - PUT
               - DELETE
               - OPTIONS
               - PATCH
             allowedHeaders:
-              - "*"
+              - "Content-Type"
+              - "X-Stash-Signature"
             allowCredentials: false
       routes:
         # Stash Service - stash routes
@@ -29,7 +31,25 @@ spring:
           filters:
             - StripPrefix=1
 
-        # Stash Service - link routes (including screenshot proxy)
+        # Block internal indexer callback endpoints from public access
+        # These are only callable by the indexer service from within the cluster
+        - id: block-indexer-metadata-callback
+          uri: no://op
+          predicates:
+            - Path=/api/links/*/metadata
+            - Method=PATCH
+          filters:
+            - SetStatus=403
+
+        - id: block-indexer-screenshot-callback
+          uri: no://op
+          predicates:
+            - Path=/api/links/*/screenshot
+            - Method=PATCH
+          filters:
+            - SetStatus=403
+
+        # Stash Service - remaining link routes
         - id: stash-service-links
           uri: ${STASH_SERVICE_URL:http://stash-service:8080}
           predicates:

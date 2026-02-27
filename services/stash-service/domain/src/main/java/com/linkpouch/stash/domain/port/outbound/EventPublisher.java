@@ -14,5 +14,5 @@ public interface EventPublisher {
 
     record LinkAddedEvent(String linkId, String url, String stashId) {}
 
-    record ScreenshotRefreshEvent(String linkId, String url) {}
+    record ScreenshotRefreshEvent(String linkId, String url, String stashId) {}
 }

@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route, useLocation, useNavigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider, useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import HomePage from './pages/HomePage';
 import StashAccessPage from './pages/StashAccessPage';
@@ -11,14 +11,47 @@ import { stashApi } from './services/api';
 const queryClient = new QueryClient();
 
 // Matches /s/:stashId/:signature and captures both segments
-const STASH_PATH_RE = /^\/s\/([^/]+)\/([^/]+)/;
+const STASH_PATH_WITH_SIG_RE = /^\/s\/([^/]+)\/([^/]+)/;
+// Matches /s/:stashId (clean URL without signature)
+const STASH_PATH_CLEAN_RE = /^\/s\/([^/]+)$/;
+
+function getSessionSignature(stashId: string): string | null {
+  try {
+    return sessionStorage.getItem(`sig:${stashId}`);
+  } catch {
+    return null;
+  }
+}
+
+function setSessionSignature(stashId: string, sig: string): void {
+  try {
+    sessionStorage.setItem(`sig:${stashId}`, sig);
+  } catch {
+    // sessionStorage unavailable — degrade gracefully
+  }
+}
 
 function AppContent() {
   const location = useLocation();
-  const stashMatch = STASH_PATH_RE.exec(location.pathname);
-  const isStashPage = stashMatch !== null;
-  const stashId = stashMatch?.[1];
-  const signature = stashMatch?.[2];
+  const navigate = useNavigate();
+
+  const sigMatch = STASH_PATH_WITH_SIG_RE.exec(location.pathname);
+  const cleanMatch = STASH_PATH_CLEAN_RE.exec(location.pathname);
+
+  const isStashPage = sigMatch !== null || cleanMatch !== null;
+  const stashId = sigMatch?.[1] ?? cleanMatch?.[1];
+
+  // When the URL contains the signature, persist it then redirect to the clean path
+  const urlSignature = sigMatch?.[2];
+  useEffect(() => {
+    if (stashId && urlSignature) {
+      setSessionSignature(stashId, urlSignature);
+      navigate(`/s/${stashId}`, { replace: true });
+    }
+  }, [stashId, urlSignature, navigate]);
+
+  // Signature is either in the URL (during the brief redirect) or in sessionStorage
+  const signature = urlSignature ?? (stashId ? getSessionSignature(stashId) : null);
 
   const [searchQuery, setSearchQuery] = useState('');
   const [isEditingName, setIsEditingName] = useState(false);
@@ -162,6 +195,7 @@ function AppContent() {
           <Routes>
             <Route path="/" element={<HomePage />} />
             <Route path="/s/:stashId/:signature" element={<StashAccessPage />} />
+            <Route path="/s/:stashId" element={<StashAccessPage />} />
           </Routes>
         </main>
       </div>
