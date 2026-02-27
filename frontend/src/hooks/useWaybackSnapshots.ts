@@ -18,7 +18,7 @@ function parseCdxJson(rows: string[][]): Record<string, string>[] {
 
 /**
  * Phase 1: Fetches one representative row per month (collapsed by 6-digit
- * timestamp prefix) for the given URL, filtered to HTTP 200 responses only.
+ * timestamp prefix) for the given URL, filtered to HTTP 2xx/3xx responses only.
  *
  * CDX timestamp format: YYYYMMDDhhmmss (14 digits)
  * collapse=timestamp:6 → collapses to YYYYMM
@@ -32,7 +32,7 @@ async function fetchMonthSummaries(url: string): Promise<WaybackMonthSummary[]> 
     url,
     output: 'json',
     fl: 'timestamp',
-    filter: 'statuscode:200',
+    filter: 'statuscode:[23][0-9][0-9]',
     collapse: 'timestamp:6',
     limit: '500', // up to ~40 years of monthly data
   });
@@ -78,7 +78,7 @@ async function fetchSnapshotsForMonth(
     url,
     output: 'json',
     fl: 'timestamp,statuscode',
-    filter: 'statuscode:200',
+    filter: 'statuscode:[23][0-9][0-9]',
     from: `${year}${mm}01`,
     to: `${nextYear}${nextMM}01`,
     collapse: 'timestamp:8',
