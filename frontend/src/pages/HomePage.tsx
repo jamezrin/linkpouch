@@ -202,6 +202,15 @@ const ROADMAP: Array<{ icon: React.ReactNode; title: string; desc: string }> = [
     title: 'Improved full-text search',
     desc: 'Better relevance ranking, smarter metadata indexing, and faster suggestions across your entire link collection.',
   },
+  {
+    icon: (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5" />
+      </svg>
+    ),
+    title: 'Keyboard accessibility',
+    desc: 'Full keyboard controls for selecting and managing links — arrow key navigation, range selection, and keyboard-driven reordering.',
+  },
 ];
 
 // ─── App UI Mockup ────────────────────────────────────────────────────────────
