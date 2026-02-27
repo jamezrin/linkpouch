@@ -12,3 +12,4 @@
 - [ ] Responsible for phones
 - [ ] Replace lines like `private static final Logger log = LoggerFactory.getLogger(HttpUrlInfoAdapter.class);` and use @Slf4j or something else, decide the best option.
 - [ ] Screenshot timestamping (shown when full screen)
+- [ ] Accessibility improvements: keyboard controls for multiple selection of links (arrow key navigation, Space to toggle, Shift+Arrow/Click for range select, Ctrl+A to select all, Escape to clear)
