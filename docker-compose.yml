@@ -74,6 +74,7 @@ services:
       S3_SECRET_KEY: minioadmin
       S3_BUCKET: linkpouch-screenshots
       BASE_URL: http://localhost:8080
+      INDEXER_CALLBACK_SECRET: local-dev-indexer-secret
     depends_on:
       postgres:
         condition: service_healthy
@@ -100,6 +101,7 @@ services:
       S3_ACCESS_KEY: minioadmin
       S3_SECRET_KEY: minioadmin
       S3_BUCKET: linkpouch-screenshots
+      INDEXER_CALLBACK_SECRET: local-dev-indexer-secret
     depends_on:
       redis:
         condition: service_healthy
