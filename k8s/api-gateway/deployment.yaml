@@ -17,10 +17,6 @@ spec:
     spec:
       imagePullSecrets:
       - name: ghcr-secret
-      volumes:
-        - name: config
-          configMap:
-            name: api-gateway-config
       containers:
         - name: api-gateway
           image: ghcr.io/jamezrin/linkpouch/api-gateway:latest
@@ -51,11 +47,6 @@ spec:
             periodSeconds: 10
             timeoutSeconds: 3
             failureThreshold: 3
-          volumeMounts:
-            - name: config
-              mountPath: /config
           env:
-            - name: SPRING_CONFIG_LOCATION
-              value: "classpath:/,file:/config/"
             - name: SERVER_PORT
               value: "8080"
