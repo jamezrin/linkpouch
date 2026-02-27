@@ -10,17 +10,17 @@ const MOCK_LINKS: Array<{
   url: string;
   color: string;
   active?: boolean;
-  dot: boolean;
+  dot: 'green' | 'amber' | false;
 }> = [
-  { title: 'React Query — Async State Management', url: 'tanstack.com/query', color: '#6366f1', active: true, dot: true },
-  { title: 'Radix UI — Accessible Primitives', url: 'radix-ui.com', color: '#8b5cf6', dot: true },
-  { title: 'Framer Motion — Production Animation', url: 'framer.com/motion', color: '#10b981', dot: false },
-  { title: 'Tailwind CSS v4 Release Notes', url: 'tailwindcss.com', color: '#06b6d4', dot: true },
+  { title: 'React Query — Async State Management', url: 'tanstack.com/query', color: '#6366f1', active: true, dot: 'green' },
+  { title: 'Radix UI — Accessible Primitives', url: 'radix-ui.com', color: '#8b5cf6', dot: 'green' },
+  { title: 'Framer Motion — Production Animation', url: 'framer.com/motion', color: '#10b981', dot: 'amber' },
+  { title: 'Tailwind CSS v4 Release Notes', url: 'tailwindcss.com', color: '#06b6d4', dot: 'green' },
   { title: 'shadcn/ui — Copy-paste Components', url: 'ui.shadcn.com', color: '#f59e0b', dot: false },
-  { title: 'TypeScript Handbook', url: 'typescriptlang.org/docs', color: '#3b82f6', dot: true },
+  { title: 'TypeScript Handbook', url: 'typescriptlang.org/docs', color: '#3b82f6', dot: 'green' },
 ];
 
-type FeatureColor = 'indigo' | 'violet' | 'emerald' | 'amber' | 'sky' | 'rose';
+type FeatureColor = 'indigo' | 'violet' | 'emerald' | 'amber' | 'sky' | 'rose' | 'teal';
 
 const FEATURE_COLOR_MAP: Record<FeatureColor, { bg: string; text: string }> = {
   indigo:  { bg: 'bg-indigo-50',  text: 'text-indigo-600'  },
@@ -29,6 +29,7 @@ const FEATURE_COLOR_MAP: Record<FeatureColor, { bg: string; text: string }> = {
   amber:   { bg: 'bg-amber-50',   text: 'text-amber-600'   },
   sky:     { bg: 'bg-sky-50',     text: 'text-sky-600'     },
   rose:    { bg: 'bg-rose-50',    text: 'text-rose-600'    },
+  teal:    { bg: 'bg-teal-50',    text: 'text-teal-600'    },
 };
 
 const FEATURES: Array<{ color: FeatureColor; icon: React.ReactNode; title: string; desc: string }> = [
@@ -92,6 +93,16 @@ const FEATURES: Array<{ color: FeatureColor; icon: React.ReactNode; title: strin
     ),
     title: 'Instant saving',
     desc: "Paste a URL and it's saved. Metadata and screenshots are captured in the background without blocking you.",
+  },
+  {
+    color: 'teal',
+    icon: (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+      </svg>
+    ),
+    title: 'Real-time status',
+    desc: 'Color-coded indicators show which links are still gathering screenshots or metadata, and which ones ran into issues — updated live.',
   },
 ];
 
@@ -192,15 +203,6 @@ const ROADMAP: Array<{ icon: React.ReactNode; title: string; desc: string }> = [
     ),
     title: 'Collections & tags',
     desc: 'Organise your links into nested collections or tag them freely — group research, projects, and reading lists without any friction.',
-  },
-  {
-    icon: (
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-      </svg>
-    ),
-    title: 'Real-time processing status',
-    desc: 'Color-coded indicators show which links are still gathering screenshots or metadata, and which ones ran into issues.',
   },
   {
     icon: (
@@ -318,7 +320,7 @@ function AppMockup() {
                 {link.dot && (
                   <div
                     className="w-1.5 h-1.5 rounded-full flex-shrink-0"
-                    style={{ background: 'rgb(16,185,129)' }}
+                    style={{ background: link.dot === 'amber' ? 'rgb(245,158,11)' : 'rgb(16,185,129)' }}
                   />
                 )}
               </div>
