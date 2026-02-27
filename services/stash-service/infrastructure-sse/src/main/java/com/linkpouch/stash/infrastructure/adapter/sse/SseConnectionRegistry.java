@@ -41,8 +41,8 @@ public class SseConnectionRegistry {
     }
 
     /**
-     * Send an SSE event to all clients subscribed to a stash. Dead emitters are removed
-     * automatically.
+     * Send an SSE event to all clients subscribed to a stash. Dead emitters are completed and
+     * removed automatically.
      */
     public void send(final UUID stashId, final SseEmitter.SseEventBuilder event) {
         final CopyOnWriteArrayList<SseEmitter> stashEmitters = emitters.get(stashId);
@@ -57,16 +57,19 @@ public class SseConnectionRegistry {
             } catch (IOException e) {
                 log.debug("Removing dead SSE emitter for stash {}: {}", stashId, e.getMessage());
                 dead.add(emitter);
+                emitter.completeWithError(e);
             }
         }
         stashEmitters.removeAll(dead);
     }
 
     private void removeEmitter(final UUID stashId, final SseEmitter emitter) {
-        final CopyOnWriteArrayList<SseEmitter> list = emitters.get(stashId);
-        if (list != null) {
-            list.remove(emitter);
-            log.debug("SSE client deregistered for stash {}", stashId);
-        }
+        emitters.computeIfPresent(
+                stashId,
+                (k, list) -> {
+                    list.remove(emitter);
+                    log.debug("SSE client deregistered for stash {}", stashId);
+                    return list.isEmpty() ? null : list;
+                });
     }
 }
