@@ -15,6 +15,8 @@ spec:
 ---
 # Frontend: accepts ingress from the ingress controller only,
 # and can reach the api-gateway.
+# Note: Traefik runs in the 'traefik' namespace (not kube-system) on this cluster,
+# so both namespaces must be allowed here.
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -32,6 +34,9 @@ spec:
         - namespaceSelector:
             matchLabels:
               kubernetes.io/metadata.name: kube-system
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: traefik
   egress:
     - to:
         - podSelector:
@@ -73,6 +78,9 @@ spec:
         - namespaceSelector:
             matchLabels:
               kubernetes.io/metadata.name: kube-system
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: traefik
   egress:
     - to:
         - podSelector:

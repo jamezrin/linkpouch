@@ -40,14 +40,51 @@ kubectl create secret docker-registry ghcr-secret \
 
 ### 2. Deploy All Services
 
+> **WARNING: never run `kubectl apply -f k8s/ --recursive` (or any blanket apply
+> that includes the `*/secret.yaml` files).** The secret manifests in this
+> repository contain `CHANGE_ME_USE_EXTERNAL_SECRETS` placeholder values and are
+> committed only as templates. Applying them will overwrite any real credentials
+> that are already live on the cluster, breaking database and Redis connections.
+>
+> Apply secrets manually once (with the real values), and from then on apply only
+> the non-secret resources:
+>
+> ```bash
+> # First-time only — set real credentials directly, do not use the manifests:
+> kubectl create secret generic postgres-secret \
+>   --from-literal=POSTGRES_PASSWORD=<real-password> \
+>   -n linkpouch-dev
+>
+> kubectl create secret generic stash-service-secret \
+>   --from-literal=SIGNATURE_MASTER_KEY=<real-key> \
+>   --from-literal=INDEXER_CALLBACK_SECRET=<real-secret> \
+>   -n linkpouch-dev
+> # ...and so on for redis-secret, seaweedfs-secret, etc.
+> ```
+>
+> The long-term fix is to adopt **Sealed Secrets** (or SOPS / External Secrets
+> Operator) so that encrypted secrets can be safely committed and applied like
+> any other manifest without risk of clobbering live credentials.
+
 ```bash
-# Apply all Kubernetes manifests
+# Apply all non-secret Kubernetes manifests
 kubectl apply -f k8s/namespace.yaml
-kubectl apply -f k8s/postgres/
-kubectl apply -f k8s/redis/
-kubectl apply -f k8s/stash-service/
-kubectl apply -f k8s/indexer-service/
-kubectl apply -f k8s/api-gateway/
+kubectl apply -f k8s/postgres/configmap.yaml
+kubectl apply -f k8s/postgres/statefulset.yaml
+kubectl apply -f k8s/postgres/service.yaml
+kubectl apply -f k8s/redis/deployment.yaml
+kubectl apply -f k8s/redis/service.yaml
+kubectl apply -f k8s/stash-service/deployment.yaml
+kubectl apply -f k8s/stash-service/service.yaml
+kubectl apply -f k8s/indexer-service/deployment.yaml
+kubectl apply -f k8s/indexer-service/hpa.yaml
+kubectl apply -f k8s/indexer-service/service.yaml
+kubectl apply -f k8s/api-gateway/deployment.yaml
+kubectl apply -f k8s/api-gateway/service.yaml
+kubectl apply -f k8s/frontend/deployment.yaml
+kubectl apply -f k8s/frontend/service.yaml
+kubectl apply -f k8s/ingress/
+kubectl apply -f k8s/network-policies.yaml
 
 # Verify deployment
 kubectl get pods -n linkpouch-dev
