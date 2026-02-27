@@ -47,7 +47,11 @@ spec:
             secretKeyRef:
               name: stash-service-secret
               key: SIGNATURE_MASTER_KEY
-              optional: true
+        - name: INDEXER_CALLBACK_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: stash-service-secret
+              key: INDEXER_CALLBACK_SECRET
         - name: S3_ENDPOINT
           value: http://seaweedfs:8333
         - name: S3_ACCESS_KEY
