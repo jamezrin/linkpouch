@@ -175,14 +175,14 @@ class RedisStreamConsumer:
         event_type = data.get("eventType")
         link_id = data.get("linkId")
         url = data.get("url")
-        
+
         logger.info(
             "Handling link event",
             event_type=event_type,
             link_id=link_id,
             url=url,
         )
-        
+
         if event_type == "link.added":
             if not url:
                 logger.warning("No URL provided for link.added event", link_id=link_id)
@@ -195,21 +195,37 @@ class RedisStreamConsumer:
                     stash_id=stash_id,
                 )
                 return
-            # Single browser session: scrape metadata and take screenshot together
-            result = await self.scraper.scrape_and_screenshot(url, stash_id, link_id)
-            await self.stash_client.update_link_metadata(
-                link_id=link_id,
-                title=result.get("title"),
-                description=result.get("description"),
-                favicon_url=result.get("favicon_url"),
-                page_content=result.get("page_content"),
-                final_url=result.get("final_url"),
-            )
-            if result.get("screenshot_key"):
-                await self.stash_client.update_screenshot(
+            try:
+                # Single browser session: scrape metadata and take screenshot together
+                result = await self.scraper.scrape_and_screenshot(url, stash_id, link_id)
+                await self.stash_client.update_link_metadata(
                     link_id=link_id,
-                    screenshot_key=result["screenshot_key"],
+                    title=result.get("title"),
+                    description=result.get("description"),
+                    favicon_url=result.get("favicon_url"),
+                    page_content=result.get("page_content"),
+                    final_url=result.get("final_url"),
                 )
+                if result.get("screenshot_key"):
+                    await self.stash_client.update_screenshot(
+                        link_id=link_id,
+                        screenshot_key=result["screenshot_key"],
+                    )
+            except Exception as e:
+                logger.error(
+                    "Indexing failed — marking link as FAILED",
+                    link_id=link_id,
+                    error=str(e),
+                )
+                try:
+                    await self.stash_client.update_link_status(link_id=link_id, status="FAILED")
+                except Exception as status_err:
+                    logger.error(
+                        "Failed to mark link as FAILED",
+                        link_id=link_id,
+                        error=str(status_err),
+                    )
+                raise
     
     async def _handle_screenshot_event(self, data: dict) -> None:
         """Handle screenshot.refresh.requested event."""

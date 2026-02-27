@@ -22,6 +22,7 @@
         <module>infrastructure-redis</module>
         <module>infrastructure-http</module>
         <module>infrastructure-web</module>
+        <module>infrastructure-sse</module>
         <module>boot</module>
     </modules>
     
@@ -112,6 +113,11 @@
             <dependency>
                 <groupId>com.linkpouch</groupId>
                 <artifactId>infrastructure-web</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.linkpouch</groupId>
+                <artifactId>infrastructure-sse</artifactId>
                 <version>${project.version}</version>
             </dependency>
         </dependencies>

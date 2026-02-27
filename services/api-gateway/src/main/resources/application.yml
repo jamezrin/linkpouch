@@ -21,6 +21,7 @@ spring:
             allowedHeaders:
               - "Content-Type"
               - "X-Stash-Signature"
+              - "Last-Event-ID"
             allowCredentials: false
       routes:
         # Stash Service - stash routes
@@ -45,6 +46,14 @@ spring:
           uri: no://op
           predicates:
             - Path=/api/links/*/screenshot
+            - Method=PATCH
+          filters:
+            - SetStatus=403
+
+        - id: block-indexer-status-callback
+          uri: no://op
+          predicates:
+            - Path=/api/links/*/status
             - Method=PATCH
           filters:
             - SetStatus=403

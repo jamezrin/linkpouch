@@ -405,6 +405,48 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
+  /links/{linkId}/status:
+    parameters:
+      - name: linkId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: X-Indexer-Secret
+        in: header
+        required: true
+        schema:
+          type: string
+        description: Shared secret for internal indexer callback authentication
+
+    patch:
+      summary: Update link indexing status (internal indexer callback)
+      operationId: updateLinkStatus
+      tags:
+        - Links
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateLinkStatusRequest'
+      responses:
+        '204':
+          description: Link status updated
+        '401':
+          description: Invalid or missing indexer secret
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Link not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
   /links/{linkId}/screenshot:
     parameters:
       - name: linkId
@@ -564,6 +606,13 @@ components:
           format: date-time
         position:
           type: integer
+        status:
+          type: string
+          enum:
+            - PENDING
+            - INDEXED
+            - FAILED
+          description: Indexing lifecycle status of the link
 
     PagedLinkResponse:
       type: object
@@ -594,6 +643,19 @@ components:
           type: string
         finalUrl:
           type: string
+
+    UpdateLinkStatusRequest:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - PENDING
+            - INDEXED
+            - FAILED
+          description: New indexing status for the link
 
     UpdateLinkScreenshotRequest:
       type: object

@@ -53,6 +53,7 @@ public interface ApiDtoMapper {
     @Mapping(target = "createdAt", source = "createdAt", qualifiedByName = "toOffsetDateTime")
     @Mapping(target = "updatedAt", source = "updatedAt", qualifiedByName = "toOffsetDateTime")
     @Mapping(target = "position", source = "position")
+    @Mapping(target = "status", source = "status", qualifiedByName = "linkStatusToString")
     LinkResponseDTO mapOut(Link link);
 
     List<LinkResponseDTO> mapOutLinks(List<Link> links);
@@ -102,5 +103,10 @@ public interface ApiDtoMapper {
             return null;
         }
         return uri.toString();
+    }
+
+    @Named("linkStatusToString")
+    default String linkStatusToString(LinkStatus status) {
+        return status != null ? status.name() : LinkStatus.PENDING.name();
     }
 }

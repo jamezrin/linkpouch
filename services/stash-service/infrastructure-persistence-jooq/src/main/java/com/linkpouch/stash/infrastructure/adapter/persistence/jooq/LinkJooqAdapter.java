@@ -18,6 +18,7 @@ import org.springframework.stereotype.Component;
 
 import com.linkpouch.stash.domain.model.Link;
 import com.linkpouch.stash.domain.model.LinkDescription;
+import com.linkpouch.stash.domain.model.LinkStatus;
 import com.linkpouch.stash.domain.model.LinkTitle;
 import com.linkpouch.stash.domain.model.ScreenshotKey;
 import com.linkpouch.stash.domain.model.Url;
@@ -227,6 +228,16 @@ public class LinkJooqAdapter implements LinkRepository {
                                 .withOffsetSameInstant(ZoneOffset.UTC)
                                 .toLocalDateTime()
                         : null,
-                pos != null ? pos : 0);
+                pos != null ? pos : 0,
+                parseLinkStatus(record.get("status", String.class)));
+    }
+
+    private static LinkStatus parseLinkStatus(final String value) {
+        if (value == null) return LinkStatus.PENDING;
+        try {
+            return LinkStatus.valueOf(value);
+        } catch (IllegalArgumentException e) {
+            return LinkStatus.PENDING;
+        }
     }
 }

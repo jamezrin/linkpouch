@@ -6,6 +6,10 @@ import java.util.UUID;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.linkpouch.stash.api.controller.LinksApi;
@@ -17,6 +21,7 @@ import com.linkpouch.stash.application.service.LinkManagementService;
 import com.linkpouch.stash.application.service.SignatureValidationService;
 import com.linkpouch.stash.application.service.StashManagementService;
 import com.linkpouch.stash.domain.model.Link;
+import com.linkpouch.stash.domain.model.LinkStatus;
 import com.linkpouch.stash.infrastructure.adapter.web.mapper.ApiDtoMapper;
 
 import lombok.RequiredArgsConstructor;
@@ -154,6 +159,24 @@ public class LinkController implements LinksApi {
                         dto.getPageContent(),
                         dto.getFinalUrl());
         return ResponseEntity.ok(toResponse(link));
+    }
+
+    @PatchMapping("/links/{linkId}/status")
+    public ResponseEntity<Void> updateLinkStatus(
+            @PathVariable final UUID linkId,
+            @RequestHeader("X-Indexer-Secret") final String xIndexerSecret,
+            @RequestBody final UpdateLinkStatusRequestDTO dto) {
+        if (!indexerCallbackSecret.equals(xIndexerSecret)) {
+            throw new UnauthorizedException("Invalid indexer secret");
+        }
+        final LinkStatus status;
+        try {
+            status = LinkStatus.valueOf(dto.getStatus().getValue());
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("Invalid status value: " + dto.getStatus());
+        }
+        linkService.updateLinkStatus(linkId, status);
+        return ResponseEntity.noContent().build();
     }
 
     @Override

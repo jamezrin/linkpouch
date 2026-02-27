@@ -5,6 +5,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 import com.linkpouch.stash.domain.model.Link;
+import com.linkpouch.stash.domain.model.LinkStatus;
 
 /** Driving Port: Link Management Use Cases */
 public interface LinkManagementUseCase {
@@ -44,4 +45,7 @@ public interface LinkManagementUseCase {
      * moved links are placed at the beginning.
      */
     void reorderLinks(UUID stashId, List<UUID> movedLinkIds, UUID insertAfterId);
+
+    /** Update the indexing status of a link (called by indexer on failure). */
+    Link updateLinkStatus(UUID linkId, LinkStatus status);
 }
