@@ -9,7 +9,7 @@ spec:
     kind: Deployment
     name: indexer-service
   minReplicas: 3
-  maxReplicas: 5
+  maxReplicas: 10
   metrics:
   - type: Resource
     resource:
