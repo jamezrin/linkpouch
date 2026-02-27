@@ -226,7 +226,8 @@ spec:
   egress: []
 
 ---
-# Redis: only accepts connections from stash-service and indexer-service.
+# Redis: accepts connections from stash-service, indexer-service, and the
+# KEDA operator (which queries stream lag to drive autoscaling).
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -247,6 +248,9 @@ spec:
         - podSelector:
             matchLabels:
               app: indexer-service
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: keda
       ports:
         - port: 6379
   egress: []
