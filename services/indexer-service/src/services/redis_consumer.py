@@ -83,11 +83,33 @@ class RedisStreamConsumer:
             self.settings.link_stream_key: self._handle_link_event,
             self.settings.screenshot_stream_key: self._handle_screenshot_event,
         }
-        
+        # Tracks the XAUTOCLAIM cursor per stream (start from oldest pending on boot)
+        autoclaim_cursors: dict[str, str] = {key: "0-0" for key in streams}
+        # Reclaim messages that have been pending for more than 60 seconds
+        min_idle_ms = 60_000
+
         while self._running:
             try:
-                # Read from all streams
                 for stream_key, handler in streams.items():
+                    # 1. Reclaim stale pending messages before reading new ones
+                    cursor = autoclaim_cursors[stream_key]
+                    claimed = await self.redis.xautoclaim(  # type: ignore
+                        stream_key,
+                        self.settings.consumer_group,
+                        self.settings.consumer_name,
+                        min_idle_time=min_idle_ms,
+                        start_id=cursor,
+                        count=1,
+                    )
+                    # xautoclaim returns (next_cursor, [(msg_id, msg_data), ...], deleted_ids)
+                    next_cursor, claimed_msgs, _ = claimed
+                    if claimed_msgs:
+                        for msg_id, msg_data in claimed_msgs:
+                            await self._process_message(stream_key, msg_id, msg_data, handler)
+                    # Reset cursor to "0-0" when we've swept through all pending entries
+                    autoclaim_cursors[stream_key] = next_cursor if next_cursor != "0-0" else "0-0"
+
+                    # 2. Read new (undelivered) messages
                     messages = await self.redis.xreadgroup(  # type: ignore
                         groupname=self.settings.consumer_group,
                         consumername=self.settings.consumer_name,
@@ -95,7 +117,7 @@ class RedisStreamConsumer:
                         count=1,
                         block=1000,
                     )
-                    
+
                     if messages:
                         for stream_name, msgs in messages:
                             for msg_id, msg_data in msgs:
@@ -105,7 +127,7 @@ class RedisStreamConsumer:
                                     msg_data,
                                     handler,
                                 )
-                                
+
             except asyncio.CancelledError:
                 break
             except Exception as e:

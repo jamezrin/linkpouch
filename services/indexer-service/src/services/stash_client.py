@@ -61,6 +61,7 @@ class StashServiceClient:
                 link_id=link_id,
                 error=str(e),
             )
+            raise
     
     async def update_screenshot(
         self,
@@ -87,3 +88,4 @@ class StashServiceClient:
                 link_id=link_id,
                 error=str(e),
             )
+            raise
