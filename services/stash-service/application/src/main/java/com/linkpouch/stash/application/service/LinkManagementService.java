@@ -128,13 +128,15 @@ public class LinkManagementService implements LinkManagementUseCase {
     public void requestScreenshotRefresh(final UUID linkId) {
         log.info("Requesting screenshot refresh for link: {}", linkId);
 
-        final Optional<Link> linkOptional = linkRepository.findById(linkId);
-        if (linkOptional.isEmpty()) {
-            log.warn("Link not found in database: {}", linkId);
-            throw new NotFoundException("Link not found: " + linkId);
-        }
+        final Link link =
+                linkRepository
+                        .findById(linkId)
+                        .orElseThrow(() -> new NotFoundException("Link not found: " + linkId));
 
-        final Link link = linkOptional.get();
+        link.markScreenshotRefreshPending();
+        final Link saved = linkRepository.save(link);
+        linkStatusBroadcaster.broadcastLinkUpdated(saved.getStashId(), saved);
+
         log.info("Found link with URL: {}, publishing refresh event", link.getUrl().getValue());
 
         eventPublisher.publishScreenshotRefreshRequested(

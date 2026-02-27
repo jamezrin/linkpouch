@@ -93,12 +93,18 @@ public class Link {
         this.updatedAt = LocalDateTime.now(ZoneOffset.UTC);
     }
 
+    public void markScreenshotRefreshPending() {
+        this.status = LinkStatus.PENDING;
+        this.updatedAt = LocalDateTime.now(ZoneOffset.UTC);
+    }
+
     public void updateScreenshot(final String screenshotKey) {
         if (screenshotKey == null || screenshotKey.isBlank()) {
             throw new IllegalArgumentException("Screenshot key cannot be null or blank");
         }
         this.screenshotKey = ScreenshotKey.of(screenshotKey);
         this.screenshotGeneratedAt = LocalDateTime.now(ZoneOffset.UTC);
+        this.status = LinkStatus.INDEXED;
         this.updatedAt = LocalDateTime.now(ZoneOffset.UTC);
     }
 
