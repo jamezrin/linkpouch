@@ -13,3 +13,4 @@
 - [ ] Replace lines like `private static final Logger log = LoggerFactory.getLogger(HttpUrlInfoAdapter.class);` and use @Slf4j or something else, decide the best option.
 - [ ] Screenshot timestamping (shown when full screen)
 - [ ] Accessibility improvements: keyboard controls for multiple selection of links (arrow key navigation, Space to toggle, Shift+Arrow/Click for range select, Ctrl+A to select all, Escape to clear)
+- [ ] Optional authentication: allow users to log in via OAuth providers (X, Google, GitHub, etc.) to associate pouches with an account, enabling pouch recovery and listing across devices
