@@ -7,6 +7,7 @@ import java.security.NoSuchAlgorithmException;
 import java.util.Base64;
 import java.util.UUID;
 
+import jakarta.annotation.PostConstruct;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 
@@ -35,6 +36,14 @@ public class SignatureValidationService {
             @Value("${linkpouch.base-url:http://localhost:8080}") final String baseUrl) {
         this.masterKey = masterKey;
         this.baseUrl = baseUrl;
+    }
+
+    @PostConstruct
+    public void validateConfig() {
+        if (masterKey == null || masterKey.isBlank()) {
+            throw new IllegalStateException(
+                    "SIGNATURE_MASTER_KEY environment variable must be set to a strong secret");
+        }
     }
 
     /**

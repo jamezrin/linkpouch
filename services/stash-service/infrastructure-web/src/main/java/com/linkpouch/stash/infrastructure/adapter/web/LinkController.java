@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.linkpouch.stash.api.controller.LinksApi;
 import com.linkpouch.stash.api.model.*;
+import com.linkpouch.stash.application.exception.ForbiddenException;
 import com.linkpouch.stash.application.exception.NotFoundException;
 import com.linkpouch.stash.application.exception.UnauthorizedException;
 import com.linkpouch.stash.application.service.LinkManagementService;
@@ -32,6 +33,9 @@ public class LinkController implements LinksApi {
     @Value("${linkpouch.base-url:http://localhost:8080}")
     private String baseUrl;
 
+    @Value("${linkpouch.indexer.callback-secret}")
+    private String indexerCallbackSecret;
+
     @Override
     public ResponseEntity<LinkResponseDTO> addLink(
             final UUID stashId,
@@ -53,18 +57,29 @@ public class LinkController implements LinksApi {
     }
 
     @Override
-    public ResponseEntity<Void> deleteLink(final UUID linkId) {
-        linkService.deleteLink(linkId);
-        return ResponseEntity.noContent().build();
-    }
+    public ResponseEntity<Void> deleteLink(
+            final UUID stashId, final String xStashSignature, final UUID linkId) {
+        final var stash =
+                stashService
+                        .findStashById(stashId)
+                        .orElseThrow(() -> new NotFoundException("Stash not found: " + stashId));
 
-    @Override
-    public ResponseEntity<LinkResponseDTO> getLink(final UUID linkId) {
+        if (!signatureService.validateSignature(
+                stashId, stash.getSecretKey().getValue(), xStashSignature)) {
+            throw new UnauthorizedException("Invalid signature");
+        }
+
         final var link =
                 linkService
                         .findLinkById(linkId)
                         .orElseThrow(() -> new NotFoundException("Link not found: " + linkId));
-        return ResponseEntity.ok(toResponse(link));
+
+        if (!link.getStashId().equals(stashId)) {
+            throw new ForbiddenException("Link does not belong to this stash");
+        }
+
+        linkService.deleteLink(linkId);
+        return ResponseEntity.noContent().build();
     }
 
     @Override
@@ -97,14 +112,39 @@ public class LinkController implements LinksApi {
     }
 
     @Override
-    public ResponseEntity<Void> refreshScreenshot(final UUID linkId) {
+    public ResponseEntity<Void> refreshScreenshot(
+            final UUID stashId, final String xStashSignature, final UUID linkId) {
+        final var stash =
+                stashService
+                        .findStashById(stashId)
+                        .orElseThrow(() -> new NotFoundException("Stash not found: " + stashId));
+
+        if (!signatureService.validateSignature(
+                stashId, stash.getSecretKey().getValue(), xStashSignature)) {
+            throw new UnauthorizedException("Invalid signature");
+        }
+
+        final var link =
+                linkService
+                        .findLinkById(linkId)
+                        .orElseThrow(() -> new NotFoundException("Link not found: " + linkId));
+
+        if (!link.getStashId().equals(stashId)) {
+            throw new ForbiddenException("Link does not belong to this stash");
+        }
+
         linkService.requestScreenshotRefresh(linkId);
         return ResponseEntity.accepted().build();
     }
 
     @Override
     public ResponseEntity<LinkResponseDTO> updateLinkMetadata(
-            final UUID linkId, final UpdateLinkMetadataRequestDTO dto) {
+            final UUID linkId,
+            final String xIndexerSecret,
+            final UpdateLinkMetadataRequestDTO dto) {
+        if (!indexerCallbackSecret.equals(xIndexerSecret)) {
+            throw new UnauthorizedException("Invalid indexer secret");
+        }
         final var link =
                 linkService.updateLinkMetadata(
                         linkId,
@@ -118,7 +158,12 @@ public class LinkController implements LinksApi {
 
     @Override
     public ResponseEntity<LinkResponseDTO> updateLinkScreenshot(
-            final UUID linkId, final UpdateLinkScreenshotRequestDTO dto) {
+            final UUID linkId,
+            final String xIndexerSecret,
+            final UpdateLinkScreenshotRequestDTO dto) {
+        if (!indexerCallbackSecret.equals(xIndexerSecret)) {
+            throw new UnauthorizedException("Invalid indexer secret");
+        }
         final var link = linkService.updateLinkScreenshot(linkId, dto.getScreenshotKey());
         return ResponseEntity.ok(toResponse(link));
     }
@@ -151,7 +196,13 @@ public class LinkController implements LinksApi {
         final var dto = mapper.mapOut(link);
         if (link.getScreenshotKey() != null) {
             dto.setScreenshotUrl(
-                    URI.create(baseUrl + "/api/links/" + link.getId() + "/screenshot"));
+                    URI.create(
+                            baseUrl
+                                    + "/api/stashes/"
+                                    + link.getStashId()
+                                    + "/links/"
+                                    + link.getId()
+                                    + "/screenshot"));
         }
         return dto;
     }

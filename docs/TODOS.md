@@ -1,3 +1,4 @@
+- [x] Security hardening (IDOR, SSRF, auth bypass, CORS, headers, NetworkPolicies — see security analysis plan)
 - [x] Rename pouch functionality (by clicking the name)
 - [ ] Improve scalability
 - [ ] Add password protection
@@ -9,3 +10,5 @@
 - [ ] Add yellow marker for metadata-gathering in progress, red for failed.
 - [ ] Add automatic updating of links after metadata gathering
 - [ ] Responsible for phones
+- [ ] Replace lines like `private static final Logger log = LoggerFactory.getLogger(HttpUrlInfoAdapter.class);` and use @Slf4j or something else, decide the best option.
+- [ ] Screenshot timestamping (shown when full screen)

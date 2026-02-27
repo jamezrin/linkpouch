@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import com.linkpouch.stash.api.model.ErrorResponseDTO;
+import com.linkpouch.stash.application.exception.ForbiddenException;
 import com.linkpouch.stash.application.exception.NotFoundException;
 import com.linkpouch.stash.application.exception.UnauthorizedException;
 
@@ -32,6 +33,12 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponseDTO> handleUnauthorized(
             final UnauthorizedException ex, final HttpServletRequest request) {
         return buildResponse(HttpStatus.UNAUTHORIZED, ex.getMessage(), request.getRequestURI());
+    }
+
+    @ExceptionHandler(ForbiddenException.class)
+    public ResponseEntity<ErrorResponseDTO> handleForbidden(
+            final ForbiddenException ex, final HttpServletRequest request) {
+        return buildResponse(HttpStatus.FORBIDDEN, ex.getMessage(), request.getRequestURI());
     }
 
     private ResponseEntity<ErrorResponseDTO> buildResponse(

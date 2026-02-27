@@ -90,23 +90,4 @@ public class StashController implements StashesApi {
         return ResponseEntity.noContent().build();
     }
 
-    @Override
-    public ResponseEntity<SignedUrlResponseDTO> generateSignedUrl(final UUID stashId) {
-        final var stash =
-                stashService
-                        .findStashById(stashId)
-                        .orElseThrow(() -> new NotFoundException("Stash not found: " + stashId));
-
-        final String signature =
-                signatureService.generateSignature(stashId, stash.getSecretKey().getValue());
-        final String signedUrl =
-                signatureService.generateSignedUrl(stashId, stash.getSecretKey().getValue());
-
-        final SignedUrlResponseDTO response = new SignedUrlResponseDTO();
-        response.setStashId(stashId);
-        response.setSignature(signature);
-        response.setSignedUrl(signedUrl);
-
-        return ResponseEntity.ok(response);
-    }
 }

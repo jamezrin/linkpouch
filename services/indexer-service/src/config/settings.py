@@ -1,5 +1,6 @@
 """Application settings."""
 
+import socket
 from functools import lru_cache
 
 from pydantic import Field
@@ -29,7 +30,7 @@ class Settings(BaseSettings):
     link_stream_key: str = Field(default="linkpouch:events:link")
     screenshot_stream_key: str = Field(default="linkpouch:events:screenshot")
     consumer_group: str = Field(default="indexer-workers")
-    consumer_name: str = Field(default="worker-1")
+    consumer_name: str = Field(default_factory=socket.gethostname)
     
     # Playwright
     playwright_headless: bool = Field(default=True)
@@ -49,6 +50,7 @@ class Settings(BaseSettings):
     # Stash Service
     stash_service_url: str = Field(default="http://stash-service:8080")
     stash_service_timeout: int = Field(default=30)
+    indexer_callback_secret: str = Field(...)  # Required — no default allowed
     
     @property
     def redis_url(self) -> str:

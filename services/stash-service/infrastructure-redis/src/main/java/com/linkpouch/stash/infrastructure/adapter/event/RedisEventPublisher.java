@@ -63,6 +63,7 @@ public class RedisEventPublisher implements EventPublisher {
             eventData.put("eventType", "screenshot.refresh.requested");
             eventData.put("linkId", event.linkId());
             eventData.put("url", event.url());
+            eventData.put("stashId", event.stashId());
             eventData.put("timestamp", Instant.now().toString());
 
             final RecordId recordId =

@@ -117,7 +117,9 @@ public class LinkManagementService implements LinkManagementUseCase {
 
         eventPublisher.publishScreenshotRefreshRequested(
                 new EventPublisher.ScreenshotRefreshEvent(
-                        linkId.toString(), link.getUrl().getValue()));
+                        linkId.toString(),
+                        link.getUrl().getValue(),
+                        link.getStashId().toString()));
     }
 
     @Override

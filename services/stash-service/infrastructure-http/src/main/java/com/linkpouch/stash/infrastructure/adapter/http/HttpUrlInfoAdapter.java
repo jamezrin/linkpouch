@@ -84,6 +84,11 @@ public class HttpUrlInfoAdapter implements UrlInfoPort {
             if (address.isMulticastAddress()) {
                 throw new IllegalArgumentException("URL resolves to multicast address: " + url);
             }
+            // Block CGNAT range 100.64.0.0/10 (not covered by isSiteLocalAddress)
+            final byte[] addr = address.getAddress();
+            if (addr.length == 4 && (addr[0] & 0xFF) == 100 && (addr[1] & 0xC0) == 64) {
+                throw new IllegalArgumentException("URL resolves to CGNAT address: " + url);
+            }
         } catch (final UnknownHostException e) {
             throw new IllegalArgumentException("Cannot resolve host: " + host);
         }

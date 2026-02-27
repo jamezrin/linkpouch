@@ -1,8 +1,9 @@
 """Web scraping service using Playwright."""
 
-import hashlib
+import ipaddress
+import socket
 from typing import Any
-from urllib.parse import urljoin
+from urllib.parse import urljoin, urlparse
 
 import structlog
 from playwright.async_api import async_playwright
@@ -12,6 +13,44 @@ from src.config.settings import Settings
 from src.services.storage_service import ScreenshotStorageService
 
 logger = structlog.get_logger()
+
+# Private/reserved IP networks that must not be reachable from the indexer
+_BLOCKED_NETWORKS = [
+    ipaddress.ip_network("0.0.0.0/8"),
+    ipaddress.ip_network("10.0.0.0/8"),
+    ipaddress.ip_network("100.64.0.0/10"),   # CGNAT
+    ipaddress.ip_network("127.0.0.0/8"),
+    ipaddress.ip_network("169.254.0.0/16"),  # link-local
+    ipaddress.ip_network("172.16.0.0/12"),
+    ipaddress.ip_network("192.168.0.0/16"),
+    ipaddress.ip_network("::1/128"),
+    ipaddress.ip_network("fc00::/7"),        # unique local
+    ipaddress.ip_network("fe80::/10"),       # link-local IPv6
+]
+
+
+def validate_url(url: str) -> None:
+    """Raise ValueError if the URL scheme is non-HTTP or resolves to a private address."""
+    parsed = urlparse(url)
+    if parsed.scheme not in ("http", "https"):
+        raise ValueError(f"Only http/https URLs are allowed, got: {parsed.scheme!r}")
+
+    hostname = parsed.hostname
+    if not hostname:
+        raise ValueError("URL has no hostname")
+
+    try:
+        addr_infos = socket.getaddrinfo(hostname, None)
+    except socket.gaierror as exc:
+        raise ValueError(f"Cannot resolve hostname {hostname!r}: {exc}") from exc
+
+    for addr_info in addr_infos:
+        ip = ipaddress.ip_address(addr_info[4][0])
+        for net in _BLOCKED_NETWORKS:
+            if ip in net:
+                raise ValueError(
+                    f"URL {url!r} resolves to blocked address {ip} (network {net})"
+                )
 
 
 class LinkScraper:
@@ -25,8 +64,11 @@ class LinkScraper:
         stop=stop_after_attempt(3),
         wait=wait_exponential(multiplier=1, min=4, max=10),
     )
-    async def scrape_and_screenshot(self, url: str) -> dict[str, Any]:
+    async def scrape_and_screenshot(
+        self, url: str, stash_id: str, link_id: str
+    ) -> dict[str, Any]:
         """Scrape metadata and take a screenshot in a single browser session."""
+        validate_url(url)
         logger.info("Scraping link and taking screenshot", url=url)
 
         result: dict[str, Any] = {
@@ -85,8 +127,7 @@ class LinkScraper:
 
                 # Take screenshot on the same already-loaded page
                 screenshot_bytes = await page.screenshot(type="png", full_page=False)
-                url_hash = hashlib.sha256(url.encode()).hexdigest()[:16]
-                key = f"screenshots/{url_hash}.png"
+                key = f"screenshots/{stash_id}/{link_id}.png"
                 await self.storage_service.upload(key, screenshot_bytes)
                 result["screenshot_key"] = key
 
@@ -107,8 +148,11 @@ class LinkScraper:
         stop=stop_after_attempt(3),
         wait=wait_exponential(multiplier=1, min=4, max=10),
     )
-    async def take_screenshot(self, url: str) -> dict[str, Any]:
+    async def take_screenshot(
+        self, url: str, stash_id: str, link_id: str
+    ) -> dict[str, Any]:
         """Take a screenshot of a URL (used for refresh-only events)."""
+        validate_url(url)
         logger.info("Taking screenshot", url=url)
 
         async with async_playwright() as p:
@@ -132,8 +176,7 @@ class LinkScraper:
 
                 screenshot_bytes = await page.screenshot(type="png", full_page=False)
 
-                url_hash = hashlib.sha256(url.encode()).hexdigest()[:16]
-                key = f"screenshots/{url_hash}.png"
+                key = f"screenshots/{stash_id}/{link_id}.png"
                 await self.storage_service.upload(key, screenshot_bytes)
 
                 result = {

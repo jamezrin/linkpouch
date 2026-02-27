@@ -8,6 +8,7 @@ spec:
     scheme: https
     permanent: true
 ---
+# Global rate limit: 100 req/s average, 50 burst
 apiVersion: traefik.io/v1alpha1
 kind: Middleware
 metadata:
@@ -17,3 +18,23 @@ spec:
   rateLimit:
     average: 100
     burst: 50
+    period: 1s
+    sourceCriterion:
+      ipStrategy:
+        depth: 1
+---
+# Strict rate limit for expensive mutation operations (link creation, screenshot refresh)
+# 10 req/min per IP
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: rate-limit-mutations
+  namespace: linkpouch-dev
+spec:
+  rateLimit:
+    average: 10
+    burst: 5
+    period: 60s
+    sourceCriterion:
+      ipStrategy:
+        depth: 1

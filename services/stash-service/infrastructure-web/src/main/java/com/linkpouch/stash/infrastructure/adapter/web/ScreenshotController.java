@@ -9,10 +9,16 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.linkpouch.stash.application.exception.ForbiddenException;
 import com.linkpouch.stash.application.exception.NotFoundException;
+import com.linkpouch.stash.application.exception.UnauthorizedException;
 import com.linkpouch.stash.application.service.LinkManagementService;
+import com.linkpouch.stash.application.service.SignatureValidationService;
+import com.linkpouch.stash.application.service.StashManagementService;
 
 import lombok.RequiredArgsConstructor;
 import software.amazon.awssdk.services.s3.S3Client;
@@ -24,17 +30,40 @@ import software.amazon.awssdk.services.s3.model.NoSuchKeyException;
 public class ScreenshotController {
 
     private final LinkManagementService linkService;
+    private final StashManagementService stashService;
+    private final SignatureValidationService signatureService;
     private final S3Client s3Client;
 
     @Value("${linkpouch.s3.bucket}")
     private String s3Bucket;
 
-    @GetMapping("/links/{linkId}/screenshot")
-    public ResponseEntity<byte[]> getScreenshot(@PathVariable("linkId") final UUID linkId) {
+    @GetMapping("/stashes/{stashId}/links/{linkId}/screenshot")
+    public ResponseEntity<byte[]> getScreenshot(
+            @PathVariable("stashId") final UUID stashId,
+            @PathVariable("linkId") final UUID linkId,
+            @RequestHeader(value = "X-Stash-Signature", required = false) final String headerSig,
+            @RequestParam(value = "sig", required = false) final String querySig) {
+
+        final String signature = headerSig != null ? headerSig : querySig;
+
+        final var stash =
+                stashService
+                        .findStashById(stashId)
+                        .orElseThrow(() -> new NotFoundException("Stash not found: " + stashId));
+
+        if (!signatureService.validateSignature(
+                stashId, stash.getSecretKey().getValue(), signature)) {
+            throw new UnauthorizedException("Invalid signature");
+        }
+
         final var link =
                 linkService
                         .findLinkById(linkId)
                         .orElseThrow(() -> new NotFoundException("Link not found: " + linkId));
+
+        if (!link.getStashId().equals(stashId)) {
+            throw new ForbiddenException("Link does not belong to this stash");
+        }
 
         if (link.getScreenshotKey() == null) {
             return ResponseEntity.notFound().build();

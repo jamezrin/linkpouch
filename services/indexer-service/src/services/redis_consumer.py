@@ -187,8 +187,16 @@ class RedisStreamConsumer:
             if not url:
                 logger.warning("No URL provided for link.added event", link_id=link_id)
                 return
+            stash_id = data.get("stashId")
+            if not stash_id or not link_id:
+                logger.warning(
+                    "Missing stashId or linkId for link.added event",
+                    link_id=link_id,
+                    stash_id=stash_id,
+                )
+                return
             # Single browser session: scrape metadata and take screenshot together
-            result = await self.scraper.scrape_and_screenshot(url)
+            result = await self.scraper.scrape_and_screenshot(url, stash_id, link_id)
             await self.stash_client.update_link_metadata(
                 link_id=link_id,
                 title=result.get("title"),
@@ -197,7 +205,7 @@ class RedisStreamConsumer:
                 page_content=result.get("page_content"),
                 final_url=result.get("final_url"),
             )
-            if link_id and result.get("screenshot_key"):
+            if result.get("screenshot_key"):
                 await self.stash_client.update_screenshot(
                     link_id=link_id,
                     screenshot_key=result["screenshot_key"],
@@ -220,15 +228,23 @@ class RedisStreamConsumer:
             if not url:
                 logger.warning("No URL provided for screenshot.refresh.requested event", link_id=link_id)
                 return
+            stash_id = data.get("stashId")
+            if not stash_id or not link_id:
+                logger.warning(
+                    "Missing stashId or linkId for screenshot.refresh.requested event",
+                    link_id=link_id,
+                    stash_id=stash_id,
+                )
+                return
             # Regenerate screenshot
-            screenshot = await self.scraper.take_screenshot(url)
+            screenshot = await self.scraper.take_screenshot(url, stash_id, link_id)
             logger.info(
                 "Screenshot refreshed",
                 link_id=link_id,
                 screenshot_key=screenshot.get("key"),
             )
             # Notify stash service about new screenshot
-            if link_id and screenshot.get("key"):
+            if screenshot.get("key"):
                 await self.stash_client.update_screenshot(
                     link_id=link_id,
                     screenshot_key=screenshot["key"],
