@@ -187,9 +187,8 @@ class RedisStreamConsumer:
             if not url:
                 logger.warning("No URL provided for link.added event", link_id=link_id)
                 return
-            # Scrape metadata
-            result = await self.scraper.scrape_link(url)
-            logger.info("Link scraped", link_id=link_id, title=result.get("title"))
+            # Single browser session: scrape metadata and take screenshot together
+            result = await self.scraper.scrape_and_screenshot(url)
             await self.stash_client.update_link_metadata(
                 link_id=link_id,
                 title=result.get("title"),
@@ -198,17 +197,10 @@ class RedisStreamConsumer:
                 page_content=result.get("page_content"),
                 final_url=result.get("final_url"),
             )
-            # Take screenshot automatically for new links
-            screenshot = await self.scraper.take_screenshot(url)
-            logger.info(
-                "Initial screenshot taken",
-                link_id=link_id,
-                screenshot_key=screenshot.get("key"),
-            )
-            if link_id and screenshot.get("key"):
+            if link_id and result.get("screenshot_key"):
                 await self.stash_client.update_screenshot(
                     link_id=link_id,
-                    screenshot_key=screenshot["key"],
+                    screenshot_key=result["screenshot_key"],
                 )
     
     async def _handle_screenshot_event(self, data: dict) -> None:
