@@ -89,5 +89,4 @@ public class StashController implements StashesApi {
         stashService.deleteStash(stashId);
         return ResponseEntity.noContent().build();
     }
-
 }
