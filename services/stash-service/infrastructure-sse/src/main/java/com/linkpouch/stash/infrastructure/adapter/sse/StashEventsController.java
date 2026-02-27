@@ -3,7 +3,6 @@ package com.linkpouch.stash.infrastructure.adapter.sse;
 import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -41,11 +40,10 @@ public class StashEventsController {
     @Value("${linkpouch.signature.master-key}")
     private String masterKey;
 
-    @GetMapping(
-            value = "/stashes/{stashId}/events",
-            produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    @GetMapping(value = "/stashes/{stashId}/events")
     public SseEmitter subscribeToStashEvents(
-            @PathVariable final UUID stashId, @RequestParam(name = "sig") final String sig) {
+            @PathVariable("stashId") final UUID stashId,
+            @RequestParam(name = "sig") final String sig) {
         final var stash =
                 stashService
                         .findStashById(stashId)
