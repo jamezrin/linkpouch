@@ -1,5 +1,5 @@
-apiVersion: autoscaling/v2
-kind: HorizontalPodAutoscaler
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
 metadata:
   name: indexer-service
   namespace: linkpouch-dev
@@ -8,25 +8,34 @@ spec:
     apiVersion: apps/v1
     kind: Deployment
     name: indexer-service
-  minReplicas: 3
-  maxReplicas: 10
-  metrics:
-  - type: Resource
-    resource:
-      name: cpu
-      target:
-        type: Utilization
-        averageUtilization: 70
-  behavior:
-    scaleUp:
-      stabilizationWindowSeconds: 60
-      policies:
-      - type: Pods
-        value: 1
-        periodSeconds: 60
-    scaleDown:
-      stabilizationWindowSeconds: 300
-      policies:
-      - type: Pods
-        value: 1
-        periodSeconds: 120
+  minReplicaCount: 1
+  maxReplicaCount: 10
+  # Scale up quickly when the queue grows, scale down conservatively.
+  cooldownPeriod: 300
+  pollingInterval: 15
+  triggers:
+  - type: redis-streams
+    metadata:
+      # Redis Streams scaler: scales based on the pending message lag
+      # of the consumer group on the link events stream.
+      address: redis.linkpouch-dev.svc.cluster.local:6379
+      stream: linkpouch:events:link
+      consumerGroup: indexer-workers
+      # One replica per N pending messages. With lagCount=5 and maxReplicas=10
+      # the indexer will reach full scale at ~50 pending messages.
+      lagCount: "5"
+  advanced:
+    horizontalPodAutoscalerConfig:
+      behavior:
+        scaleUp:
+          stabilizationWindowSeconds: 0
+          policies:
+          - type: Pods
+            value: 2
+            periodSeconds: 30
+        scaleDown:
+          stabilizationWindowSeconds: 300
+          policies:
+          - type: Pods
+            value: 1
+            periodSeconds: 60
