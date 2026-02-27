@@ -318,6 +318,7 @@ export default function StashAccessPage() {
   const [liveFailed, setLiveFailed] = useState(false);
   const [selectedArchiveTimestamp, setSelectedArchiveTimestamp] = useState<string | null>(null);
   const [draggingId, setDraggingId] = useState<string | null>(null);
+  const [screenshotBlobUrl, setScreenshotBlobUrl] = useState<string | null>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const liveIframeRef = useRef<HTMLIFrameElement>(null);
@@ -405,6 +406,46 @@ export default function StashAccessPage() {
     () => (activeLinkId ? links.find((l) => l.id === activeLinkId) ?? null : null),
     [links, activeLinkId]
   );
+
+  // Fetch screenshot via authenticated header — <img> tags cannot send custom headers,
+  // so we use fetch() with X-Stash-Signature and create a blob URL for the <img> src.
+  useEffect(() => {
+    const screenshotUrl = activeLink?.screenshotUrl;
+    if (!screenshotUrl || !signature) {
+      setScreenshotBlobUrl(null);
+      return;
+    }
+
+    let cancelled = false;
+    let objectUrl: string | null = null;
+
+    fetch(screenshotUrl, {
+      headers: { 'X-Stash-Signature': signature },
+    })
+      .then(res => {
+        if (!res.ok) throw new Error(`Screenshot fetch failed: ${res.status}`);
+        return res.blob();
+      })
+      .then(blob => {
+        if (cancelled) return;
+        objectUrl = URL.createObjectURL(blob);
+        setScreenshotBlobUrl(objectUrl);
+      })
+      .catch(err => {
+        if (!cancelled) {
+          console.error('Failed to load screenshot:', err);
+          setScreenshotBlobUrl(null);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+      if (objectUrl) {
+        URL.revokeObjectURL(objectUrl);
+        setScreenshotBlobUrl(null);
+      }
+    };
+  }, [activeLink?.screenshotUrl, signature]);
 
   // Server-side embeddability check — fires in parallel with the live iframe load.
   // Switches to archive mode immediately when the backend reports that the site
@@ -953,17 +994,21 @@ export default function StashAccessPage() {
               {/* Screenshot thumbnail */}
               <div className="flex-shrink-0">
                 {activeLink.screenshotUrl ? (
-                  <button
-                    onClick={() => setScreenshotModalOpen(true)}
-                    className="w-16 h-8 rounded overflow-hidden border border-slate-200 hover:border-indigo-400 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                    title="View screenshot"
-                  >
-                    <img
-                      src={`${activeLink.screenshotUrl}?sig=${signature}`}
-                      alt="Screenshot"
-                      className="w-full h-full object-cover object-top"
-                    />
-                  </button>
+                  screenshotBlobUrl ? (
+                    <button
+                      onClick={() => setScreenshotModalOpen(true)}
+                      className="w-16 h-8 rounded overflow-hidden border border-slate-200 hover:border-indigo-400 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      title="View screenshot"
+                    >
+                      <img
+                        src={screenshotBlobUrl}
+                        alt="Screenshot"
+                        className="w-full h-full object-cover object-top"
+                      />
+                    </button>
+                  ) : (
+                    <div className="w-16 h-8 rounded border border-slate-200 bg-slate-100 animate-pulse" />
+                  )
                 ) : (
                   <button
                     onClick={() => refreshScreenshotMutation.mutate(activeLink.id)}
@@ -1150,11 +1195,15 @@ export default function StashAccessPage() {
               </svg>
             </button>
             <div className="max-w-5xl w-full mx-4" onClick={(e) => e.stopPropagation()}>
-              <img
-                src={`${activeLink.screenshotUrl}?sig=${signature}`}
-                alt={`Screenshot of ${activeLink.title || activeLink.url}`}
-                className="w-full max-h-[85vh] object-contain rounded-xl shadow-2xl"
-              />
+              {screenshotBlobUrl ? (
+                <img
+                  src={screenshotBlobUrl}
+                  alt={`Screenshot of ${activeLink.title || activeLink.url}`}
+                  className="w-full max-h-[85vh] object-contain rounded-xl shadow-2xl"
+                />
+              ) : (
+                <div className="w-full h-64 bg-white/10 animate-pulse rounded-xl" />
+              )}
             </div>
           </div>
         )}
