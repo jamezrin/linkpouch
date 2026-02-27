@@ -318,7 +318,6 @@ export default function StashAccessPage() {
   const [liveFailed, setLiveFailed] = useState(false);
   const [selectedArchiveTimestamp, setSelectedArchiveTimestamp] = useState<string | null>(null);
   const [draggingId, setDraggingId] = useState<string | null>(null);
-  const [screenshotBlobUrl, setScreenshotBlobUrl] = useState<string | null>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const liveIframeRef = useRef<HTMLIFrameElement>(null);
@@ -406,34 +405,6 @@ export default function StashAccessPage() {
     () => (activeLinkId ? links.find((l) => l.id === activeLinkId) ?? null : null),
     [links, activeLinkId]
   );
-
-  // Fetch screenshot as blob using X-Stash-Signature header to avoid query-param auth issues
-  useEffect(() => {
-    if (!activeLink?.screenshotUrl || !stashId || !signature) {
-      setScreenshotBlobUrl(null);
-      return;
-    }
-
-    let cancelled = false;
-    let objectUrl: string | null = null;
-
-    linkApi
-      .getScreenshot(stashId, signature, activeLink.id)
-      .then((res) => {
-        if (!cancelled) {
-          objectUrl = URL.createObjectURL(res.data);
-          setScreenshotBlobUrl(objectUrl);
-        }
-      })
-      .catch(() => {
-        if (!cancelled) setScreenshotBlobUrl(null);
-      });
-
-    return () => {
-      cancelled = true;
-      if (objectUrl) URL.revokeObjectURL(objectUrl);
-    };
-  }, [activeLink?.id, activeLink?.screenshotUrl, stashId, signature]);
 
   // Server-side embeddability check — fires in parallel with the live iframe load.
   // Switches to archive mode immediately when the backend reports that the site
@@ -987,13 +958,11 @@ export default function StashAccessPage() {
                     className="w-16 h-8 rounded overflow-hidden border border-slate-200 hover:border-indigo-400 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500"
                     title="View screenshot"
                   >
-                    {screenshotBlobUrl && (
-                      <img
-                        src={screenshotBlobUrl}
-                        alt="Screenshot"
-                        className="w-full h-full object-cover object-top"
-                      />
-                    )}
+                    <img
+                      src={`${activeLink.screenshotUrl}?sig=${signature}`}
+                      alt="Screenshot"
+                      className="w-full h-full object-cover object-top"
+                    />
                   </button>
                 ) : (
                   <button
@@ -1181,13 +1150,11 @@ export default function StashAccessPage() {
               </svg>
             </button>
             <div className="max-w-5xl w-full mx-4" onClick={(e) => e.stopPropagation()}>
-              {screenshotBlobUrl && (
-                <img
-                  src={screenshotBlobUrl}
-                  alt={`Screenshot of ${activeLink.title || activeLink.url}`}
-                  className="w-full max-h-[85vh] object-contain rounded-xl shadow-2xl"
-                />
-              )}
+              <img
+                src={`${activeLink.screenshotUrl}?sig=${signature}`}
+                alt={`Screenshot of ${activeLink.title || activeLink.url}`}
+                className="w-full max-h-[85vh] object-contain rounded-xl shadow-2xl"
+              />
             </div>
           </div>
         )}
