@@ -68,14 +68,6 @@ export const linkApi = {
     api.patch(`/stashes/${stashId}/links`, { linkIds, insertAfterId }, {
       headers: { 'X-Stash-Signature': signature },
     }),
-
-  getScreenshot: (stashId: string, signature: string, linkId: string) =>
-    api.get<Blob>(`/stashes/${stashId}/links/${linkId}/screenshot`, {
-      headers: {
-        'X-Stash-Signature': signature,
-      },
-      responseType: 'blob',
-    }),
 };
 
 export const utilsApi = {
