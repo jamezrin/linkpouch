@@ -55,6 +55,19 @@ const getFaviconUrl = (url: string, provided?: string): string | null => {
 const formatDate = (dateStr: string) =>
   new Date(dateStr).toLocaleDateString('en', { month: 'short', day: 'numeric' });
 
+function validateUrl(url: string): string | null {
+  if (!url) return 'URL is required';
+  if (!url.startsWith('http://') && !url.startsWith('https://'))
+    return 'URL must start with http:// or https://';
+  if (url.length > 2048) return 'URL is too long (max 2048 characters)';
+  try {
+    new URL(url);
+  } catch {
+    return 'Please enter a valid URL';
+  }
+  return null;
+}
+
 // ─── Drag Preview Overlay ─────────────────────────────────────────────────────
 
 function DragPreview({ links }: { links: LinkType[] }) {
@@ -286,6 +299,7 @@ export default function StashAccessPage() {
   const { searchQuery } = useStashSearch();
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [newLinkUrl, setNewLinkUrl] = useState('');
+  const [urlError, setUrlError] = useState<string | null>(null);
   const [links, setLinks] = useState<LinkType[]>([]);
   const [screenshotModalOpen, setScreenshotModalOpen] = useState(false);
   const [previewMode, setPreviewMode] = useState<PreviewMode>('live');
@@ -521,10 +535,14 @@ export default function StashAccessPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['links', stashId] });
       setNewLinkUrl('');
+      setUrlError(null);
     },
     onError: (error: unknown) => {
-      const message = error instanceof Error ? error.message : 'Failed to add link';
-      alert(`Error: ${message}`);
+      if (error instanceof AxiosError && error.response?.data?.message) {
+        setUrlError(error.response.data.message);
+      } else {
+        setUrlError('Failed to add link. Please try again.');
+      }
     },
   });
 
@@ -567,7 +585,13 @@ export default function StashAccessPage() {
   const handleAddLink = (e: React.FormEvent) => {
     e.preventDefault();
     const url = newLinkUrl.trim();
-    if (url) addLinkMutation.mutate(url);
+    const error = validateUrl(url);
+    if (error) {
+      setUrlError(error);
+      return;
+    }
+    setUrlError(null);
+    addLinkMutation.mutate(url);
   };
 
   const handleBatchDelete = () => {
@@ -670,9 +694,16 @@ export default function StashAccessPage() {
             <input
               type="text"
               value={newLinkUrl}
-              onChange={(e) => setNewLinkUrl(e.target.value)}
+              onChange={(e) => {
+                setNewLinkUrl(e.target.value);
+                if (urlError) setUrlError(null);
+              }}
               placeholder="https://…"
-              className="flex-1 min-w-0 px-3 py-1.5 bg-slate-800/60 border border-slate-700/70 rounded-lg text-[13px] text-slate-200 placeholder-slate-600 focus:outline-none focus:border-indigo-500/70 focus:ring-1 focus:ring-indigo-500/20"
+              className={`flex-1 min-w-0 px-3 py-1.5 bg-slate-800/60 border rounded-lg text-[13px] text-slate-200 placeholder-slate-600 focus:outline-none focus:ring-1 ${
+                urlError
+                  ? 'border-red-500/70 focus:border-red-500/70 focus:ring-red-500/20'
+                  : 'border-slate-700/70 focus:border-indigo-500/70 focus:ring-indigo-500/20'
+              }`}
             />
             <button
               type="submit"
@@ -682,6 +713,9 @@ export default function StashAccessPage() {
               {addLinkMutation.isPending ? '…' : 'Add'}
             </button>
           </div>
+          {urlError && (
+            <p className="text-[11px] text-red-400 mt-1.5">{urlError}</p>
+          )}
         </form>
 
         {/* Selection actions bar */}
