@@ -23,13 +23,13 @@ const MOCK_LINKS: Array<{
 type FeatureColor = 'indigo' | 'violet' | 'emerald' | 'amber' | 'sky' | 'rose' | 'teal';
 
 const FEATURE_COLOR_MAP: Record<FeatureColor, { bg: string; text: string }> = {
-  indigo:  { bg: 'bg-indigo-50',  text: 'text-indigo-600'  },
-  violet:  { bg: 'bg-violet-50',  text: 'text-violet-600'  },
-  emerald: { bg: 'bg-emerald-50', text: 'text-emerald-600' },
-  amber:   { bg: 'bg-amber-50',   text: 'text-amber-600'   },
-  sky:     { bg: 'bg-sky-50',     text: 'text-sky-600'     },
-  rose:    { bg: 'bg-rose-50',    text: 'text-rose-600'    },
-  teal:    { bg: 'bg-teal-50',    text: 'text-teal-600'    },
+  indigo:  { bg: 'bg-indigo-50 dark:bg-indigo-950/50',   text: 'text-indigo-600 dark:text-indigo-400'  },
+  violet:  { bg: 'bg-violet-50 dark:bg-violet-950/50',   text: 'text-violet-600 dark:text-violet-400'  },
+  emerald: { bg: 'bg-emerald-50 dark:bg-emerald-950/50', text: 'text-emerald-600 dark:text-emerald-400' },
+  amber:   { bg: 'bg-amber-50 dark:bg-amber-950/50',     text: 'text-amber-600 dark:text-amber-400'   },
+  sky:     { bg: 'bg-sky-50 dark:bg-sky-950/50',         text: 'text-sky-600 dark:text-sky-400'     },
+  rose:    { bg: 'bg-rose-50 dark:bg-rose-950/50',       text: 'text-rose-600 dark:text-rose-400'    },
+  teal:    { bg: 'bg-teal-50 dark:bg-teal-950/50',       text: 'text-teal-600 dark:text-teal-400'    },
 };
 
 const FEATURES: Array<{ color: FeatureColor; icon: React.ReactNode; title: string; desc: string }> = [
@@ -541,16 +541,16 @@ export default function HomePage() {
       </section>
 
       {/* ── Features ──────────────────────────────────────────────────────── */}
-      <section className="py-24 px-6 bg-white">
+      <section className="py-24 px-6 bg-white dark:bg-slate-900">
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-16">
             <h2
-              className="text-3xl md:text-4xl font-bold text-slate-900 mb-3 tracking-tight"
+              className="text-3xl md:text-4xl font-bold text-slate-900 dark:text-slate-100 mb-3 tracking-tight"
               style={SERIF}
             >
               Everything you need
             </h2>
-            <p className="text-slate-500 text-lg max-w-lg mx-auto">
+            <p className="text-slate-500 dark:text-slate-400 text-lg max-w-lg mx-auto">
               Powerful enough to actually use, simple enough to stay out of the way.
             </p>
           </div>
@@ -561,13 +561,13 @@ export default function HomePage() {
               return (
                 <div
                   key={f.title}
-                  className="p-6 rounded-2xl border border-slate-100 hover:border-slate-200 hover:shadow-lg transition-all duration-200"
+                  className="p-6 rounded-2xl border border-slate-100 dark:border-slate-800 hover:border-slate-200 dark:hover:border-slate-700 hover:shadow-lg transition-all duration-200"
                 >
                   <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-4 ${bg} ${text}`}>
                     {f.icon}
                   </div>
-                  <h3 className="font-semibold text-slate-900 mb-2">{f.title}</h3>
-                  <p className="text-slate-500 text-sm leading-relaxed">{f.desc}</p>
+                  <h3 className="font-semibold text-slate-900 dark:text-slate-100 mb-2">{f.title}</h3>
+                  <p className="text-slate-500 dark:text-slate-400 text-sm leading-relaxed">{f.desc}</p>
                 </div>
               );
             })}
@@ -576,11 +576,11 @@ export default function HomePage() {
       </section>
 
       {/* ── How it works ──────────────────────────────────────────────────── */}
-      <section className="py-24 px-6 bg-slate-50">
+      <section className="py-24 px-6 bg-slate-50 dark:bg-slate-950">
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-14">
             <h2
-              className="text-3xl md:text-4xl font-bold text-slate-900 tracking-tight"
+              className="text-3xl md:text-4xl font-bold text-slate-900 dark:text-slate-100 tracking-tight"
               style={SERIF}
             >
               Up and running in seconds
@@ -591,16 +591,16 @@ export default function HomePage() {
             {STEPS.map((step) => (
               <div
                 key={step.n}
-                className="flex flex-col bg-white rounded-2xl p-6 shadow-sm border border-slate-100"
+                className="flex flex-col bg-white dark:bg-slate-900 rounded-2xl p-6 shadow-sm border border-slate-100 dark:border-slate-800"
               >
                 <div className="flex items-center gap-3 mb-4">
-                  <div className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center flex-shrink-0">
+                  <div className="w-8 h-8 rounded-lg bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 flex items-center justify-center flex-shrink-0">
                     {step.icon}
                   </div>
                   <span className="text-2xl font-bold text-slate-200 font-mono">{step.n}</span>
                 </div>
-                <h3 className="font-semibold text-slate-900 mb-2">{step.title}</h3>
-                <p className="text-slate-500 text-sm leading-relaxed">{step.desc}</p>
+                <h3 className="font-semibold text-slate-900 dark:text-slate-100 mb-2">{step.title}</h3>
+                <p className="text-slate-500 dark:text-slate-400 text-sm leading-relaxed">{step.desc}</p>
               </div>
             ))}
           </div>
@@ -608,22 +608,22 @@ export default function HomePage() {
       </section>
 
       {/* ── FAQ ───────────────────────────────────────────────────────────── */}
-      <section className="py-24 px-6 bg-white">
+      <section className="py-24 px-6 bg-white dark:bg-slate-900">
         <div className="max-w-4xl mx-auto">
           <div className="grid md:grid-cols-2 gap-12 items-start">
             {/* Left: intro */}
             <div>
-              <div className="inline-flex items-center gap-2 bg-indigo-50 border border-indigo-100 rounded-full px-3 py-1 mb-6">
+              <div className="inline-flex items-center gap-2 bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-100 dark:border-indigo-900 rounded-full px-3 py-1 mb-6">
                 <span className="w-1.5 h-1.5 bg-indigo-500 rounded-full" />
-                <span className="text-xs text-indigo-600 font-medium uppercase tracking-wide">Privacy first</span>
+                <span className="text-xs text-indigo-600 dark:text-indigo-400 font-medium uppercase tracking-wide">Privacy first</span>
               </div>
               <h2
-                className="text-3xl md:text-4xl font-bold text-slate-900 mb-4 tracking-tight"
+                className="text-3xl md:text-4xl font-bold text-slate-900 dark:text-slate-100 mb-4 tracking-tight"
                 style={SERIF}
               >
                 Questions answered
               </h2>
-              <p className="text-slate-500 leading-relaxed">
+              <p className="text-slate-500 dark:text-slate-400 leading-relaxed">
                 Linkpouch is built around privacy and simplicity. Your URL is your key —
                 no account, no email, no password to forget.
               </p>
@@ -632,9 +632,9 @@ export default function HomePage() {
             {/* Right: Q&A */}
             <div className="space-y-6">
               {FAQS.map((faq) => (
-                <div key={faq.q} className="border-b border-slate-100 pb-6 last:border-0 last:pb-0">
-                  <h3 className="font-semibold text-slate-900 mb-2">{faq.q}</h3>
-                  <p className="text-slate-500 text-sm leading-relaxed">{faq.a}</p>
+                <div key={faq.q} className="border-b border-slate-100 dark:border-slate-800 pb-6 last:border-0 last:pb-0">
+                  <h3 className="font-semibold text-slate-900 dark:text-slate-100 mb-2">{faq.q}</h3>
+                  <p className="text-slate-500 dark:text-slate-400 text-sm leading-relaxed">{faq.a}</p>
                 </div>
               ))}
             </div>
@@ -643,20 +643,20 @@ export default function HomePage() {
       </section>
 
       {/* ── Roadmap ───────────────────────────────────────────────────────── */}
-      <section className="py-24 px-6 bg-slate-50">
+      <section className="py-24 px-6 bg-slate-50 dark:bg-slate-950">
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-16">
-            <div className="inline-flex items-center gap-2 bg-emerald-50 border border-emerald-200 rounded-full px-4 py-1.5 mb-6">
+            <div className="inline-flex items-center gap-2 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-900 rounded-full px-4 py-1.5 mb-6">
               <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
-              <span className="text-sm text-emerald-700 font-medium">Actively developed</span>
+              <span className="text-sm text-emerald-700 dark:text-emerald-400 font-medium">Actively developed</span>
             </div>
             <h2
-              className="text-3xl md:text-4xl font-bold text-slate-900 mb-3 tracking-tight"
+              className="text-3xl md:text-4xl font-bold text-slate-900 dark:text-slate-100 mb-3 tracking-tight"
               style={SERIF}
             >
               More on the way
             </h2>
-            <p className="text-slate-500 text-lg max-w-xl mx-auto">
+            <p className="text-slate-500 dark:text-slate-400 text-lg max-w-xl mx-auto">
               Linkpouch ships improvements regularly. Here's what's on the horizon.
             </p>
           </div>
@@ -665,20 +665,20 @@ export default function HomePage() {
             {ROADMAP.map((item) => (
               <div
                 key={item.title}
-                className="bg-white rounded-2xl border border-slate-100 p-5 flex gap-4 items-start hover:border-slate-200 hover:shadow-sm transition-all duration-200"
+                className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 p-5 flex gap-4 items-start hover:border-slate-200 dark:hover:border-slate-700 hover:shadow-sm transition-all duration-200"
               >
-                <div className="w-9 h-9 rounded-xl bg-indigo-50 text-indigo-500 flex items-center justify-center flex-shrink-0 mt-0.5">
+                <div className="w-9 h-9 rounded-xl bg-indigo-50 dark:bg-indigo-950/50 text-indigo-500 dark:text-indigo-400 flex items-center justify-center flex-shrink-0 mt-0.5">
                   {item.icon}
                 </div>
                 <div>
-                  <h3 className="font-semibold text-slate-900 mb-1 text-[15px]">{item.title}</h3>
-                  <p className="text-slate-500 text-sm leading-relaxed">{item.desc}</p>
+                  <h3 className="font-semibold text-slate-900 dark:text-slate-100 mb-1 text-[15px]">{item.title}</h3>
+                  <p className="text-slate-500 dark:text-slate-400 text-sm leading-relaxed">{item.desc}</p>
                 </div>
               </div>
             ))}
           </div>
 
-          <p className="text-center text-slate-400 text-sm mt-10">
+          <p className="text-center text-slate-400 dark:text-slate-500 text-sm mt-10">
             Have a suggestion?{' '}
             <a
               href="https://github.com/jamezrin/linkpouch"

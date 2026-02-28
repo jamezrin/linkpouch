@@ -4,8 +4,10 @@ import { QueryClient, QueryClientProvider, useQuery, useMutation, useQueryClient
 import HomePage from './pages/HomePage';
 import StashAccessPage from './pages/StashAccessPage';
 import DemoButton from './components/DemoButton';
+import ThemeToggle from './components/ThemeToggle';
 import { features } from './features';
 import { StashSearchContext } from './contexts/stashSearch';
+import { ThemeProvider } from './contexts/theme';
 import { stashApi } from './services/api';
 
 const queryClient = new QueryClient();
@@ -120,7 +122,7 @@ function AppContent() {
   return (
     <StashSearchContext.Provider value={{ searchQuery, setSearchQuery }}>
       <div className={`flex flex-col ${isStashPage ? 'h-screen overflow-hidden' : 'min-h-screen'}`}>
-        <header className="h-14 flex-shrink-0 bg-slate-950 border-b border-slate-800 flex items-center px-6 gap-3 relative">
+        <header className="h-14 flex-shrink-0 bg-white dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800 flex items-center px-6 gap-3 relative">
           {/* Logo / home link */}
           <a href="/" className="flex items-center gap-2.5 group flex-shrink-0">
             <div className="w-7 h-7 bg-indigo-600 rounded-lg flex items-center justify-center flex-shrink-0 group-hover:bg-indigo-500 transition-colors">
@@ -128,13 +130,13 @@ function AppContent() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
               </svg>
             </div>
-            <span className="text-[15px] font-semibold text-white tracking-tight">linkpouch</span>
+            <span className="text-[15px] font-semibold text-slate-900 dark:text-white tracking-tight">linkpouch</span>
           </a>
 
           {/* Breadcrumb — only on stash pages */}
           {isStashPage && (
             <>
-              <span className="text-slate-700 text-sm flex-shrink-0 select-none">/</span>
+              <span className="text-slate-300 dark:text-slate-700 text-sm flex-shrink-0 select-none">/</span>
               {isEditingName ? (
                 <input
                   type="text"
@@ -143,13 +145,13 @@ function AppContent() {
                   onBlur={handleNameSave}
                   onKeyDown={handleNameKeyDown}
                   autoFocus
-                  className="text-[14px] font-medium text-slate-100 bg-slate-800/60 border border-indigo-500/70 rounded px-2 py-0.5 max-w-[180px] flex-shrink-0 focus:outline-none focus:ring-1 focus:ring-indigo-500/30"
+                  className="text-[14px] font-medium text-slate-800 dark:text-slate-100 bg-slate-100 dark:bg-slate-800/60 border border-indigo-500/70 rounded px-2 py-0.5 max-w-[180px] flex-shrink-0 focus:outline-none focus:ring-1 focus:ring-indigo-500/30"
                   disabled={updateStashMutation.isPending}
                 />
               ) : (
                 <span
                   onClick={handleNameClick}
-                  className="text-[14px] font-medium text-slate-300 truncate max-w-[180px] flex-shrink-0 cursor-pointer hover:text-indigo-400 transition-colors"
+                  className="text-[14px] font-medium text-slate-600 dark:text-slate-300 truncate max-w-[180px] flex-shrink-0 cursor-pointer hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
                   title="Click to rename"
                 >
                   {stash?.name ?? '…'}
@@ -175,7 +177,7 @@ function AppContent() {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Search links…"
-                  className="w-full pl-8 pr-3 py-1.5 bg-slate-800/60 border border-slate-700/70 rounded-lg text-[13px] text-slate-200 placeholder-slate-600 focus:outline-none focus:border-indigo-500/70 focus:ring-1 focus:ring-indigo-500/20"
+                  className="w-full pl-8 pr-3 py-1.5 bg-slate-100 dark:bg-slate-800/60 border border-slate-300 dark:border-slate-700/70 rounded-lg text-[13px] text-slate-800 dark:text-slate-200 placeholder-slate-400 dark:placeholder-slate-600 focus:outline-none focus:border-indigo-500/70 focus:ring-1 focus:ring-indigo-500/20"
                 />
               </div>
             </div>
@@ -183,8 +185,11 @@ function AppContent() {
             <div className="flex-1" />
           )}
 
-          {/* Spacer to push demo button right when on stash page */}
+          {/* Spacer to push right-side controls when on stash page */}
           {isStashPage && <div className="flex-1" />}
+
+          {/* Theme toggle */}
+          <ThemeToggle />
 
           {/* Demo button — only on stash pages, gated by feature flag */}
           {features.demoButton && isStashPage && stashId && signature && (
@@ -205,11 +210,13 @@ function AppContent() {
 
 function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <Router>
-        <AppContent />
-      </Router>
-    </QueryClientProvider>
+    <ThemeProvider>
+      <QueryClientProvider client={queryClient}>
+        <Router>
+          <AppContent />
+        </Router>
+      </QueryClientProvider>
+    </ThemeProvider>
   );
 }
 

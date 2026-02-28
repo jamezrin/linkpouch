@@ -935,11 +935,11 @@ export default function StashAccessPage() {
       </div>
 
       {/* ── Preview panel ────────────────────────────────────────────────────── */}
-      <div className="flex-1 h-full flex flex-col overflow-hidden bg-slate-50">
+      <div className="flex-1 h-full flex flex-col overflow-hidden bg-slate-50 dark:bg-slate-900">
         {activeLink ? (
           <>
             {/* Header — single fixed-height row */}
-            <div className="flex-shrink-0 bg-white border-b border-slate-200 px-4 h-11 flex items-center gap-3">
+            <div className="flex-shrink-0 bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 px-4 h-11 flex items-center gap-3">
               {/* Identity: favicon · title · url — shrinks to give space to right-side controls */}
               <div className="flex-1 flex items-center gap-1.5 min-w-0">
                 {activeLink.faviconUrl && (
@@ -949,12 +949,12 @@ export default function StashAccessPage() {
                     className="w-4 h-4 rounded-sm flex-shrink-0"
                   />
                 )}
-                <span className="text-[13px] font-semibold text-slate-800 truncate shrink-0 max-w-[45%]">
+                <span className="text-[13px] font-semibold text-slate-800 dark:text-slate-200 truncate shrink-0 max-w-[45%]">
                   {activeLink.title || activeLink.url}
                 </span>
                 {activeLink.title && (
                   <>
-                    <span className="text-slate-300 text-[11px] flex-shrink-0">·</span>
+                    <span className="text-slate-300 dark:text-slate-600 text-[11px] flex-shrink-0">·</span>
                     <a
                       href={activeLink.url}
                       target="_blank"
@@ -999,10 +999,10 @@ export default function StashAccessPage() {
                 <button
                   onClick={switchToLive}
                   disabled={liveFailed}
-                  className={`px-2.5 py-1 rounded-l-md border border-slate-200 border-r-0 transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
+                  className={`px-2.5 py-1 rounded-l-md border border-slate-200 dark:border-slate-700 border-r-0 transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
                     previewMode === 'live'
                       ? 'bg-indigo-600 text-white'
-                      : 'bg-white text-slate-500 hover:bg-slate-50'
+                      : 'bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'
                   }`}
                 >
                   Live
@@ -1015,10 +1015,10 @@ export default function StashAccessPage() {
                     setArchiveLoading(true);
                   }}
                   nullLabel={previewMode === 'archive' ? 'Latest' : 'Archive'}
-                  triggerClassName={`px-2.5 py-1 rounded-r-md border border-slate-200 transition-colors flex items-center gap-1 ${
+                  triggerClassName={`px-2.5 py-1 rounded-r-md border border-slate-200 dark:border-slate-700 transition-colors flex items-center gap-1 ${
                     previewMode === 'archive'
                       ? 'bg-indigo-600 text-white'
-                      : 'bg-white text-slate-500 hover:bg-slate-50'
+                      : 'bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'
                   }`}
                   onOpen={() => {
                     if (previewMode !== 'archive') switchToArchive();
@@ -1033,7 +1033,7 @@ export default function StashAccessPage() {
                   screenshotBlobUrl ? (
                     <button
                       onClick={() => setScreenshotModalOpen(true)}
-                      className="w-16 h-8 rounded overflow-hidden border border-slate-200 hover:border-indigo-400 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      className="w-16 h-8 rounded overflow-hidden border border-slate-200 dark:border-slate-700 hover:border-indigo-400 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500"
                       title="View screenshot"
                     >
                       <img
@@ -1043,7 +1043,7 @@ export default function StashAccessPage() {
                       />
                     </button>
                   ) : (
-                    <div className="w-16 h-8 rounded border border-slate-200 bg-slate-100 animate-pulse" />
+                    <div className="w-16 h-8 rounded border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-700 animate-pulse" />
                   )
                 ) : (
                   <button
@@ -1054,7 +1054,7 @@ export default function StashAccessPage() {
                         ? 'Generating screenshot…'
                         : 'Generate screenshot'
                     }
-                    className="w-16 h-8 rounded border border-dashed border-slate-200 bg-slate-50 hover:bg-slate-100 hover:border-slate-300 transition-colors flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-16 h-8 rounded border border-dashed border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 hover:border-slate-300 dark:hover:border-slate-500 transition-colors flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {refreshScreenshotMutation.isPending ? (
                       <svg
@@ -1101,9 +1101,9 @@ export default function StashAccessPage() {
               {previewMode === 'live' ? (
                 <>
                   {liveLoading && (
-                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-50 z-10">
+                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-900 z-10">
                       <div className="w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
-                      <p className="text-slate-500 text-sm mt-3">Loading website…</p>
+                      <p className="text-slate-500 dark:text-slate-400 text-sm mt-3">Loading website…</p>
                     </div>
                   )}
                   <iframe
@@ -1119,14 +1119,14 @@ export default function StashAccessPage() {
               ) : (
                 <>
                   {archiveLoading && (
-                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-50 z-10">
+                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-900 z-10">
                       <div className="w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
                       {liveFailed && (
                         <p className="text-amber-600 text-xs mt-3">
                           Live preview couldn't load — switching to archive
                         </p>
                       )}
-                      <p className={`text-slate-500 text-sm ${liveFailed ? 'mt-1' : 'mt-3'}`}>
+                      <p className={`text-slate-500 dark:text-slate-400 text-sm ${liveFailed ? 'mt-1' : 'mt-3'}`}>
                         Loading archive…
                       </p>
                       <a
@@ -1161,7 +1161,7 @@ export default function StashAccessPage() {
             <div className="text-center max-w-xs px-6">
               {selectedLinkIds.size > 1 ? (
                 <>
-                  <div className="w-16 h-16 bg-indigo-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                  <div className="w-16 h-16 bg-indigo-50 dark:bg-indigo-900/40 rounded-2xl flex items-center justify-center mx-auto mb-4">
                     <svg
                       className="w-8 h-8 text-indigo-400"
                       fill="none"
@@ -1176,18 +1176,18 @@ export default function StashAccessPage() {
                       />
                     </svg>
                   </div>
-                  <p className="text-slate-700 font-semibold">
+                  <p className="text-slate-700 dark:text-slate-300 font-semibold">
                     {selectedLinkIds.size} links selected
                   </p>
-                  <p className="text-slate-400 text-sm mt-1">
+                  <p className="text-slate-400 dark:text-slate-500 text-sm mt-1">
                     Use the actions in the sidebar to manage them
                   </p>
                 </>
               ) : (
                 <>
-                  <div className="w-16 h-16 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                  <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-2xl flex items-center justify-center mx-auto mb-4">
                     <svg
-                      className="w-8 h-8 text-slate-300"
+                      className="w-8 h-8 text-slate-300 dark:text-slate-600"
                       fill="none"
                       stroke="currentColor"
                       viewBox="0 0 24 24"
@@ -1200,8 +1200,8 @@ export default function StashAccessPage() {
                       />
                     </svg>
                   </div>
-                  <p className="text-slate-600 font-semibold">Select a link to preview</p>
-                  <p className="text-slate-400 text-sm mt-1">
+                  <p className="text-slate-600 dark:text-slate-400 font-semibold">Select a link to preview</p>
+                  <p className="text-slate-400 dark:text-slate-500 text-sm mt-1">
                     Click any link in the sidebar to see its screenshot here
                   </p>
                 </>
