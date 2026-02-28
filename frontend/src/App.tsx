@@ -136,7 +136,7 @@ function AppContent() {
           {/* Breadcrumb — only on stash pages */}
           {isStashPage && (
             <>
-              <span className="text-slate-300 dark:text-slate-700 text-sm flex-shrink-0 select-none">/</span>
+              <span className="text-slate-400 dark:text-slate-600 text-sm flex-shrink-0 select-none">/</span>
               {isEditingName ? (
                 <input
                   type="text"

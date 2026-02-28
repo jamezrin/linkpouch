@@ -235,7 +235,7 @@ const LinkItem = ({
 
       {/* Meta */}
       <div className="flex-shrink-0 flex flex-col items-end gap-1">
-        <span className="text-[11px] text-slate-600">{formatDate(link.createdAt)}</span>
+        <span className="text-[11px] text-slate-500 dark:text-slate-600">{formatDate(link.createdAt)}</span>
         {link.status === 'FAILED' ? (
           <div className="w-1.5 h-1.5 bg-red-500 rounded-full" title="Indexing failed" />
         ) : link.status === 'INDEXED' ? (

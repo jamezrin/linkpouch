@@ -17,6 +17,32 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* ── Animated gradient text ─────────────────────────────────────────────────── */
+
+@keyframes gradient-pan {
+  0%   { background-position: 0% center; }
+  100% { background-position: -200% center; }
+}
+.animated-gradient {
+  background-size: 250%;
+  animation: gradient-pan 6s linear infinite;
+}
+
+/* ── Scroll reveal ───────────────────────────────────────────────────────────── */
+
+.reveal-up {
+  opacity: 0;
+  transform: translateY(20px);
+  transition:
+    opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.is-visible .reveal-up,
+.is-visible.reveal-up {
+  opacity: 1;
+  transform: translateY(0);
+}
+
 /* ── Sidebar scrollbar ──────────────────────────────────────────────────────── */
 
 .sidebar-scroll {

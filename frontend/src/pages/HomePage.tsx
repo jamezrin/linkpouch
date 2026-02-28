@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMutation } from '@tanstack/react-query';
 import { stashApi } from '../services/api';
+import { useReveal } from '../hooks/useReveal';
 
 // ─── Static data ──────────────────────────────────────────────────────────────
 
@@ -417,6 +418,10 @@ const SERIF: React.CSSProperties = { fontFamily: "'DM Serif Display', Georgia, s
 export default function HomePage() {
   const [newStashName, setNewStashName] = useState('');
   const navigate = useNavigate();
+  const featuresRef = useReveal();
+  const stepsRef = useReveal();
+  const faqRef = useReveal();
+  const roadmapRef = useReveal();
 
   const createMutation = useMutation({
     mutationFn: (name: string) => stashApi.createStash({ name }),
@@ -458,6 +463,13 @@ export default function HomePage() {
             backgroundSize: '60px 60px',
           }}
         />
+        {/* Grain texture */}
+        <svg className="absolute inset-0 w-full h-full pointer-events-none opacity-[0.038]" aria-hidden="true">
+          <filter id="hero-grain">
+            <feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="4" stitchTiles="stitch" />
+          </filter>
+          <rect width="100%" height="100%" filter="url(#hero-grain)" />
+        </svg>
 
         <div className="relative max-w-5xl mx-auto px-6 pt-20 pb-0 text-center">
           {/* Badge */}
@@ -476,8 +488,8 @@ export default function HomePage() {
           >
             Save links.{' '}
             <span
-              className="bg-clip-text text-transparent"
-              style={{ backgroundImage: 'linear-gradient(135deg, #818cf8, #a78bfa, #c084fc)' }}
+              className="bg-clip-text text-transparent animated-gradient"
+              style={{ backgroundImage: 'linear-gradient(135deg, #818cf8, #a78bfa, #c084fc, #a78bfa, #818cf8)' }}
             >
               Find them fast.
             </span>
@@ -542,8 +554,8 @@ export default function HomePage() {
 
       {/* ── Features ──────────────────────────────────────────────────────── */}
       <section className="py-24 px-6 bg-white dark:bg-slate-900">
-        <div className="max-w-5xl mx-auto">
-          <div className="text-center mb-16">
+        <div ref={featuresRef} className="max-w-5xl mx-auto">
+          <div className="text-center mb-16 reveal-up">
             <h2
               className="text-3xl md:text-4xl font-bold text-slate-900 dark:text-slate-100 mb-3 tracking-tight"
               style={SERIF}
@@ -556,12 +568,13 @@ export default function HomePage() {
           </div>
 
           <div className="grid md:grid-cols-3 gap-5">
-            {FEATURES.map((f) => {
+            {FEATURES.map((f, i) => {
               const { bg, text } = FEATURE_COLOR_MAP[f.color];
               return (
                 <div
                   key={f.title}
-                  className="p-6 rounded-2xl border border-slate-100 dark:border-slate-800 hover:border-slate-200 dark:hover:border-slate-700 hover:shadow-lg transition-all duration-200"
+                  className="reveal-up p-6 rounded-2xl border border-slate-100 dark:border-slate-800 hover:border-slate-200 dark:hover:border-slate-700 hover:shadow-lg hover:shadow-slate-200/80 dark:hover:shadow-black/30 transition-all duration-200"
+                  style={{ transitionDelay: `${i * 45}ms` }}
                 >
                   <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-4 ${bg} ${text}`}>
                     {f.icon}
@@ -577,8 +590,8 @@ export default function HomePage() {
 
       {/* ── How it works ──────────────────────────────────────────────────── */}
       <section className="py-24 px-6 bg-slate-50 dark:bg-slate-950">
-        <div className="max-w-4xl mx-auto">
-          <div className="text-center mb-14">
+        <div ref={stepsRef} className="max-w-4xl mx-auto">
+          <div className="text-center mb-14 reveal-up">
             <h2
               className="text-3xl md:text-4xl font-bold text-slate-900 dark:text-slate-100 tracking-tight"
               style={SERIF}
@@ -588,16 +601,17 @@ export default function HomePage() {
           </div>
 
           <div className="grid md:grid-cols-3 gap-6">
-            {STEPS.map((step) => (
+            {STEPS.map((step, i) => (
               <div
                 key={step.n}
-                className="flex flex-col bg-white dark:bg-slate-900 rounded-2xl p-6 shadow-sm border border-slate-100 dark:border-slate-800"
+                className="reveal-up flex flex-col bg-white dark:bg-slate-900 rounded-2xl p-6 shadow-sm border border-slate-100 dark:border-slate-800"
+                style={{ transitionDelay: `${i * 60}ms` }}
               >
                 <div className="flex items-center gap-3 mb-4">
                   <div className="w-8 h-8 rounded-lg bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 flex items-center justify-center flex-shrink-0">
                     {step.icon}
                   </div>
-                  <span className="text-2xl font-bold text-slate-200 font-mono">{step.n}</span>
+                  <span className="text-2xl font-bold text-slate-200 dark:text-slate-800 font-mono">{step.n}</span>
                 </div>
                 <h3 className="font-semibold text-slate-900 dark:text-slate-100 mb-2">{step.title}</h3>
                 <p className="text-slate-500 dark:text-slate-400 text-sm leading-relaxed">{step.desc}</p>
@@ -609,8 +623,8 @@ export default function HomePage() {
 
       {/* ── FAQ ───────────────────────────────────────────────────────────── */}
       <section className="py-24 px-6 bg-white dark:bg-slate-900">
-        <div className="max-w-4xl mx-auto">
-          <div className="grid md:grid-cols-2 gap-12 items-start">
+        <div ref={faqRef} className="max-w-4xl mx-auto">
+          <div className="grid md:grid-cols-2 gap-12 items-start reveal-up">
             {/* Left: intro */}
             <div>
               <div className="inline-flex items-center gap-2 bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-100 dark:border-indigo-900 rounded-full px-3 py-1 mb-6">
@@ -644,8 +658,8 @@ export default function HomePage() {
 
       {/* ── Roadmap ───────────────────────────────────────────────────────── */}
       <section className="py-24 px-6 bg-slate-50 dark:bg-slate-950">
-        <div className="max-w-5xl mx-auto">
-          <div className="text-center mb-16">
+        <div ref={roadmapRef} className="max-w-5xl mx-auto">
+          <div className="text-center mb-16 reveal-up">
             <div className="inline-flex items-center gap-2 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-900 rounded-full px-4 py-1.5 mb-6">
               <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
               <span className="text-sm text-emerald-700 dark:text-emerald-400 font-medium">Actively developed</span>
@@ -662,10 +676,11 @@ export default function HomePage() {
           </div>
 
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {ROADMAP.map((item) => (
+            {ROADMAP.map((item, i) => (
               <div
                 key={item.title}
-                className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 p-5 flex gap-4 items-start hover:border-slate-200 dark:hover:border-slate-700 hover:shadow-sm transition-all duration-200"
+                className="reveal-up bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 p-5 flex gap-4 items-start hover:border-slate-200 dark:hover:border-slate-700 hover:shadow-sm transition-all duration-200"
+                style={{ transitionDelay: `${i * 35}ms` }}
               >
                 <div className="w-9 h-9 rounded-xl bg-indigo-50 dark:bg-indigo-950/50 text-indigo-500 dark:text-indigo-400 flex items-center justify-center flex-shrink-0 mt-0.5">
                   {item.icon}
