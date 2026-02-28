@@ -611,7 +611,7 @@ export default function HomePage() {
                   <div className="w-8 h-8 rounded-lg bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 flex items-center justify-center flex-shrink-0">
                     {step.icon}
                   </div>
-                  <span className="text-2xl font-bold text-slate-200 dark:text-slate-800 font-mono">{step.n}</span>
+                  <span className="text-2xl font-bold text-slate-400 dark:text-slate-500 font-mono">{step.n}</span>
                 </div>
                 <h3 className="font-semibold text-slate-900 dark:text-slate-100 mb-2">{step.title}</h3>
                 <p className="text-slate-500 dark:text-slate-400 text-sm leading-relaxed">{step.desc}</p>
