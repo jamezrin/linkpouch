@@ -858,7 +858,7 @@ export default function StashAccessPage() {
         )}
 
         {/* Link list — flex-1 + min-h-0 constrains height so overflow-y-auto actually scrolls */}
-        <div ref={scrollContainerRef} className="flex-1 min-h-0 overflow-y-auto">
+        <div ref={scrollContainerRef} className="flex-1 min-h-0 overflow-y-auto sidebar-scroll">
           {linksLoading ? (
             <div className="flex items-center justify-center h-full">
               <div className="w-6 h-6 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
