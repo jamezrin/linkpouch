@@ -237,24 +237,21 @@ export function ArchiveSnapshotPicker({
     setExpandedMonth(null);
   }, [selectedYear]);
 
-  // Keep the dropdown panel within the horizontal viewport bounds.
-  // Runs synchronously before paint so the user never sees a flash.
+  // Position the panel using fixed coordinates so it always stays within
+  // the viewport regardless of where the trigger button sits on the page.
   useLayoutEffect(() => {
-    if (!open || !panelRef.current) return;
+    if (!open || !panelRef.current || !buttonRef.current) return;
     const panel = panelRef.current;
-    // Reset any previous correction so we measure from the CSS default
-    panel.style.right = '';
-    panel.style.left = '';
-    const rect = panel.getBoundingClientRect();
+    const buttonRect = buttonRef.current.getBoundingClientRect();
     const margin = 8;
-    if (rect.right > window.innerWidth - margin) {
-      // Shift left until the right edge has `margin` px clearance
-      panel.style.right = `${rect.right - window.innerWidth + margin}px`;
-    } else if (rect.left < margin) {
-      // Shift right until the left edge has `margin` px clearance
-      panel.style.right = 'auto';
-      panel.style.left = `${margin - rect.left}px`;
-    }
+    const panelWidth = panel.offsetWidth;
+
+    // Align right edges with the button, then clamp to keep within viewport.
+    let left = buttonRect.right - panelWidth;
+    left = Math.max(margin, Math.min(left, window.innerWidth - panelWidth - margin));
+
+    panel.style.top = `${buttonRect.bottom + 6}px`;
+    panel.style.left = `${left}px`;
   }, [open]);
 
   // Close panel when clicking outside
@@ -349,7 +346,7 @@ export function ArchiveSnapshotPicker({
       {open && (
         <div
           ref={panelRef}
-          className="absolute top-full right-0 mt-1.5 w-64 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-lg z-50 overflow-hidden"
+          className="fixed w-64 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-lg z-50 overflow-hidden"
         >
           {/* Header */}
           <div className="flex items-center justify-between px-3 py-2 border-b border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-900">

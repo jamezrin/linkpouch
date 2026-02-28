@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import { QueryClient, QueryClientProvider, useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import HomePage from './pages/HomePage';
@@ -31,7 +31,15 @@ function AppContent() {
   const [isEditingName, setIsEditingName] = useState(false);
   const [editedName, setEditedName] = useState('');
   const [shareCopied, setShareCopied] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [mobilePane, setMobilePane] = useState<'list' | 'preview'>('list');
   const queryClient = useQueryClient();
+
+  // Close mobile menu and reset pane whenever the route changes
+  useEffect(() => {
+    setMobileMenuOpen(false);
+    setMobilePane('list');
+  }, [location.pathname]);
 
   const { data: stash } = useQuery({
     queryKey: ['stash', stashId],
@@ -93,9 +101,9 @@ function AppContent() {
   };
 
   return (
-    <StashSearchContext.Provider value={{ searchQuery, setSearchQuery }}>
+    <StashSearchContext.Provider value={{ searchQuery, setSearchQuery, mobilePane, setMobilePane }}>
       <div className={`flex flex-col ${isStashPage ? 'h-screen overflow-hidden' : 'min-h-screen'}`}>
-        <header className="h-14 flex-shrink-0 bg-white dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800 flex items-center px-6 gap-3 relative">
+        <header className={`h-14 flex-shrink-0 bg-white dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800 items-center px-6 gap-3 relative ${isStashPage && mobilePane === 'preview' ? 'hidden md:flex' : 'flex'}`}>
           {/* Logo / home link */}
           <a href="/" className="flex items-center gap-2.5 group flex-shrink-0">
             <div className="w-7 h-7 bg-indigo-600 rounded-lg flex items-center justify-center flex-shrink-0 group-hover:bg-indigo-500 transition-colors">
@@ -133,10 +141,10 @@ function AppContent() {
             </>
           )}
 
-          {/* Search bar — absolutely centered in the header */}
+          {/* Search bar — normal flex child, hidden on mobile */}
           {isStashPage && signature ? (
-            <div className="absolute left-1/2 -translate-x-1/2 w-full max-w-sm px-4 pointer-events-none">
-              <div className="relative pointer-events-auto">
+            <div className="hidden md:flex flex-1 items-center justify-center px-3 min-w-0">
+              <div className="relative w-full max-w-sm">
                 <svg
                   className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-500 pointer-events-none"
                   fill="none"
@@ -161,7 +169,7 @@ function AppContent() {
           {/* Spacer to push right-side controls when on stash page */}
           {isStashPage && <div className="flex-1" />}
 
-          {/* Share button — only on stash pages with a valid signature */}
+          {/* Share button — desktop only */}
           {isStashPage && signature && (
             <button
               onClick={() => {
@@ -170,7 +178,7 @@ function AppContent() {
                   setTimeout(() => setShareCopied(false), 2000);
                 });
               }}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[13px] font-medium transition-colors text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white"
+              className="hidden md:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[13px] font-medium transition-colors text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white"
               title="Copy shareable link"
             >
               {shareCopied ? (
@@ -191,12 +199,90 @@ function AppContent() {
             </button>
           )}
 
-          {/* Theme toggle */}
-          <ThemeToggle />
+          {/* Theme toggle — desktop only */}
+          <div className="hidden md:block">
+            <ThemeToggle />
+          </div>
 
-          {/* Demo button — only on stash pages, gated by feature flag */}
+          {/* Demo button — desktop only, gated by feature flag */}
           {features.demoButton && isStashPage && stashId && signature && (
-            <DemoButton stashId={stashId} signature={signature} />
+            <div className="hidden md:block">
+              <DemoButton stashId={stashId} signature={signature} />
+            </div>
+          )}
+
+          {/* Hamburger — mobile only */}
+          <button
+            className="md:hidden p-2 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+            onClick={() => setMobileMenuOpen((o) => !o)}
+            aria-label="Menu"
+          >
+            {mobileMenuOpen ? (
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            ) : (
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+            )}
+          </button>
+
+          {/* Mobile dropdown menu */}
+          {mobileMenuOpen && (
+            <>
+              {/* Transparent backdrop — closes menu on outside tap */}
+              <div className="fixed inset-0 z-40" onClick={() => setMobileMenuOpen(false)} />
+              <div className="md:hidden absolute top-full right-0 z-50 mt-1 mr-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-lg p-3 min-w-[200px] flex flex-col gap-3">
+                {/* Share */}
+                {isStashPage && signature && (
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(window.location.href).then(() => {
+                        setShareCopied(true);
+                        setTimeout(() => setShareCopied(false), 2000);
+                      });
+                    }}
+                    className="flex items-center gap-2.5 px-2 py-1.5 rounded-lg text-[13px] font-medium transition-colors text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white w-full text-left"
+                  >
+                    {shareCopied ? (
+                      <>
+                        <svg className="w-4 h-4 text-green-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                        </svg>
+                        <span className="text-green-500">Copied!</span>
+                      </>
+                    ) : (
+                      <>
+                        <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+                        </svg>
+                        <span>Share link</span>
+                      </>
+                    )}
+                  </button>
+                )}
+
+                {/* Divider before theme if share is shown */}
+                {isStashPage && signature && (
+                  <div className="border-t border-slate-100 dark:border-slate-800 -mx-3" />
+                )}
+
+                {/* Theme */}
+                <div>
+                  <p className="text-[11px] font-medium text-slate-400 dark:text-slate-500 uppercase tracking-wide px-2 mb-2">Theme</p>
+                  <ThemeToggle />
+                </div>
+
+                {/* Demo button */}
+                {features.demoButton && isStashPage && stashId && signature && (
+                  <>
+                    <div className="border-t border-slate-100 dark:border-slate-800 -mx-3" />
+                    <DemoButton stashId={stashId} signature={signature} />
+                  </>
+                )}
+              </div>
+            </>
           )}
         </header>
         <main className={`flex-1 ${isStashPage ? 'overflow-hidden' : ''}`}>
