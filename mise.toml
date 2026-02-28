@@ -23,7 +23,7 @@ run = "cd services/stash-service && mvn test"
 
 [tasks.dev]
 description = "Start local development environment"
-run = "docker-compose up -d postgres redis minio"
+run = "docker-compose up -d postgres redis seaweedfs"
 
 [tasks.dev-down]
 description = "Stop local development environment"
@@ -31,7 +31,7 @@ run = "docker-compose down"
 
 [tasks.migrate]
 description = "Run database migrations"
-run = "cd services/stash-service/infrastructure && mvn flyway:migrate"
+run = "cd services/stash-service && mvn flyway:migrate -pl infrastructure-persistence-jpa"
 
 [tasks.k8s-deploy]
 description = "Deploy to Kubernetes dev namespace"

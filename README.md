@@ -104,6 +104,7 @@ stash-service/
 ├── infrastructure-persistence-jpa/   # JPA entities, Flyway migrations
 ├── infrastructure-persistence-jooq/  # jOOQ queries (FTS, pagination, reorder)
 ├── infrastructure-http/        # Outbound HTTP (embeddability check, SSRF protection)
+├── infrastructure-sse/         # Server-Sent Events (real-time link status broadcasts)
 └── boot/                       # Spring Boot entry point
 ```
 
@@ -230,19 +231,12 @@ Images are built on every push to `main` (multi-platform: `amd64`/`arm64`) and p
 
 ## Kubernetes Deployment
 
-See [docs/KUBERNETES_DEPLOYMENT.md](docs/KUBERNETES_DEPLOYMENT.md) for the full guide.
-
 ```bash
 # Deploy to k3s cluster
 mise run k8s-deploy
 ```
 
 The production setup includes: Traefik ingress with TLS (cert-manager), NetworkPolicies, HPA for the indexer, and Spring Boot Actuator liveness/readiness probes.
-
-## Documentation
-
-- [Architecture Overview](docs/ARCHITECTURE.md)
-- [Kubernetes Deployment](docs/KUBERNETES_DEPLOYMENT.md)
 
 ## License
 
