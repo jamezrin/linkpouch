@@ -92,7 +92,7 @@ function DragPreview({ links }: { links: LinkType[] }) {
   return (
     <div
       className="rounded-xl border border-slate-600 bg-slate-800 shadow-2xl overflow-hidden cursor-grabbing"
-      style={{ width: 272, opacity: 0.97 }}
+      style={{ width: Math.min(272, window.innerWidth * 0.9), opacity: 0.97 }}
     >
       {visible.map((link, i) => {
         const favicon = getFaviconUrl(link.url, link.faviconUrl);
@@ -347,7 +347,7 @@ export default function StashAccessPage() {
   const [activeLinkId, setActiveLinkId] = useState<string | null>(null);
   const [lastCheckedIndex, setLastCheckedIndex] = useState<number | null>(null);
   const [selectingAll, setSelectingAll] = useState(false);
-  const { searchQuery } = useStashSearch();
+  const { searchQuery, setSearchQuery, mobilePane, setMobilePane } = useStashSearch();
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [newLinkUrl, setNewLinkUrl] = useState('');
   const [urlError, setUrlError] = useState<string | null>(null);
@@ -446,6 +446,7 @@ export default function StashAccessPage() {
   useEffect(() => {
     if (activeLinkId && !links.find((l) => l.id === activeLinkId)) {
       setActiveLinkId(null);
+      setMobilePane('list');
     }
   }, [links, activeLinkId]);
 
@@ -710,6 +711,7 @@ export default function StashAccessPage() {
 
   const handleItemClick = useCallback((linkId: string) => {
     setActiveLinkId(linkId);
+    setMobilePane('preview');
   }, []);
 
   const handleCheckboxClick = useCallback(
@@ -929,7 +931,12 @@ export default function StashAccessPage() {
   return (
     <div className="h-full w-full flex overflow-hidden">
       {/* ── Sidebar ─────────────────────────────────────────────────────────── */}
-      <div className="w-80 flex-shrink-0 h-full flex flex-col bg-white dark:bg-slate-950 border-r border-slate-200 dark:border-slate-800">
+      <div className={[
+        'h-full flex-col bg-white dark:bg-slate-950',
+        'border-r border-slate-200 dark:border-slate-800',
+        'w-full md:w-80 md:flex-shrink-0',
+        mobilePane === 'preview' ? 'hidden md:flex' : 'flex',
+      ].join(' ')}>
         {/* Selection actions bar — always visible */}
         <div className="px-3 py-2 border-b border-slate-200/70 dark:border-slate-800/70 bg-slate-100/60 dark:bg-slate-900/60 flex items-center gap-1.5">
           {/* Master checkbox */}
@@ -1026,6 +1033,35 @@ export default function StashAccessPage() {
               />
             </svg>
           </button>
+        </div>
+
+        {/* Mobile-only search — the header search is hidden below md */}
+        <div className="flex md:hidden items-center gap-2 px-3 py-2 border-b border-slate-200/70 dark:border-slate-800/70">
+          <svg
+            className="w-3.5 h-3.5 text-slate-400 flex-shrink-0"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search links…"
+            className="flex-1 min-w-0 bg-transparent text-[13px] text-slate-800 dark:text-slate-200 placeholder-slate-400 dark:placeholder-slate-600 focus:outline-none"
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery('')}
+              className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 flex-shrink-0"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          )}
         </div>
 
         {/* Link list — flex-1 + min-h-0 constrains height so overflow-y-auto actually scrolls */}
@@ -1145,12 +1181,30 @@ export default function StashAccessPage() {
       </div>
 
       {/* ── Preview panel ────────────────────────────────────────────────────── */}
-      <div className="flex-1 h-full flex flex-col overflow-hidden bg-slate-50 dark:bg-slate-900">
+      <div className={[
+        'h-full flex-col overflow-hidden bg-slate-50 dark:bg-slate-900 flex-1',
+        mobilePane === 'list' ? 'hidden md:flex' : 'flex',
+      ].join(' ')}>
         {activeLink ? (
           <>
-            {/* Header — single fixed-height row */}
-            <div className="flex-shrink-0 bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 px-4 h-11 flex items-center gap-3">
-              {/* Identity: favicon · title · url — shrinks to give space to right-side controls */}
+            {/* Header — two rows on mobile, one row on desktop */}
+            <div className="flex-shrink-0 bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700">
+
+              {/* Row 1: back button + identity */}
+              <div className="px-4 h-11 flex items-center gap-3">
+              {/* Back button — mobile only */}
+              <button
+                className="md:hidden flex items-center gap-1 text-[13px] font-medium text-indigo-500 hover:text-indigo-600 flex-shrink-0 mr-2 transition-colors"
+                onClick={() => setMobilePane('list')}
+                aria-label="Back to links list"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                </svg>
+                <span>Links</span>
+              </button>
+
+              {/* Identity: favicon · title · url (url hidden on mobile) */}
               <div className="flex-1 flex items-center gap-1.5 min-w-0">
                 {activeLink.faviconUrl && (
                   <img
@@ -1159,17 +1213,17 @@ export default function StashAccessPage() {
                     className="w-4 h-4 rounded-sm flex-shrink-0"
                   />
                 )}
-                <span className="text-[13px] font-semibold text-slate-800 dark:text-slate-200 truncate shrink-0 max-w-[45%]">
+                <span className="text-[13px] font-semibold text-slate-800 dark:text-slate-200 truncate">
                   {activeLink.title || activeLink.url}
                 </span>
                 {activeLink.title && (
                   <>
-                    <span className="text-slate-300 dark:text-slate-600 text-[11px] flex-shrink-0">·</span>
+                    <span className="hidden md:inline text-slate-300 dark:text-slate-600 text-[11px] flex-shrink-0">·</span>
                     <a
                       href={activeLink.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-[12px] text-indigo-500 hover:text-indigo-700 truncate"
+                      className="hidden md:block text-[12px] text-indigo-500 hover:text-indigo-700 truncate"
                     >
                       {activeLink.url}
                     </a>
@@ -1177,9 +1231,9 @@ export default function StashAccessPage() {
                 )}
               </div>
 
-              {/* Slow-load warning — inline, only in live mode */}
+              {/* Slow-load warning — desktop only (shown in row 2 on mobile) */}
               {showArchiveSuggestion && previewMode === 'live' && (
-                <div className="flex items-center gap-1 flex-shrink-0">
+                <div className="hidden md:flex items-center gap-1 flex-shrink-0">
                   <svg
                     className="w-3 h-3 text-amber-500 flex-shrink-0"
                     fill="none"
@@ -1202,10 +1256,8 @@ export default function StashAccessPage() {
                 </div>
               )}
 
-              {/* Live / Archive toggle with integrated snapshot picker.
-                  Split into individual bordered buttons (no overflow-hidden wrapper)
-                  so the picker's dropdown panel isn't clipped. */}
-              <div className="flex text-[11px] font-medium flex-shrink-0">
+              {/* Live / Archive toggle — desktop only (shown in row 2 on mobile) */}
+              <div className="hidden md:flex text-[11px] font-medium flex-shrink-0">
                 <button
                   onClick={switchToLive}
                   disabled={liveFailed}
@@ -1237,8 +1289,8 @@ export default function StashAccessPage() {
                 />
               </div>
 
-              {/* Screenshot thumbnail */}
-              <div className="flex-shrink-0">
+              {/* Screenshot thumbnail — desktop only (shown in row 2 on mobile) */}
+              <div className="hidden md:block flex-shrink-0">
                 {activeLink.screenshotUrl ? (
                   screenshotBlobUrl ? (
                     <button
@@ -1304,7 +1356,85 @@ export default function StashAccessPage() {
                   </button>
                 )}
               </div>
-            </div>
+              </div>{/* end Row 1 */}
+
+              {/* Row 2: mobile only — Live/Archive controls + screenshot */}
+              <div className="md:hidden flex items-center gap-2 px-4 py-1.5 border-t border-slate-100 dark:border-slate-700/50">
+                {/* Slow-load warning */}
+                {showArchiveSuggestion && previewMode === 'live' && (
+                  <div className="flex items-center gap-1 flex-shrink-0 mr-1">
+                    <svg className="w-3 h-3 text-amber-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                    <button onClick={switchToArchive} className="text-[11px] text-indigo-600 hover:text-indigo-700 font-medium">
+                      Try archive →
+                    </button>
+                  </div>
+                )}
+                {/* Live / Archive toggle */}
+                <div className="flex text-[11px] font-medium flex-shrink-0">
+                  <button
+                    onClick={switchToLive}
+                    disabled={liveFailed}
+                    className={`px-2.5 py-1 rounded-l-md border border-slate-200 dark:border-slate-700 border-r-0 transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
+                      previewMode === 'live'
+                        ? 'bg-indigo-600 text-white'
+                        : 'bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'
+                    }`}
+                  >
+                    Live
+                  </button>
+                  <ArchiveSnapshotPicker
+                    url={activeLink.url}
+                    selectedTimestamp={previewMode === 'archive' ? selectedArchiveTimestamp : null}
+                    onSelect={(ts) => { setSelectedArchiveTimestamp(ts); setArchiveLoading(true); }}
+                    nullLabel={previewMode === 'archive' ? 'Latest' : 'Archive'}
+                    triggerClassName={`px-2.5 py-1 rounded-r-md border border-slate-200 dark:border-slate-700 transition-colors flex items-center gap-1 ${
+                      previewMode === 'archive'
+                        ? 'bg-indigo-600 text-white'
+                        : 'bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'
+                    }`}
+                    onOpen={() => { if (previewMode !== 'archive') switchToArchive(); }}
+                    fetchEnabled={previewMode === 'archive'}
+                  />
+                </div>
+                <div className="flex-1" />
+                {/* Screenshot thumbnail */}
+                <div className="flex-shrink-0">
+                  {activeLink.screenshotUrl ? (
+                    screenshotBlobUrl ? (
+                      <button
+                        onClick={() => setScreenshotModalOpen(true)}
+                        className="w-14 h-7 rounded overflow-hidden border border-slate-200 dark:border-slate-700 hover:border-indigo-400 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        title="View screenshot"
+                      >
+                        <img src={screenshotBlobUrl} alt="Screenshot" className="w-full h-full object-cover object-top" />
+                      </button>
+                    ) : (
+                      <div className="w-14 h-7 rounded border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-700 animate-pulse" />
+                    )
+                  ) : (
+                    <button
+                      onClick={() => refreshScreenshotMutation.mutate(activeLink.id)}
+                      disabled={refreshScreenshotMutation.isPending}
+                      title={refreshScreenshotMutation.isPending ? 'Generating screenshot…' : 'Generate screenshot'}
+                      className="w-14 h-7 rounded border border-dashed border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors flex items-center justify-center disabled:opacity-50"
+                    >
+                      {refreshScreenshotMutation.isPending ? (
+                        <svg className="w-3 h-3 text-slate-400 animate-spin" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4l3-3-3-3v4a8 8 0 00-8 8h4z" />
+                        </svg>
+                      ) : (
+                        <svg className="w-3 h-3 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                      )}
+                    </button>
+                  )}
+                </div>
+              </div>{/* end Row 2 */}
+            </div>{/* end header outer wrapper */}
 
             {/* iframe area */}
             <div className="flex-1 overflow-hidden relative">

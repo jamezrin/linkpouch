@@ -434,10 +434,25 @@ function CreateForm({
       <button
         type="submit"
         disabled={isPending || !value.trim()}
-        className="btn-shimmer px-5 py-3.5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed text-white font-semibold rounded-xl transition-colors text-[15px] whitespace-nowrap"
+        className="btn-shimmer p-3.5 md:px-5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed text-white font-semibold rounded-xl transition-colors text-[15px] whitespace-nowrap flex items-center justify-center flex-shrink-0"
         style={DISPLAY}
       >
-        {isPending ? 'Creating…' : 'Create pouch →'}
+        {isPending ? (
+          <>
+            <svg className="w-5 h-5 md:hidden animate-spin" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4l3-3-3-3v4a8 8 0 00-8 8h4z" />
+            </svg>
+            <span className="hidden md:inline">Creating…</span>
+          </>
+        ) : (
+          <>
+            <svg className="w-5 h-5 md:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+            </svg>
+            <span className="hidden md:inline">Create pouch →</span>
+          </>
+        )}
       </button>
     </form>
   );
