@@ -93,6 +93,15 @@ const FEATURES: Array<{ icon: React.ReactNode; title: string; desc: string }> = 
     title: 'Keyboard first',
     desc: 'Full keyboard controls for selecting and managing links — arrow key navigation, range selection, keyboard-driven reordering.',
   },
+  {
+    icon: (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
+      </svg>
+    ),
+    title: 'Mobile-ready interface',
+    desc: 'A fully responsive layout that works on phones and tablets — switch between your link list and preview with a tap.',
+  },
 ];
 
 const STEPS = [
@@ -174,15 +183,6 @@ const ROADMAP: Array<{ icon: React.ReactNode; title: string; desc: string }> = [
     ),
     title: 'Bulk link import',
     desc: 'Paste a list of URLs or drop in a file to populate your pouch all at once.',
-  },
-  {
-    icon: (
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
-      </svg>
-    ),
-    title: 'Mobile-ready interface',
-    desc: 'A fully responsive layout optimized for managing your collection from phones and tablets.',
   },
   {
     icon: (
