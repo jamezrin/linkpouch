@@ -15,8 +15,8 @@ import lombok.extern.slf4j.Slf4j;
 /**
  * Redis-backed implementation of {@link SseTicketPort}.
  *
- * <p>Tickets are stored as {@code sse-ticket:{token}} → {@code stashId} with a 15-minute TTL.
- * They are multi-use within that window so that the browser's native EventSource auto-reconnect
+ * <p>Tickets are stored as {@code sse-ticket:{token}} → {@code stashId} with a 15-minute TTL. They
+ * are multi-use within that window so that the browser's native EventSource auto-reconnect
  * (triggered after the 10-minute SSE connection timeout) succeeds without requiring a new ticket.
  */
 @Slf4j
