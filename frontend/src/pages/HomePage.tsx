@@ -105,6 +105,16 @@ const FEATURES: Array<{ color: FeatureColor; icon: React.ReactNode; title: strin
     title: 'Real-time status',
     desc: 'Color-coded indicators show which links are still gathering screenshots or metadata, and which ones ran into issues — updated live.',
   },
+  {
+    color: 'violet',
+    icon: (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5" />
+      </svg>
+    ),
+    title: 'Keyboard accessibility',
+    desc: 'Full keyboard controls for selecting and managing links — arrow key navigation, range selection, and keyboard-driven reordering.',
+  },
 ];
 
 const STEPS = [
@@ -217,20 +227,29 @@ const ROADMAP: Array<{ icon: React.ReactNode; title: string; desc: string }> = [
   {
     icon: (
       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5" />
-      </svg>
-    ),
-    title: 'Keyboard accessibility',
-    desc: 'Full keyboard controls for selecting and managing links — arrow key navigation, range selection, and keyboard-driven reordering.',
-  },
-  {
-    icon: (
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
       </svg>
     ),
     title: 'Optional account linking',
     desc: 'Sign in with X, Google, GitHub, and more to attach pouches to an account — making them recoverable and accessible across all your devices.',
+  },
+  {
+    icon: (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+      </svg>
+    ),
+    title: 'AI smart tagging',
+    desc: 'Save a URL and let AI extract the metadata, pick a category, and write a short summary — automatically. Your collection stays organized without any manual effort.',
+  },
+  {
+    icon: (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 19a2 2 0 01-2-2V7a2 2 0 012-2h4l2 2h4a2 2 0 012 2v1M5 19h14a2 2 0 002-2v-5a2 2 0 00-2-2H9a2 2 0 00-2 2v5a2 2 0 01-2 2z" />
+      </svg>
+    ),
+    title: 'Nested folders & Markdown export',
+    desc: 'Group links into folders, nest them as deep as you need, and drag links freely between them. When you\'re ready to move on, export everything as clean Markdown — ready for Obsidian, Notion, or any tool in your workflow.',
   },
 ];
 
