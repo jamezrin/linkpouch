@@ -390,7 +390,7 @@ export function ArchiveSnapshotPicker({
           {!isLoading && !isError && months && months.length > 0 && selectedYear !== null && (
             <>
               {/* Year tabs */}
-              <div className="flex gap-0.5 px-2 pt-2 pb-0 overflow-x-auto">
+              <div className="flex gap-0.5 px-2 pt-2 pb-0 overflow-x-auto overflow-y-hidden">
                 {years.map((year) => (
                   <button
                     key={year}
