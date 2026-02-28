@@ -126,8 +126,9 @@ interface LinkItemProps {
   link: LinkType;
   isSelected: boolean;
   isActive: boolean;
+  index: number;
   onItemClick: (id: string) => void;
-  onCheckboxClick: (id: string) => void;
+  onCheckboxClick: (id: string, index: number, shiftKey: boolean) => void;
   isDragDisabled: boolean;
   isGroupDragging: boolean;
 }
@@ -136,6 +137,7 @@ const LinkItem = ({
   link,
   isSelected,
   isActive,
+  index,
   onItemClick,
   onCheckboxClick,
   isDragDisabled,
@@ -147,6 +149,8 @@ const LinkItem = ({
 
   return (
     <div
+      role="option"
+      aria-selected={isSelected}
       className={[
         'relative flex items-center gap-2 px-3 py-2.5 select-none',
         isDragDisabled ? 'cursor-pointer' : 'cursor-grab',
@@ -169,10 +173,14 @@ const LinkItem = ({
     >
       {/* Checkbox */}
       <div
+        role="checkbox"
+        aria-checked={isSelected}
+        aria-label={isSelected ? 'Deselect link' : 'Select link'}
+        tabIndex={-1}
         className={`flex-shrink-0 transition-opacity ${showCheckbox ? 'opacity-100' : 'opacity-0'}`}
         onClick={(e) => {
           e.stopPropagation();
-          onCheckboxClick(link.id);
+          onCheckboxClick(link.id, index, e.shiftKey);
         }}
       >
         <div
@@ -256,8 +264,9 @@ interface SortableLinkItemProps {
   activeLinkId: string | null;
   draggingId: string | null;
   isSearching: boolean;
+  index: number;
   onItemClick: (id: string) => void;
-  onCheckboxClick: (id: string) => void;
+  onCheckboxClick: (id: string, index: number, shiftKey: boolean) => void;
 }
 
 const SortableLinkItem = ({
@@ -266,6 +275,7 @@ const SortableLinkItem = ({
   activeLinkId,
   draggingId,
   isSearching,
+  index,
   onItemClick,
   onCheckboxClick,
 }: SortableLinkItemProps) => {
@@ -290,6 +300,7 @@ const SortableLinkItem = ({
         link={link}
         isSelected={isSelected}
         isActive={link.id === activeLinkId}
+        index={index}
         isDragDisabled={isSearching}
         isGroupDragging={isGroupDragging}
         onItemClick={onItemClick}
@@ -314,6 +325,8 @@ export default function StashAccessPage() {
   const signature = urlSignature ?? (stashId ? getSessionSignature(stashId) : null);
   const [selectedLinkIds, setSelectedLinkIds] = useState<Set<string>>(new Set());
   const [activeLinkId, setActiveLinkId] = useState<string | null>(null);
+  const [lastCheckedIndex, setLastCheckedIndex] = useState<number | null>(null);
+  const [selectingAll, setSelectingAll] = useState(false);
   const { searchQuery } = useStashSearch();
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [newLinkUrl, setNewLinkUrl] = useState('');
@@ -517,6 +530,12 @@ export default function StashAccessPage() {
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
+  // Reset selection when search changes
+  useEffect(() => {
+    setSelectedLinkIds(new Set());
+    setLastCheckedIndex(null);
+  }, [debouncedSearch]);
+
   // Infinite scroll: observe the sentinel against the viewport (root: null).
   // The viewport correctly respects overflow-y clipping on the scroll container —
   // the sentinel is hidden when scrolled out of view and visible when scrolled into view.
@@ -537,12 +556,28 @@ export default function StashAccessPage() {
     return () => observer.disconnect();
   }, [hasNextPage, isFetchingNextPage, fetchNextPage, links.length]);
 
+  // Select-all: eagerly fetch all remaining pages, then select everything
+  useEffect(() => {
+    if (!selectingAll) return;
+    if (hasNextPage && !isFetchingNextPage) {
+      fetchNextPage();
+    } else if (!hasNextPage) {
+      setSelectedLinkIds(new Set(links.map((l) => l.id)));
+      setSelectingAll(false);
+    }
+  }, [selectingAll, hasNextPage, isFetchingNextPage, fetchNextPage, links]);
+
   const isSearching = searchQuery.trim().length > 0;
 
   const selectedLinks = useMemo(
     () => links.filter((l) => selectedLinkIds.has(l.id)),
     [links, selectedLinkIds]
   );
+
+  // Derived selection state
+  const allVisibleSelected = links.length > 0 && links.every((l) => selectedLinkIds.has(l.id));
+  const someSelected = selectedLinkIds.size > 0 && !allVisibleSelected;
+  const totalElements: number | null = linksData?.pages[0]?.totalElements ?? null;
 
   // ─── Drag & Drop ──────────────────────────────────────────────────────────────
 
@@ -597,6 +632,7 @@ export default function StashAccessPage() {
           ...selected,
           ...unselected.slice(insertAt),
         ];
+
         setLinks(newOrder);
 
         const insertAfterId = insertAt > 0 ? unselected[insertAt - 1].id : null;
@@ -639,6 +675,7 @@ export default function StashAccessPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['links', stashId] });
       setSelectedLinkIds(new Set());
+      setLastCheckedIndex(null);
     },
   });
 
@@ -653,20 +690,45 @@ export default function StashAccessPage() {
 
   const handleItemClick = useCallback((linkId: string) => {
     setActiveLinkId(linkId);
-    setSelectedLinkIds(new Set([linkId]));
   }, []);
 
-  const handleCheckboxClick = useCallback((linkId: string) => {
-    setSelectedLinkIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(linkId)) {
-        next.delete(linkId);
+  const handleCheckboxClick = useCallback(
+    (linkId: string, index: number, shiftKey: boolean) => {
+      if (shiftKey && lastCheckedIndex !== null) {
+        const lo = Math.min(lastCheckedIndex, index);
+        const hi = Math.max(lastCheckedIndex, index);
+        const rangeIds = links.slice(lo, hi + 1).map((l) => l.id);
+        setSelectedLinkIds((prev) => {
+          const next = new Set(prev);
+          if (prev.has(linkId)) {
+            rangeIds.forEach((id) => next.delete(id));
+          } else {
+            rangeIds.forEach((id) => next.add(id));
+          }
+          return next;
+        });
+        // anchor stays fixed on shift-click
       } else {
-        next.add(linkId);
+        setSelectedLinkIds((prev) => {
+          const next = new Set(prev);
+          next.has(linkId) ? next.delete(linkId) : next.add(linkId);
+          return next;
+        });
+        setLastCheckedIndex(index);
       }
-      return next;
-    });
-  }, []);
+    },
+    [links, lastCheckedIndex]
+  );
+
+  const handleMasterCheckboxClick = useCallback(() => {
+    if (allVisibleSelected) {
+      setSelectedLinkIds(new Set());
+      setLastCheckedIndex(null);
+    } else {
+      setSelectedLinkIds(new Set(links.map((l) => l.id)));
+      setLastCheckedIndex(null);
+    }
+  }, [allVisibleSelected, links]);
 
   const handleAddLink = (e: React.FormEvent) => {
     e.preventDefault();
@@ -680,7 +742,7 @@ export default function StashAccessPage() {
     addLinkMutation.mutate(url);
   };
 
-  const handleBatchDelete = () => {
+  const handleBatchDelete = useCallback(() => {
     if (!selectedLinkIds.size) return;
     if (
       confirm(
@@ -689,7 +751,7 @@ export default function StashAccessPage() {
     ) {
       batchDeleteMutation.mutate(Array.from(selectedLinkIds));
     }
-  };
+  }, [selectedLinkIds, batchDeleteMutation]);
 
   const handleBatchRefresh = () => {
     selectedLinkIds.forEach((id) => refreshScreenshotMutation.mutate(id));
@@ -723,6 +785,80 @@ export default function StashAccessPage() {
     setShowArchiveSuggestion(false);
     blockTimerRef.current = setTimeout(() => setShowArchiveSuggestion(true), 6000);
   }, []);
+
+  const scrollItemIntoView = useCallback((index: number) => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+    const child = container.children[index] as HTMLElement | undefined;
+    child?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  }, []);
+
+  const handleListKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLDivElement>) => {
+      if (!['ArrowUp', 'ArrowDown', 'Space', 'Delete', 'Backspace', 'Escape'].includes(e.code)) return;
+      const target = e.target as HTMLElement;
+      if (target.tagName === 'INPUT') return;
+      if (links.length === 0) return;
+
+      const currentIndex = activeLinkId ? links.findIndex((l) => l.id === activeLinkId) : -1;
+
+      if (e.code === 'ArrowDown') {
+        e.preventDefault();
+        const nextIndex = Math.min(currentIndex + 1, links.length - 1);
+        const nextLink = links[nextIndex];
+        setActiveLinkId(nextLink.id);
+        scrollItemIntoView(nextIndex);
+        if (e.shiftKey) {
+          setSelectedLinkIds((prev) => new Set([...prev, nextLink.id]));
+        }
+      } else if (e.code === 'ArrowUp') {
+        e.preventDefault();
+        const prevIndex = Math.max(currentIndex - 1, 0);
+        const prevLink = links[prevIndex];
+        setActiveLinkId(prevLink.id);
+        scrollItemIntoView(prevIndex);
+        if (e.shiftKey) {
+          setSelectedLinkIds((prev) => new Set([...prev, prevLink.id]));
+        }
+      } else if (e.code === 'Space') {
+        e.preventDefault();
+        if (activeLinkId && currentIndex >= 0) {
+          handleCheckboxClick(activeLinkId, currentIndex, false);
+        }
+      } else if (e.code === 'Delete' || e.code === 'Backspace') {
+        e.preventDefault();
+        handleBatchDelete();
+      } else if (e.code === 'Escape') {
+        e.preventDefault();
+        if (selectedLinkIds.size > 0) {
+          setSelectedLinkIds(new Set());
+          setLastCheckedIndex(null);
+        } else {
+          setActiveLinkId(null);
+        }
+      }
+    },
+    [links, activeLinkId, selectedLinkIds, handleCheckboxClick, handleBatchDelete, scrollItemIntoView]
+  );
+
+  // Ctrl/Cmd+A: select/deselect all loaded links
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement;
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) return;
+      const ctrlOrCmd = /mac/i.test(navigator.platform) ? e.metaKey : e.ctrlKey;
+      if (ctrlOrCmd && e.key === 'a') {
+        e.preventDefault();
+        if (allVisibleSelected) {
+          setSelectedLinkIds(new Set());
+        } else {
+          setSelectedLinkIds(new Set(links.map((l) => l.id)));
+        }
+      }
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, [links, allVisibleSelected]);
 
   // ─── Error / Loading states ───────────────────────────────────────────────────
 
@@ -774,91 +910,114 @@ export default function StashAccessPage() {
     <div className="h-full w-full flex overflow-hidden">
       {/* ── Sidebar ─────────────────────────────────────────────────────────── */}
       <div className="w-80 flex-shrink-0 h-full flex flex-col bg-white dark:bg-slate-950 border-r border-slate-200 dark:border-slate-800">
-        {/* Add link */}
-        <form onSubmit={handleAddLink} className="px-3 py-2.5 border-b border-slate-200/70 dark:border-slate-800/70">
-          <div className="flex gap-2">
-            <input
-              type="text"
-              value={newLinkUrl}
-              onChange={(e) => {
-                setNewLinkUrl(e.target.value);
-                if (urlError) setUrlError(null);
-              }}
-              placeholder="https://…"
-              className={`flex-1 min-w-0 px-3 py-1.5 bg-slate-100 dark:bg-slate-800/60 border rounded-lg text-[13px] text-slate-800 dark:text-slate-200 placeholder-slate-400 dark:placeholder-slate-600 focus:outline-none focus:ring-1 ${
-                urlError
-                  ? 'border-red-500/70 focus:border-red-500/70 focus:ring-red-500/20'
-                  : 'border-slate-300/70 dark:border-slate-700/70 focus:border-indigo-500/70 focus:ring-indigo-500/20'
-              }`}
-            />
-            <button
-              type="submit"
-              disabled={addLinkMutation.isPending || !newLinkUrl.trim()}
-              className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-[13px] font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex-shrink-0"
-            >
-              {addLinkMutation.isPending ? '…' : 'Add'}
-            </button>
-          </div>
-          {urlError && (
-            <p className="text-[11px] text-red-400 mt-1.5">{urlError}</p>
-          )}
-        </form>
+        {/* Selection actions bar — always visible */}
+        <div className="px-3 py-2 border-b border-slate-200/70 dark:border-slate-800/70 bg-slate-100/60 dark:bg-slate-900/60 flex items-center gap-1.5">
+          {/* Master checkbox */}
+          <button
+            onClick={handleMasterCheckboxClick}
+            disabled={links.length === 0}
+            aria-label={allVisibleSelected ? 'Deselect all' : 'Select all'}
+            className="flex-shrink-0 w-4 h-4 rounded border-[1.5px] flex items-center justify-center transition-all border-slate-300 dark:border-slate-600 hover:border-slate-500 disabled:opacity-30 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40"
+            style={allVisibleSelected ? { backgroundColor: 'rgb(99 102 241)', borderColor: 'rgb(99 102 241)' } : {}}
+          >
+            {allVisibleSelected && <CheckIcon />}
+            {someSelected && <span className="w-2 h-0.5 bg-slate-500 rounded block" />}
+          </button>
 
-        {/* Selection actions bar */}
-        {selectedLinkIds.size > 0 && (
-          <div className="px-3 py-2 border-b border-slate-200/70 dark:border-slate-800/70 bg-slate-100/60 dark:bg-slate-900/60 flex items-center gap-1.5">
-            <span className="text-[12px] text-slate-500 dark:text-slate-400 flex-1 font-medium">
-              {selectedLinkIds.size} selected
-            </span>
+          {/* Count label */}
+          <span className="text-[12px] text-slate-500 dark:text-slate-400 flex-1 font-medium">
+            {selectedLinkIds.size === 0 ? 'No selection' : `${selectedLinkIds.size} selected`}
+          </span>
+
+          {/* "N total" prompt — only when all loaded items selected AND more pages exist */}
+          {allVisibleSelected && hasNextPage && totalElements !== null && (
             <button
-              onClick={handleBatchRefresh}
-              disabled={refreshScreenshotMutation.isPending}
-              title="Refresh screenshots"
-              className="p-1.5 text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700 rounded transition-colors disabled:opacity-30"
+              onClick={() => {
+                if (selectingAll) {
+                  setSelectingAll(false);
+                } else {
+                  setSelectingAll(true);
+                }
+              }}
+              className="text-[11px] text-indigo-500 hover:text-indigo-600 dark:text-indigo-400 mr-1 flex-shrink-0 flex items-center gap-1"
+              title={selectingAll ? 'Cancel select all' : `${totalElements} total results — click to select all`}
             >
-              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                />
-              </svg>
+              {selectingAll ? (
+                <>
+                  <svg className="w-2.5 h-2.5 animate-spin" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4l3-3-3-3v4a8 8 0 00-8 8h4z" />
+                  </svg>
+                  Selecting…
+                </>
+              ) : (
+                `${totalElements} total`
+              )}
             </button>
-            <button
-              onClick={handleBatchDelete}
-              disabled={batchDeleteMutation.isPending}
-              title="Delete selected"
-              className="p-1.5 text-red-500 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-100/80 dark:hover:bg-red-900/20 rounded transition-colors disabled:opacity-30"
-            >
-              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                />
-              </svg>
-            </button>
-            <button
-              onClick={() => setSelectedLinkIds(new Set())}
-              title="Clear selection"
-              className="p-1.5 text-slate-400 dark:text-slate-600 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 rounded transition-colors"
-            >
-              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M6 18L18 6M6 6l12 12"
-                />
-              </svg>
-            </button>
-          </div>
-        )}
+          )}
+
+          {/* Refresh screenshots */}
+          <button
+            onClick={handleBatchRefresh}
+            disabled={selectedLinkIds.size === 0 || refreshScreenshotMutation.isPending}
+            title="Refresh screenshots"
+            className="p-1.5 text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700 rounded transition-colors disabled:opacity-30"
+          >
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+              />
+            </svg>
+          </button>
+
+          {/* Delete selected */}
+          <button
+            onClick={handleBatchDelete}
+            disabled={selectedLinkIds.size === 0 || batchDeleteMutation.isPending}
+            title="Delete selected"
+            className="p-1.5 text-red-500 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-100/80 dark:hover:bg-red-900/20 rounded transition-colors disabled:opacity-30"
+          >
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+              />
+            </svg>
+          </button>
+
+          {/* Clear selection */}
+          <button
+            onClick={() => { setSelectedLinkIds(new Set()); setLastCheckedIndex(null); }}
+            disabled={selectedLinkIds.size === 0}
+            title="Clear selection"
+            className="p-1.5 text-slate-400 dark:text-slate-600 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 rounded transition-colors disabled:opacity-30"
+          >
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M6 18L18 6M6 6l12 12"
+              />
+            </svg>
+          </button>
+        </div>
 
         {/* Link list — flex-1 + min-h-0 constrains height so overflow-y-auto actually scrolls */}
-        <div ref={scrollContainerRef} className="flex-1 min-h-0 overflow-y-auto sidebar-scroll">
+        <div
+          ref={scrollContainerRef}
+          role="listbox"
+          aria-label="Links"
+          aria-multiselectable="true"
+          tabIndex={0}
+          onKeyDown={handleListKeyDown}
+          className="flex-1 min-h-0 overflow-y-auto sidebar-scroll focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500/40"
+        >
           {linksLoading ? (
             <div className="flex items-center justify-center h-full">
               <div className="w-6 h-6 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
@@ -881,7 +1040,7 @@ export default function StashAccessPage() {
                 </svg>
               </div>
               <p className="text-slate-400 dark:text-slate-500 text-sm">
-                {isSearching ? 'No links match your search' : 'No links yet — paste one above'}
+                {isSearching ? 'No links match your search' : 'No links yet — paste one below'}
               </p>
             </div>
           ) : (
@@ -897,10 +1056,11 @@ export default function StashAccessPage() {
                   items={links.map((l) => l.id)}
                   strategy={verticalListSortingStrategy}
                 >
-                  {links.map((link) => (
+                  {links.map((link, index) => (
                     <SortableLinkItem
                       key={link.id}
                       link={link}
+                      index={index}
                       isSelected={selectedLinkIds.has(link.id)}
                       activeLinkId={activeLinkId}
                       draggingId={draggingId}
@@ -932,6 +1092,36 @@ export default function StashAccessPage() {
             Drag reordering disabled during search
           </div>
         )}
+
+        {/* Add link — at the bottom */}
+        <form onSubmit={handleAddLink} className="px-3 py-2.5 border-t border-slate-200/70 dark:border-slate-800/70">
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={newLinkUrl}
+              onChange={(e) => {
+                setNewLinkUrl(e.target.value);
+                if (urlError) setUrlError(null);
+              }}
+              placeholder="https://…"
+              className={`flex-1 min-w-0 px-3 py-1.5 bg-slate-100 dark:bg-slate-800/60 border rounded-lg text-[13px] text-slate-800 dark:text-slate-200 placeholder-slate-400 dark:placeholder-slate-600 focus:outline-none focus:ring-1 ${
+                urlError
+                  ? 'border-red-500/70 focus:border-red-500/70 focus:ring-red-500/20'
+                  : 'border-slate-300/70 dark:border-slate-700/70 focus:border-indigo-500/70 focus:ring-indigo-500/20'
+              }`}
+            />
+            <button
+              type="submit"
+              disabled={addLinkMutation.isPending || !newLinkUrl.trim()}
+              className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-[13px] font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex-shrink-0"
+            >
+              {addLinkMutation.isPending ? '…' : 'Add'}
+            </button>
+          </div>
+          {urlError && (
+            <p className="text-[11px] text-red-400 mt-1.5">{urlError}</p>
+          )}
+        </form>
       </div>
 
       {/* ── Preview panel ────────────────────────────────────────────────────── */}
