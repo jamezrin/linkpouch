@@ -29,6 +29,12 @@ mise exec java -- mvn test -pl domain
 
 # Full build (requires database for jOOQ)
 mise exec java -- mvn clean package -DskipTests
+
+# Format all Java code (Spotless + google-java-format)
+mise exec java -- mvn spotless:apply
+
+# Check formatting without modifying files
+mise exec java -- mvn spotless:check
 ```
 
 ### Python (Indexer Service)
@@ -68,9 +74,9 @@ mypy src/
 - Remove unused imports
 
 **Formatting:**
-- 4 spaces indentation (no tabs)
-- Opening brace on same line
-- Line length: 120 characters
+- Enforced by **Spotless** with `google-java-format` (run `mvn spotless:apply` before committing)
+- 4 spaces indentation (no tabs), opening brace on same line
+- Line length: 100 characters (google-java-format default)
 - One blank line between methods
 - Final modifier on parameters when possible
 
@@ -147,11 +153,13 @@ StashResponseDTO mapOut(StashResponse response);
 - Dependency direction: domain ← application ← infrastructure
 
 **Infrastructure Module Isolation:**
-- 4 separate infrastructure modules with no circular dependencies:
+- 6 separate infrastructure modules with no circular dependencies:
   - infrastructure-web: REST controllers and API adapters (depends on api-spec)
   - infrastructure-redis: Event publishing via Redis Streams
   - infrastructure-persistence-jpa: JPA entities and repositories (write operations)
   - infrastructure-persistence-jooq: jOOQ queries (read operations)
+  - infrastructure-http: Outbound HTTP adapter (embeddability check, SSRF protection)
+  - infrastructure-sse: Server-Sent Events adapter (real-time link status broadcasts)
 - Each module is independent with its own dependencies
 
 **Code Generation:**
@@ -187,6 +195,6 @@ StashResponseDTO mapOut(StashResponse response);
 1. NEVER use fully qualified class names - use imports
 2. ALWAYS use @Mapping annotations in MapStruct mappers for ALL fields (even same name)
 3. NEVER commit generated code (jOOQ, OpenAPI)
-4. ALWAYS run mvn clean compile before committing Java changes
+4. ALWAYS run `mvn spotless:apply` then `mvn clean compile` before committing Java changes
 5. NEVER skip transaction boundaries at application layer
 6. NEVER use manual field assignment in mapper default methods
