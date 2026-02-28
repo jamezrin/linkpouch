@@ -19,6 +19,13 @@ export const stashApi = {
       },
     }),
 
+  createSseTicket: (stashId: string, signature: string) =>
+    api.post<{ ticket: string; expiresIn: number }>(`/stashes/${stashId}/sse-ticket`, null, {
+      headers: {
+        'X-Stash-Signature': signature,
+      },
+    }),
+
   deleteStash: (id: string, signature: string) =>
     api.delete(`/stashes/${id}`, {
       headers: {

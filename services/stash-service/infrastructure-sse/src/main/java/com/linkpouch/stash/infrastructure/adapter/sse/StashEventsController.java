@@ -2,17 +2,14 @@ package com.linkpouch.stash.infrastructure.adapter.sse;
 
 import java.util.UUID;
 
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
-import com.linkpouch.stash.application.exception.NotFoundException;
 import com.linkpouch.stash.application.exception.UnauthorizedException;
-import com.linkpouch.stash.application.service.SignatureValidationService;
-import com.linkpouch.stash.application.service.StashManagementService;
+import com.linkpouch.stash.application.service.SseTicketService;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -21,9 +18,9 @@ import lombok.extern.slf4j.Slf4j;
  * REST Controller: Stash Events Exposes an SSE endpoint that clients can subscribe to in order to
  * receive real-time link status updates for a stash.
  *
- * <p>Authentication: same HMAC-SHA256 signature used by all stash endpoints, passed as a {@code
- * ?sig=} query parameter because the browser's native EventSource API does not support custom
- * request headers.
+ * <p>Authentication: clients must first exchange their stash signature for a short-lived ticket via
+ * {@code POST /stashes/{stashId}/sse-ticket}, then pass that ticket as the {@code ?ticket=} query
+ * parameter. This prevents the permanent HMAC signature from appearing in server access logs.
  */
 @Slf4j
 @RestController
@@ -33,25 +30,18 @@ public class StashEventsController {
     /** 10 minutes in milliseconds. EventSource auto-reconnects after timeout. */
     private static final long SSE_TIMEOUT_MS = 10L * 60 * 1_000;
 
-    private final StashManagementService stashService;
-    private final SignatureValidationService signatureService;
+    private final SseTicketService sseTicketService;
     private final SseConnectionRegistry registry;
-
-    @Value("${linkpouch.signature.master-key}")
-    private String masterKey;
 
     @GetMapping(value = "/stashes/{stashId}/events")
     public SseEmitter subscribeToStashEvents(
             @PathVariable("stashId") final UUID stashId,
-            @RequestParam(name = "sig") final String sig) {
-        final var stash =
-                stashService
-                        .findStashById(stashId)
-                        .orElseThrow(() -> new NotFoundException("Stash not found: " + stashId));
+            @RequestParam(name = "ticket") final String ticket) {
 
-        if (!signatureService.validateSignature(
-                stashId, stash.getSecretKey().getValue(), sig)) {
-            throw new UnauthorizedException("Invalid signature");
+        final var ticketStashId = sseTicketService.validate(ticket);
+
+        if (ticketStashId.isEmpty() || !ticketStashId.get().equals(stashId)) {
+            throw new UnauthorizedException("Invalid or expired SSE ticket");
         }
 
         log.debug("New SSE subscription for stash {}", stashId);
