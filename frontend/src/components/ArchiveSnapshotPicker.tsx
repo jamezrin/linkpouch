@@ -74,10 +74,10 @@ function MonthGrid({ months, selectedYear, onSelectMonth, selectedMonth }: Month
           return (
             <div
               key={monthNum}
-              className="h-9 rounded-md bg-slate-50 flex items-center justify-center cursor-default"
+              className="h-9 rounded-md bg-slate-50 dark:bg-slate-700 flex items-center justify-center cursor-default"
               title="No captures"
             >
-              <span className="text-[11px] font-medium text-slate-300">
+              <span className="text-[11px] font-medium text-slate-300 dark:text-slate-500">
                 {MONTH_NAMES[i]}
               </span>
             </div>
@@ -91,7 +91,7 @@ function MonthGrid({ months, selectedYear, onSelectMonth, selectedMonth }: Month
             className={`h-9 rounded-md flex items-center justify-center transition-all hover:ring-2 hover:ring-indigo-400 hover:ring-offset-1 ${
               isSelected
                 ? 'bg-indigo-600 text-white ring-2 ring-indigo-600 ring-offset-1'
-                : 'bg-indigo-100 text-indigo-700 hover:bg-indigo-200'
+                : 'bg-indigo-100 dark:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-200 dark:hover:bg-indigo-800/60'
             }`}
             title={`${MONTH_NAMES[i]} ${selectedYear} — has captures`}
           >
@@ -145,19 +145,19 @@ function SnapshotList({ url, year, month, onSelect, currentTimestamp }: Snapshot
   }
 
   return (
-    <div className="max-h-48 overflow-y-auto border-t border-slate-100">
+    <div className="max-h-48 overflow-y-auto border-t border-slate-100 dark:border-slate-700">
       {snapshots.map((snap) => {
         const isActive = snap.timestamp === currentTimestamp;
         return (
           <button
             key={snap.timestamp}
             onClick={() => onSelect(snap.timestamp)}
-            className={`w-full text-left px-3 py-2 text-xs flex items-center gap-2 transition-colors hover:bg-indigo-50 ${
-              isActive ? 'bg-indigo-50 text-indigo-700 font-medium' : 'text-slate-600'
+            className={`w-full text-left px-3 py-2 text-xs flex items-center gap-2 transition-colors hover:bg-indigo-50 dark:hover:bg-indigo-900/40 ${
+              isActive ? 'bg-indigo-50 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 font-medium' : 'text-slate-600 dark:text-slate-400'
             }`}
           >
             <svg
-              className={`w-3 h-3 flex-shrink-0 ${isActive ? 'text-indigo-500' : 'text-slate-300'}`}
+              className={`w-3 h-3 flex-shrink-0 ${isActive ? 'text-indigo-500' : 'text-slate-300 dark:text-slate-600'}`}
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -307,8 +307,8 @@ export function ArchiveSnapshotPicker({
           triggerClassName ??
           `flex items-center gap-1 px-2.5 py-1 rounded-md border text-[12px] font-medium transition-colors ${
             open
-              ? 'bg-indigo-50 border-indigo-300 text-indigo-700'
-              : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50 hover:border-slate-300'
+              ? 'bg-indigo-50 dark:bg-indigo-900/50 border-indigo-300 dark:border-indigo-700 text-indigo-700 dark:text-indigo-300'
+              : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 hover:border-slate-300'
           }`
         }
         title="Select archive snapshot"
@@ -349,17 +349,17 @@ export function ArchiveSnapshotPicker({
       {open && (
         <div
           ref={panelRef}
-          className="absolute top-full right-0 mt-1.5 w-64 bg-white border border-slate-200 rounded-xl shadow-lg z-50 overflow-hidden"
+          className="absolute top-full right-0 mt-1.5 w-64 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-lg z-50 overflow-hidden"
         >
           {/* Header */}
-          <div className="flex items-center justify-between px-3 py-2 border-b border-slate-100 bg-slate-50">
-            <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">
+          <div className="flex items-center justify-between px-3 py-2 border-b border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-900">
+            <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
               Archive snapshots
             </span>
             {selectedTimestamp && (
               <button
                 onClick={handleSelectLatest}
-                className="text-[11px] text-indigo-600 hover:text-indigo-800 font-medium"
+                className="text-[11px] text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 font-medium"
               >
                 Reset to latest
               </button>
@@ -397,8 +397,8 @@ export function ArchiveSnapshotPicker({
                     onClick={() => setSelectedYear(year)}
                     className={`px-2.5 py-1 rounded-t-md text-[11px] font-semibold transition-colors flex-shrink-0 ${
                       selectedYear === year
-                        ? 'bg-white text-indigo-700 border border-b-white border-slate-200 relative -mb-px z-10'
-                        : 'text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-md'
+                        ? 'bg-white dark:bg-slate-800 text-indigo-700 dark:text-indigo-300 border border-b-white dark:border-b-slate-800 border-slate-200 dark:border-slate-700 relative -mb-px z-10'
+                        : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-md'
                     }`}
                   >
                     {year}
@@ -407,7 +407,7 @@ export function ArchiveSnapshotPicker({
               </div>
 
               {/* Month grid */}
-              <div className="border-t border-slate-200">
+              <div className="border-t border-slate-200 dark:border-slate-700">
                 <MonthGrid
                   months={months}
                   selectedYear={selectedYear}
@@ -430,7 +430,7 @@ export function ArchiveSnapshotPicker({
           )}
 
           {/* Footer attribution */}
-          <div className="border-t border-slate-100 px-3 py-1.5 flex items-center justify-end">
+          <div className="border-t border-slate-100 dark:border-slate-700 px-3 py-1.5 flex items-center justify-end">
             <a
               href="https://archive.org"
               target="_blank"
