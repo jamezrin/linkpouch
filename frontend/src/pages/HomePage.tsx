@@ -167,7 +167,7 @@ const ROADMAP: Array<{ icon: React.ReactNode; title: string; desc: string }> = [
       </svg>
     ),
     title: 'Multiple archival sources',
-    desc: 'Choose from archive.org, archive.is, Google Cache, and more. Each service covers different pages, so picking the right one means a better chance of finding a working snapshot.',
+    desc: 'Choose from archive.org, archive.is, and more. Each service covers different pages, so picking the right one means a better chance of finding a working snapshot.',
   },
   {
     icon: (
