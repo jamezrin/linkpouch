@@ -15,6 +15,7 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+
 import com.linkpouch.stash.domain.model.Link;
 import com.linkpouch.stash.domain.port.outbound.LinkStatusBroadcaster;
 
@@ -43,15 +44,9 @@ public class LinkStatusSseAdapter implements LinkStatusBroadcaster {
             final SseEmitter.SseEventBuilder event =
                     SseEmitter.event().name("link-updated").data(json);
             registry.send(stashId, event);
-            log.debug(
-                    "Broadcast link-updated SSE for stash {} link {}",
-                    stashId,
-                    link.getId());
+            log.debug("Broadcast link-updated SSE for stash {} link {}", stashId, link.getId());
         } catch (JsonProcessingException e) {
-            log.error(
-                    "Failed to serialize link {} for SSE broadcast",
-                    link.getId(),
-                    e);
+            log.error("Failed to serialize link {} for SSE broadcast", link.getId(), e);
         }
     }
 
@@ -60,9 +55,7 @@ public class LinkStatusSseAdapter implements LinkStatusBroadcaster {
         payload.put("id", link.getId().toString());
         payload.put("stashId", link.getStashId().toString());
         payload.put("url", link.getUrl().getValue());
-        payload.put(
-                "title",
-                link.getTitle() != null ? link.getTitle().getValue() : null);
+        payload.put("title", link.getTitle() != null ? link.getTitle().getValue() : null);
         payload.put(
                 "description",
                 link.getDescription() != null ? link.getDescription().getValue() : null);
@@ -84,15 +77,11 @@ public class LinkStatusSseAdapter implements LinkStatusBroadcaster {
             payload.put("screenshotUrl", null);
         }
 
-        payload.put(
-                "screenshotGeneratedAt",
-                formatDateTime(link.getScreenshotGeneratedAt()));
+        payload.put("screenshotGeneratedAt", formatDateTime(link.getScreenshotGeneratedAt()));
         payload.put("createdAt", formatDateTime(link.getCreatedAt()));
         payload.put("updatedAt", formatDateTime(link.getUpdatedAt()));
         payload.put("position", link.getPosition());
-        payload.put(
-                "status",
-                link.getStatus() != null ? link.getStatus().name() : "PENDING");
+        payload.put("status", link.getStatus() != null ? link.getStatus().name() : "PENDING");
 
         return payload;
     }
