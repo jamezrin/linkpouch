@@ -169,7 +169,12 @@ const LinkItem = ({
         .join(' ')}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
-      onClick={() => onItemClick(link.id)}
+      onClick={(e) => {
+        onItemClick(link.id);
+        if (e.shiftKey || e.ctrlKey || e.metaKey) {
+          onCheckboxClick(link.id, index, e.shiftKey);
+        }
+      }}
     >
       {/* Checkbox */}
       <div
