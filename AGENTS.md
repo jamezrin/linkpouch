@@ -30,7 +30,7 @@ mise exec java -- mvn test -pl domain
 # Full build (requires database for jOOQ)
 mise exec java -- mvn clean package -DskipTests
 
-# Format all Java code (Spotless + google-java-format)
+# Format all Java code (Spotless + palantir-java-format)
 mise exec java -- mvn spotless:apply
 
 # Check formatting without modifying files
@@ -74,9 +74,9 @@ mypy src/
 - Remove unused imports
 
 **Formatting:**
-- Enforced by **Spotless** with `google-java-format` (run `mvn spotless:apply` before committing)
+- Enforced by **Spotless** with `palantir-java-format` (run `mvn spotless:apply` before committing)
 - 4 spaces indentation (no tabs), opening brace on same line
-- Line length: 100 characters (google-java-format default)
+- Line length: 100 characters (palantir-java-format default)
 - One blank line between methods
 - Final modifier on parameters when possible
 
