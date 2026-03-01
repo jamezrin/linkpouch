@@ -62,41 +62,30 @@ interface DemoButtonProps {
 
 export default function DemoButton({ stashId, signature }: DemoButtonProps) {
   const queryClient = useQueryClient();
-  const [progress, setProgress] = useState<number | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleClick = async () => {
-    setProgress(0);
-    for (const url of DEMO_URLS) {
-      try {
-        await linkApi.addLink(stashId, signature, { url });
-      } catch {
-        // skip individual failures silently
-      }
-      setProgress((p) => (p ?? 0) + 1);
+    setIsLoading(true);
+    try {
+      await linkApi.addLinksBatch(stashId, signature, { urls: DEMO_URLS });
+    } catch {
+      // ignore — partial successes are fine
     }
     await queryClient.invalidateQueries({ queryKey: ['links', stashId] });
-    setProgress(null);
+    setIsLoading(false);
   };
-
-  const isLoading = progress !== null;
 
   return (
     <button
       onClick={handleClick}
       disabled={isLoading}
-      title={
-        isLoading
-          ? `Adding demo links… ${progress}/${DEMO_URLS.length}`
-          : 'Add 50 demo links'
-      }
+      title={isLoading ? 'Adding demo links…' : 'Add 50 demo links'}
       className="flex items-center gap-1.5 px-3 py-1.5 bg-violet-100 dark:bg-violet-500/10 hover:bg-violet-200/80 dark:hover:bg-violet-500/20 border border-violet-300 dark:border-violet-500/25 hover:border-violet-400 dark:hover:border-violet-500/40 text-violet-600 dark:text-violet-300 hover:text-violet-700 dark:hover:text-violet-200 rounded-lg text-xs font-medium transition-colors disabled:cursor-not-allowed"
     >
       {isLoading ? (
         <>
           <div className="w-3 h-3 border-[1.5px] border-violet-500 dark:border-violet-400 border-t-transparent rounded-full animate-spin flex-shrink-0" />
-          <span>
-            {progress}/{DEMO_URLS.length}
-          </span>
+          <span>Adding…</span>
         </>
       ) : (
         <>
