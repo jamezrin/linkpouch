@@ -139,33 +139,7 @@ function AppContent() {
             </>
           )}
 
-          {/* Search bar — normal flex child, hidden on mobile */}
-          {isStashPage && signature ? (
-            <div className="hidden md:flex flex-1 items-center justify-center px-3 min-w-0">
-              <div className="relative w-full max-w-sm">
-                <svg
-                  className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-500 pointer-events-none"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search links…"
-                  className="w-full pl-8 pr-3 py-1.5 bg-slate-100 dark:bg-slate-800/60 border border-slate-300 dark:border-slate-700/70 rounded-lg text-[13px] text-slate-800 dark:text-slate-200 placeholder-slate-400 dark:placeholder-slate-600 focus:outline-none focus:border-indigo-500/70 focus:ring-1 focus:ring-indigo-500/20"
-                />
-              </div>
-            </div>
-          ) : (
-            <div className="flex-1" />
-          )}
-
-          {/* Spacer to push right-side controls when on stash page */}
-          {isStashPage && <div className="flex-1" />}
+          <div className="flex-1" />
 
           {/* Share button — desktop only */}
           {isStashPage && signature && (

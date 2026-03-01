@@ -1040,8 +1040,8 @@ export default function StashAccessPage() {
           </button>
         </div>
 
-        {/* Mobile-only search — the header search is hidden below md */}
-        <div className="flex md:hidden items-center gap-2 px-3 py-2 border-b border-slate-200/70 dark:border-slate-800/70">
+        {/* Search */}
+        <div className="flex items-center gap-2 px-3 py-2 border-b border-slate-200/70 dark:border-slate-800/70">
           <svg
             className="w-3.5 h-3.5 text-slate-400 flex-shrink-0"
             fill="none"
