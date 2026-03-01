@@ -78,6 +78,15 @@ const FEATURES: Array<{ icon: React.ReactNode; title: string; desc: string }> = 
   {
     icon: (
       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+      </svg>
+    ),
+    title: 'Bulk import',
+    desc: 'Paste a list of URLs or drop a .txt file to add up to 100 links at once — duplicates and invalid entries are skipped automatically.',
+  },
+  {
+    icon: (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
       </svg>
     ),
@@ -136,7 +145,7 @@ const STEPS = [
   {
     n: '02',
     title: 'Add your links',
-    desc: 'Paste URLs into the sidebar. Screenshots and metadata are captured automatically in the background.',
+    desc: 'Paste a URL or bulk-import up to 100 at once. Screenshots and metadata are captured automatically in the background.',
     icon: (
       <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
@@ -192,15 +201,6 @@ const ROADMAP: Array<{ icon: React.ReactNode; title: string; desc: string }> = [
     ),
     title: 'Password-protected pouches',
     desc: 'Add an optional passphrase on top of the signed URL — for sharing with a specific audience.',
-  },
-  {
-    icon: (
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-      </svg>
-    ),
-    title: 'Bulk link import',
-    desc: 'Paste a list of URLs or drop in a file to populate your pouch all at once.',
   },
   {
     icon: (
