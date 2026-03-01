@@ -9,8 +9,7 @@ public interface AddLinksBatchUseCase {
 
     AddLinksBatchResult execute(AddLinksBatchCommand command);
 
-    record AddLinksBatchResult(
-            int imported, int skipped, List<BatchLinkError> errors, List<Link> links) {}
+    record AddLinksBatchResult(int imported, int skipped, List<BatchLinkError> errors, List<Link> links) {}
 
     record BatchLinkError(String url, String reason) {}
 }

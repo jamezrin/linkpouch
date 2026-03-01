@@ -23,8 +23,7 @@ public final class StashName {
             throw new IllegalArgumentException("Stash name cannot be null or empty");
         }
         if (value.length() > MAX_LENGTH) {
-            throw new IllegalArgumentException(
-                    "Stash name cannot exceed " + MAX_LENGTH + " characters");
+            throw new IllegalArgumentException("Stash name cannot exceed " + MAX_LENGTH + " characters");
         }
         return new StashName(value.trim());
     }

@@ -20,8 +20,7 @@ import lombok.extern.slf4j.Slf4j;
 @Component
 public class SseConnectionRegistry {
 
-    private final ConcurrentHashMap<UUID, CopyOnWriteArrayList<SseEmitter>> emitters =
-            new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<UUID, CopyOnWriteArrayList<SseEmitter>> emitters = new ConcurrentHashMap<>();
 
     /**
      * Register a new SseEmitter for a stash. Cleanup callbacks are attached automatically.
@@ -64,12 +63,10 @@ public class SseConnectionRegistry {
     }
 
     private void removeEmitter(final UUID stashId, final SseEmitter emitter) {
-        emitters.computeIfPresent(
-                stashId,
-                (k, list) -> {
-                    list.remove(emitter);
-                    log.debug("SSE client deregistered for stash {}", stashId);
-                    return list.isEmpty() ? null : list;
-                });
+        emitters.computeIfPresent(stashId, (k, list) -> {
+            list.remove(emitter);
+            log.debug("SSE client deregistered for stash {}", stashId);
+            return list.isEmpty() ? null : list;
+        });
     }
 }

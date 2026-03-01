@@ -32,29 +32,25 @@ public class StashController implements StashesApi {
     private final ApiDtoMapper mapper;
 
     @Override
-    public ResponseEntity<StashResponseDTO> createStash(
-            final CreateStashRequestDTO createStashRequestDTO) {
+    public ResponseEntity<StashResponseDTO> createStash(final CreateStashRequestDTO createStashRequestDTO) {
         final var command = new CreateStashCommand(createStashRequestDTO.getName());
         final var stash = createStashUseCase.execute(command);
 
         final var response = mapper.mapOut(stash);
-        final String signedUrl =
-                signatureService.generateSignedUrl(stash.getId(), stash.getSecretKey().getValue());
+        final String signedUrl = signatureService.generateSignedUrl(
+                stash.getId(), stash.getSecretKey().getValue());
         response.setSignedUrl(signedUrl);
 
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     @Override
-    public ResponseEntity<StashResponseDTO> getStash(
-            final UUID stashId, final String xStashSignature) {
-        final var stash =
-                findStashByIdQuery
-                        .execute(stashId)
-                        .orElseThrow(() -> new NotFoundException("Stash not found: " + stashId));
+    public ResponseEntity<StashResponseDTO> getStash(final UUID stashId, final String xStashSignature) {
+        final var stash = findStashByIdQuery
+                .execute(stashId)
+                .orElseThrow(() -> new NotFoundException("Stash not found: " + stashId));
 
-        if (!signatureService.validateSignature(
-                stashId, stash.getSecretKey().getValue(), xStashSignature)) {
+        if (!signatureService.validateSignature(stashId, stash.getSecretKey().getValue(), xStashSignature)) {
             throw new UnauthorizedException("Invalid signature");
         }
 
@@ -63,33 +59,26 @@ public class StashController implements StashesApi {
 
     @Override
     public ResponseEntity<StashResponseDTO> updateStash(
-            final UUID stashId,
-            final String xStashSignature,
-            final UpdateStashRequestDTO updateStashRequestDTO) {
-        final var stash =
-                findStashByIdQuery
-                        .execute(stashId)
-                        .orElseThrow(() -> new NotFoundException("Stash not found: " + stashId));
+            final UUID stashId, final String xStashSignature, final UpdateStashRequestDTO updateStashRequestDTO) {
+        final var stash = findStashByIdQuery
+                .execute(stashId)
+                .orElseThrow(() -> new NotFoundException("Stash not found: " + stashId));
 
-        if (!signatureService.validateSignature(
-                stashId, stash.getSecretKey().getValue(), xStashSignature)) {
+        if (!signatureService.validateSignature(stashId, stash.getSecretKey().getValue(), xStashSignature)) {
             throw new UnauthorizedException("Invalid signature");
         }
 
-        final var updatedStash =
-                updateStashNameUseCase.execute(stashId, updateStashRequestDTO.getName());
+        final var updatedStash = updateStashNameUseCase.execute(stashId, updateStashRequestDTO.getName());
         return ResponseEntity.ok(mapper.mapOut(updatedStash));
     }
 
     @Override
     public ResponseEntity<Void> deleteStash(final UUID stashId, final String xStashSignature) {
-        final var stash =
-                findStashByIdQuery
-                        .execute(stashId)
-                        .orElseThrow(() -> new NotFoundException("Stash not found: " + stashId));
+        final var stash = findStashByIdQuery
+                .execute(stashId)
+                .orElseThrow(() -> new NotFoundException("Stash not found: " + stashId));
 
-        if (!signatureService.validateSignature(
-                stashId, stash.getSecretKey().getValue(), xStashSignature)) {
+        if (!signatureService.validateSignature(stashId, stash.getSecretKey().getValue(), xStashSignature)) {
             throw new UnauthorizedException("Invalid signature");
         }
 

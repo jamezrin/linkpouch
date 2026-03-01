@@ -21,9 +21,7 @@ public class S3Configuration {
             @Value("${linkpouch.s3.secret-key}") final String secretKey) {
         return S3Client.builder()
                 .endpointOverride(URI.create(endpoint))
-                .credentialsProvider(
-                        StaticCredentialsProvider.create(
-                                AwsBasicCredentials.create(accessKey, secretKey)))
+                .credentialsProvider(StaticCredentialsProvider.create(AwsBasicCredentials.create(accessKey, secretKey)))
                 .region(Region.US_EAST_1)
                 .forcePathStyle(true)
                 .build();

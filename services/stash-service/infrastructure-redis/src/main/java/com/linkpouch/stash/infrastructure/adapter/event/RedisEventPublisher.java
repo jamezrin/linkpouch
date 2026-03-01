@@ -45,13 +45,9 @@ public class RedisEventPublisher implements EventPublisher {
             eventData.put("stashId", event.stashId().toString());
             eventData.put("timestamp", Instant.now().toString());
 
-            final RecordId recordId =
-                    redisTemplate.opsForStream().add(MapRecord.create(LINK_STREAM_KEY, eventData));
+            final RecordId recordId = redisTemplate.opsForStream().add(MapRecord.create(LINK_STREAM_KEY, eventData));
 
-            log.info(
-                    "Published link.added event to Redis Stream: linkId={}, recordId={}",
-                    event.linkId(),
-                    recordId);
+            log.info("Published link.added event to Redis Stream: linkId={}, recordId={}", event.linkId(), recordId);
         } catch (Exception e) {
             log.error("Failed to publish link.added event: {}", event, e);
             // Don't throw - event publishing should not break the main flow
@@ -69,13 +65,10 @@ public class RedisEventPublisher implements EventPublisher {
             eventData.put("timestamp", Instant.now().toString());
 
             final RecordId recordId =
-                    redisTemplate
-                            .opsForStream()
-                            .add(MapRecord.create(SCREENSHOT_STREAM_KEY, eventData));
+                    redisTemplate.opsForStream().add(MapRecord.create(SCREENSHOT_STREAM_KEY, eventData));
 
             log.info(
-                    "Published screenshot.refresh.requested event to Redis Stream: linkId={},"
-                            + " recordId={}",
+                    "Published screenshot.refresh.requested event to Redis Stream: linkId={}," + " recordId={}",
                     event.linkId(),
                     recordId);
         } catch (Exception e) {

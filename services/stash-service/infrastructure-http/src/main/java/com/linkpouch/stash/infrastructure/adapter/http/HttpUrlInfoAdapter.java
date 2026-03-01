@@ -35,20 +35,15 @@ public class HttpUrlInfoAdapter implements UrlInfoPort {
     }
 
     private FetchedUrlInfo fetchHeaders(final String url, final HttpMethod method) {
-        return embeddabilityRestClient
-                .method(method)
-                .uri(url)
-                .exchange(
-                        (req, res) -> {
-                            if (res.getStatusCode().isSameCodeAs(HttpStatus.METHOD_NOT_ALLOWED)
-                                    && method == HttpMethod.HEAD) {
-                                return fetchHeaders(url, HttpMethod.GET);
-                            }
-                            return new FetchedUrlInfo(
-                                    true,
-                                    res.getHeaders().getFirst("X-Frame-Options"),
-                                    res.getHeaders().getFirst("Content-Security-Policy"));
-                        });
+        return embeddabilityRestClient.method(method).uri(url).exchange((req, res) -> {
+            if (res.getStatusCode().isSameCodeAs(HttpStatus.METHOD_NOT_ALLOWED) && method == HttpMethod.HEAD) {
+                return fetchHeaders(url, HttpMethod.GET);
+            }
+            return new FetchedUrlInfo(
+                    true,
+                    res.getHeaders().getFirst("X-Frame-Options"),
+                    res.getHeaders().getFirst("Content-Security-Policy"));
+        });
     }
 
     private void validateUrl(final String url) {
@@ -75,8 +70,7 @@ public class HttpUrlInfoAdapter implements UrlInfoPort {
                 throw new IllegalArgumentException("URL resolves to loopback address: " + url);
             }
             if (address.isSiteLocalAddress()) {
-                throw new IllegalArgumentException(
-                        "URL resolves to site-local (private) address: " + url);
+                throw new IllegalArgumentException("URL resolves to site-local (private) address: " + url);
             }
             if (address.isLinkLocalAddress()) {
                 throw new IllegalArgumentException("URL resolves to link-local address: " + url);

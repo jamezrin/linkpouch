@@ -39,10 +39,7 @@ public class LinkPersistenceAdapter implements LinkRepository {
 
     @Override
     public Optional<Link> findById(final UUID id) {
-        return dsl.selectFrom(LINKS)
-                .where(LINKS.ID.eq(id))
-                .fetchOptional()
-                .map(this::mapIn);
+        return dsl.selectFrom(LINKS).where(LINKS.ID.eq(id)).fetchOptional().map(this::mapIn);
     }
 
     @Override
@@ -60,15 +57,11 @@ public class LinkPersistenceAdapter implements LinkRepository {
 
         return dsl.selectFrom(LINKS)
                 .where(LINKS.STASH_ID.eq(stashId))
-                .and(
-                        DSL.condition("search_vector @@ plainto_tsquery('english', {0})", query)
-                                .or(DSL.condition("LOWER(url) LIKE {0}", likePattern))
-                                .or(DSL.condition("LOWER(title) LIKE {0}", likePattern))
-                                .or(DSL.condition("LOWER(description) LIKE {0}", likePattern)))
-                .orderBy(
-                        DSL.field(
-                                "ts_rank(search_vector, plainto_tsquery('english', {0})) DESC",
-                                query))
+                .and(DSL.condition("search_vector @@ plainto_tsquery('english', {0})", query)
+                        .or(DSL.condition("LOWER(url) LIKE {0}", likePattern))
+                        .or(DSL.condition("LOWER(title) LIKE {0}", likePattern))
+                        .or(DSL.condition("LOWER(description) LIKE {0}", likePattern)))
+                .orderBy(DSL.field("ts_rank(search_vector, plainto_tsquery('english', {0})) DESC", query))
                 .fetch()
                 .map(this::mapIn);
     }
@@ -87,10 +80,7 @@ public class LinkPersistenceAdapter implements LinkRepository {
     @Override
     public long countByStashId(final UUID stashId) {
         final Long count =
-                dsl.selectCount()
-                        .from(LINKS)
-                        .where(LINKS.STASH_ID.eq(stashId))
-                        .fetchOne(0, Long.class);
+                dsl.selectCount().from(LINKS).where(LINKS.STASH_ID.eq(stashId)).fetchOne(0, Long.class);
         return count != null ? count : 0L;
     }
 
@@ -110,22 +100,19 @@ public class LinkPersistenceAdapter implements LinkRepository {
 
     @Override
     public Set<String> findUrlsByStashId(final UUID stashId) {
-        return new HashSet<>(
-                dsl.select(LINKS.URL)
-                        .from(LINKS)
-                        .where(LINKS.STASH_ID.eq(stashId))
-                        .fetch(LINKS.URL));
+        return new HashSet<>(dsl.select(LINKS.URL)
+                .from(LINKS)
+                .where(LINKS.STASH_ID.eq(stashId))
+                .fetch(LINKS.URL));
     }
 
     @Override
-    public void reorderLinks(
-            final UUID stashId, final List<UUID> movedLinkIds, final UUID insertAfterId) {
-        final List<UUID> allIds =
-                dsl.select(LINKS.ID)
-                        .from(LINKS)
-                        .where(LINKS.STASH_ID.eq(stashId))
-                        .orderBy(LINKS.POSITION.asc())
-                        .fetch(LINKS.ID);
+    public void reorderLinks(final UUID stashId, final List<UUID> movedLinkIds, final UUID insertAfterId) {
+        final List<UUID> allIds = dsl.select(LINKS.ID)
+                .from(LINKS)
+                .where(LINKS.STASH_ID.eq(stashId))
+                .orderBy(LINKS.POSITION.asc())
+                .fetch(LINKS.ID);
 
         final Set<UUID> movedSet = new HashSet<>(movedLinkIds);
         final List<UUID> remaining = new ArrayList<>(allIds.size());
@@ -149,21 +136,11 @@ public class LinkPersistenceAdapter implements LinkRepository {
         newOrder.addAll(remaining.subList(insertionIndex, remaining.size()));
 
         if (!newOrder.isEmpty()) {
-            final var queries =
-                    IntStream.range(0, newOrder.size())
-                            .mapToObj(
-                                    i ->
-                                            (Query)
-                                                    dsl.update(LINKS)
-                                                            .set(LINKS.POSITION, i)
-                                                            .where(
-                                                                    LINKS.ID
-                                                                            .eq(newOrder.get(i))
-                                                                            .and(
-                                                                                    LINKS.STASH_ID
-                                                                                            .eq(
-                                                                                                    stashId))))
-                            .toList();
+            final var queries = IntStream.range(0, newOrder.size())
+                    .mapToObj(i -> (Query) dsl.update(LINKS)
+                            .set(LINKS.POSITION, i)
+                            .where(LINKS.ID.eq(newOrder.get(i)).and(LINKS.STASH_ID.eq(stashId))))
+                    .toList();
             dsl.batch(queries).execute();
         }
     }
@@ -186,17 +163,11 @@ public class LinkPersistenceAdapter implements LinkRepository {
                         : null,
                 Url.of(record.get(LINKS.URL)),
                 record.get(LINKS.TITLE) != null ? LinkTitle.of(record.get(LINKS.TITLE)) : null,
-                record.get(LINKS.DESCRIPTION) != null
-                        ? LinkDescription.of(record.get(LINKS.DESCRIPTION))
-                        : null,
-                record.get(LINKS.FAVICON_URL) != null
-                        ? Url.of(record.get(LINKS.FAVICON_URL))
-                        : null,
+                record.get(LINKS.DESCRIPTION) != null ? LinkDescription.of(record.get(LINKS.DESCRIPTION)) : null,
+                record.get(LINKS.FAVICON_URL) != null ? Url.of(record.get(LINKS.FAVICON_URL)) : null,
                 record.get(LINKS.PAGE_CONTENT),
                 record.get(LINKS.FINAL_URL) != null ? Url.of(record.get(LINKS.FINAL_URL)) : null,
-                record.get(LINKS.SCREENSHOT_KEY) != null
-                        ? ScreenshotKey.of(record.get(LINKS.SCREENSHOT_KEY))
-                        : null,
+                record.get(LINKS.SCREENSHOT_KEY) != null ? ScreenshotKey.of(record.get(LINKS.SCREENSHOT_KEY)) : null,
                 record.get(LINKS.SCREENSHOT_GENERATED_AT) != null
                         ? record.get(LINKS.SCREENSHOT_GENERATED_AT)
                                 .withOffsetSameInstant(ZoneOffset.UTC)

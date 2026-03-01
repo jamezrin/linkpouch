@@ -35,8 +35,7 @@ public class StashEventsController {
 
     @GetMapping(value = "/stashes/{stashId}/events")
     public SseEmitter subscribeToStashEvents(
-            @PathVariable("stashId") final UUID stashId,
-            @RequestParam(name = "ticket") final String ticket) {
+            @PathVariable("stashId") final UUID stashId, @RequestParam(name = "ticket") final String ticket) {
 
         final var ticketStashId = sseTicketPort.validate(ticket);
 

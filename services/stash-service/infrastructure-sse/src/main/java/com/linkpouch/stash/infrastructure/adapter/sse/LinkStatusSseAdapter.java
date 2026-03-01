@@ -64,14 +64,8 @@ public class LinkStatusSseAdapter implements LinkStatusBroadcaster {
                 link.getFaviconUrl() != null ? link.getFaviconUrl().getValue() : null);
 
         if (link.getScreenshotKey() != null) {
-            final URI screenshotUri =
-                    URI.create(
-                            baseUrl
-                                    + "/api/stashes/"
-                                    + link.getStashId()
-                                    + "/links/"
-                                    + link.getId()
-                                    + "/screenshot");
+            final URI screenshotUri = URI.create(
+                    baseUrl + "/api/stashes/" + link.getStashId() + "/links/" + link.getId() + "/screenshot");
             payload.put("screenshotUrl", screenshotUri.toString());
         } else {
             payload.put("screenshotUrl", null);

@@ -31,7 +31,8 @@ public class LinkJpaEntity {
     @Column(nullable = false)
     private String url;
 
-    @Column private String title;
+    @Column
+    private String title;
 
     @Column(columnDefinition = "TEXT")
     private String description;

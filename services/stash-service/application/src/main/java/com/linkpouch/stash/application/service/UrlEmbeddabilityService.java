@@ -36,8 +36,7 @@ public class UrlEmbeddabilityService implements UrlEmbeddabilityUseCase {
         if (csp != null) {
             final String frameAncestors = extractFrameAncestors(csp);
             if (frameAncestors != null && !frameAncestors.contains("*")) {
-                return EmbeddabilityResult.blocked(
-                        "Content-Security-Policy: frame-ancestors " + frameAncestors.trim());
+                return EmbeddabilityResult.blocked("Content-Security-Policy: frame-ancestors " + frameAncestors.trim());
             }
         }
 

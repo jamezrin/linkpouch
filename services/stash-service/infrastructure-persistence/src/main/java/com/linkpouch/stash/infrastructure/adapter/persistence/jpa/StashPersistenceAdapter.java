@@ -33,8 +33,7 @@ public class StashPersistenceAdapter implements StashRepository {
 
     @Override
     public Stash save(final Stash stash) {
-        final Optional<StashJpaEntity> existingOpt =
-                jpaRepository.findByIdWithLinks(stash.getId());
+        final Optional<StashJpaEntity> existingOpt = jpaRepository.findByIdWithLinks(stash.getId());
 
         final StashJpaEntity entity;
         if (existingOpt.isPresent()) {
