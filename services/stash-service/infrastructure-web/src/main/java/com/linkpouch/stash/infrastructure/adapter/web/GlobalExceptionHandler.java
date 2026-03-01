@@ -10,9 +10,9 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import com.linkpouch.stash.api.model.ErrorResponseDTO;
-import com.linkpouch.stash.application.exception.ForbiddenException;
-import com.linkpouch.stash.application.exception.NotFoundException;
-import com.linkpouch.stash.application.exception.UnauthorizedException;
+import com.linkpouch.stash.domain.exception.ForbiddenException;
+import com.linkpouch.stash.domain.exception.NotFoundException;
+import com.linkpouch.stash.domain.exception.UnauthorizedException;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {

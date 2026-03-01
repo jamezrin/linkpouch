@@ -3,11 +3,15 @@ package com.linkpouch.stash.application.service;
 import java.util.Optional;
 import java.util.UUID;
 
-import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.linkpouch.stash.application.annotation.UseCase;
+import com.linkpouch.stash.domain.exception.NotFoundException;
 import com.linkpouch.stash.domain.model.Stash;
-import com.linkpouch.stash.domain.port.inbound.StashManagementUseCase;
+import com.linkpouch.stash.domain.port.in.CreateStashCommand;
+import com.linkpouch.stash.domain.port.in.CreateStashUseCase;
+import com.linkpouch.stash.domain.port.in.DeleteStashUseCase;
+import com.linkpouch.stash.domain.port.in.UpdateStashNameUseCase;
 import com.linkpouch.stash.domain.port.outbound.StashRepository;
 
 import lombok.RequiredArgsConstructor;
@@ -15,21 +19,26 @@ import lombok.RequiredArgsConstructor;
 /**
  * Application Service: Stash Management Implements use cases with transaction boundaries at the
  * application layer.
+ *
+ * <p>Note: FindStashByIdQuery is not implemented directly here because it conflicts with
+ * DeleteStashUseCase's void execute(UUID) signature. A thin adapter bean delegates to
+ * {@link #findStashById(UUID)}.
  */
-@Service
+@UseCase
 @RequiredArgsConstructor
-public class StashManagementService implements StashManagementUseCase {
+public class StashManagementService
+        implements CreateStashUseCase, UpdateStashNameUseCase, DeleteStashUseCase {
 
     private final StashRepository stashRepository;
 
     @Override
     @Transactional
-    public Stash createStash(final String name) {
-        final Stash stash = Stash.create(name);
+    public Stash execute(final CreateStashCommand command) {
+        final Stash stash = Stash.create(command.name());
         return stashRepository.save(stash);
     }
 
-    @Override
+    /** Exposed for FindStashByIdAdapter. */
     @Transactional(readOnly = true)
     public Optional<Stash> findStashById(final UUID stashId) {
         return stashRepository.findById(stashId);
@@ -37,19 +46,19 @@ public class StashManagementService implements StashManagementUseCase {
 
     @Override
     @Transactional
-    public Stash updateStashName(final UUID stashId, final String newName) {
+    public Stash execute(final UUID stashId, final String newName) {
         final Stash stash =
                 stashRepository
                         .findById(stashId)
                         .orElseThrow(
-                                () -> new IllegalArgumentException("Stash not found: " + stashId));
+                                () -> new NotFoundException("Stash not found: " + stashId));
         stash.updateName(newName);
         return stashRepository.save(stash);
     }
 
     @Override
     @Transactional
-    public void deleteStash(final UUID stashId) {
+    public void execute(final UUID stashId) {
         stashRepository.deleteById(stashId);
     }
 }

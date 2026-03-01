@@ -1,15 +1,15 @@
 package com.linkpouch.stash.application.service;
 
 import org.springframework.cache.annotation.Cacheable;
-import org.springframework.stereotype.Service;
 
+import com.linkpouch.stash.application.annotation.UseCase;
 import com.linkpouch.stash.domain.model.EmbeddabilityResult;
 import com.linkpouch.stash.domain.port.inbound.UrlEmbeddabilityUseCase;
 import com.linkpouch.stash.domain.port.outbound.UrlInfoPort;
 
 import lombok.RequiredArgsConstructor;
 
-@Service
+@UseCase
 @RequiredArgsConstructor
 public class UrlEmbeddabilityService implements UrlEmbeddabilityUseCase {
 

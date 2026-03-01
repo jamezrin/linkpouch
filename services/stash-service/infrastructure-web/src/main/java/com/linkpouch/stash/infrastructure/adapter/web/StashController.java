@@ -8,10 +8,14 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.linkpouch.stash.api.controller.StashesApi;
 import com.linkpouch.stash.api.model.*;
-import com.linkpouch.stash.application.exception.NotFoundException;
-import com.linkpouch.stash.application.exception.UnauthorizedException;
-import com.linkpouch.stash.application.service.SignatureValidationService;
-import com.linkpouch.stash.application.service.StashManagementService;
+import com.linkpouch.stash.domain.exception.NotFoundException;
+import com.linkpouch.stash.domain.exception.UnauthorizedException;
+import com.linkpouch.stash.domain.port.in.CreateStashCommand;
+import com.linkpouch.stash.domain.port.in.CreateStashUseCase;
+import com.linkpouch.stash.domain.port.in.DeleteStashUseCase;
+import com.linkpouch.stash.domain.port.in.FindStashByIdQuery;
+import com.linkpouch.stash.domain.port.in.UpdateStashNameUseCase;
+import com.linkpouch.stash.domain.service.StashSignatureService;
 import com.linkpouch.stash.infrastructure.adapter.web.mapper.ApiDtoMapper;
 
 import lombok.RequiredArgsConstructor;
@@ -20,15 +24,18 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class StashController implements StashesApi {
 
-    private final StashManagementService stashService;
-    private final SignatureValidationService signatureService;
+    private final CreateStashUseCase createStashUseCase;
+    private final FindStashByIdQuery findStashByIdQuery;
+    private final UpdateStashNameUseCase updateStashNameUseCase;
+    private final DeleteStashUseCase deleteStashUseCase;
+    private final StashSignatureService signatureService;
     private final ApiDtoMapper mapper;
 
     @Override
     public ResponseEntity<StashResponseDTO> createStash(
             final CreateStashRequestDTO createStashRequestDTO) {
-        final var request = mapper.mapIn(createStashRequestDTO);
-        final var stash = stashService.createStash(request.name());
+        final var command = new CreateStashCommand(createStashRequestDTO.getName());
+        final var stash = createStashUseCase.execute(command);
 
         final var response = mapper.mapOut(stash);
         final String signedUrl =
@@ -42,8 +49,8 @@ public class StashController implements StashesApi {
     public ResponseEntity<StashResponseDTO> getStash(
             final UUID stashId, final String xStashSignature) {
         final var stash =
-                stashService
-                        .findStashById(stashId)
+                findStashByIdQuery
+                        .execute(stashId)
                         .orElseThrow(() -> new NotFoundException("Stash not found: " + stashId));
 
         if (!signatureService.validateSignature(
@@ -60,8 +67,8 @@ public class StashController implements StashesApi {
             final String xStashSignature,
             final UpdateStashRequestDTO updateStashRequestDTO) {
         final var stash =
-                stashService
-                        .findStashById(stashId)
+                findStashByIdQuery
+                        .execute(stashId)
                         .orElseThrow(() -> new NotFoundException("Stash not found: " + stashId));
 
         if (!signatureService.validateSignature(
@@ -70,15 +77,15 @@ public class StashController implements StashesApi {
         }
 
         final var updatedStash =
-                stashService.updateStashName(stashId, updateStashRequestDTO.getName());
+                updateStashNameUseCase.execute(stashId, updateStashRequestDTO.getName());
         return ResponseEntity.ok(mapper.mapOut(updatedStash));
     }
 
     @Override
     public ResponseEntity<Void> deleteStash(final UUID stashId, final String xStashSignature) {
         final var stash =
-                stashService
-                        .findStashById(stashId)
+                findStashByIdQuery
+                        .execute(stashId)
                         .orElseThrow(() -> new NotFoundException("Stash not found: " + stashId));
 
         if (!signatureService.validateSignature(
@@ -86,7 +93,7 @@ public class StashController implements StashesApi {
             throw new UnauthorizedException("Invalid signature");
         }
 
-        stashService.deleteStash(stashId);
+        deleteStashUseCase.execute(stashId);
         return ResponseEntity.noContent().build();
     }
 }

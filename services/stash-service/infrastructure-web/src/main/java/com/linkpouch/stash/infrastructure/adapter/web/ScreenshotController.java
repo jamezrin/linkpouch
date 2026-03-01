@@ -13,12 +13,12 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.linkpouch.stash.application.exception.ForbiddenException;
-import com.linkpouch.stash.application.exception.NotFoundException;
-import com.linkpouch.stash.application.exception.UnauthorizedException;
-import com.linkpouch.stash.application.service.LinkManagementService;
-import com.linkpouch.stash.application.service.SignatureValidationService;
-import com.linkpouch.stash.application.service.StashManagementService;
+import com.linkpouch.stash.domain.exception.ForbiddenException;
+import com.linkpouch.stash.domain.exception.NotFoundException;
+import com.linkpouch.stash.domain.exception.UnauthorizedException;
+import com.linkpouch.stash.domain.port.in.FindLinkByIdQuery;
+import com.linkpouch.stash.domain.port.in.FindStashByIdQuery;
+import com.linkpouch.stash.domain.service.StashSignatureService;
 
 import lombok.RequiredArgsConstructor;
 import software.amazon.awssdk.services.s3.S3Client;
@@ -29,9 +29,9 @@ import software.amazon.awssdk.services.s3.model.NoSuchKeyException;
 @RequiredArgsConstructor
 public class ScreenshotController {
 
-    private final LinkManagementService linkService;
-    private final StashManagementService stashService;
-    private final SignatureValidationService signatureService;
+    private final FindStashByIdQuery findStashByIdQuery;
+    private final FindLinkByIdQuery findLinkByIdQuery;
+    private final StashSignatureService signatureService;
     private final S3Client s3Client;
 
     @Value("${linkpouch.s3.bucket}")
@@ -47,8 +47,8 @@ public class ScreenshotController {
         final String signature = headerSig != null ? headerSig : querySig;
 
         final var stash =
-                stashService
-                        .findStashById(stashId)
+                findStashByIdQuery
+                        .execute(stashId)
                         .orElseThrow(() -> new NotFoundException("Stash not found: " + stashId));
 
         if (!signatureService.validateSignature(
@@ -57,8 +57,8 @@ public class ScreenshotController {
         }
 
         final var link =
-                linkService
-                        .findLinkById(linkId)
+                findLinkByIdQuery
+                        .execute(linkId)
                         .orElseThrow(() -> new NotFoundException("Link not found: " + linkId));
 
         if (!link.getStashId().equals(stashId)) {

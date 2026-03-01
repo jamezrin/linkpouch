@@ -12,6 +12,8 @@ import org.springframework.stereotype.Component;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import com.linkpouch.stash.domain.event.LinkAddedEvent;
+import com.linkpouch.stash.domain.event.ScreenshotRefreshRequestedEvent;
 import com.linkpouch.stash.domain.port.outbound.EventPublisher;
 
 import lombok.RequiredArgsConstructor;
@@ -38,9 +40,9 @@ public class RedisEventPublisher implements EventPublisher {
         try {
             final Map<String, String> eventData = new HashMap<>();
             eventData.put("eventType", "link.added");
-            eventData.put("linkId", event.linkId());
+            eventData.put("linkId", event.linkId().toString());
             eventData.put("url", event.url());
-            eventData.put("stashId", event.stashId());
+            eventData.put("stashId", event.stashId().toString());
             eventData.put("timestamp", Instant.now().toString());
 
             final RecordId recordId =
@@ -57,13 +59,13 @@ public class RedisEventPublisher implements EventPublisher {
     }
 
     @Override
-    public void publishScreenshotRefreshRequested(final ScreenshotRefreshEvent event) {
+    public void publishScreenshotRefreshRequested(final ScreenshotRefreshRequestedEvent event) {
         try {
             final Map<String, String> eventData = new HashMap<>();
             eventData.put("eventType", "screenshot.refresh.requested");
-            eventData.put("linkId", event.linkId());
+            eventData.put("linkId", event.linkId().toString());
             eventData.put("url", event.url());
-            eventData.put("stashId", event.stashId());
+            eventData.put("stashId", event.stashId().toString());
             eventData.put("timestamp", Instant.now().toString());
 
             final RecordId recordId =

@@ -10,20 +10,14 @@ import com.linkpouch.stash.domain.model.Link;
 /** Driven Port: Link Repository */
 public interface LinkRepository {
 
-    /** Save a link (create or update). */
-    Link save(Link link);
-
     /** Find a link by ID. */
     Optional<Link> findById(UUID id);
 
-    /** Find all links in a stash, ordered by creation date descending. */
+    /** Find all links in a stash, ordered by position ascending. */
     List<Link> findByStashIdOrderByCreatedAtDesc(UUID stashId);
 
     /** Search links using PostgreSQL full-text search. */
     List<Link> searchByStashIdAndQuery(UUID stashId, String query);
-
-    /** Delete a link by ID. */
-    void deleteById(UUID id);
 
     /** Find a paginated slice of links in a stash, ordered by position ascending. */
     List<Link> findByStashIdPaged(UUID stashId, int page, int size);
