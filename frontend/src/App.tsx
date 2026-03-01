@@ -3,9 +3,7 @@ import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-route
 import { QueryClient, QueryClientProvider, useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import HomePage from './pages/HomePage';
 import StashAccessPage from './pages/StashAccessPage';
-import DemoButton from './components/DemoButton';
 import ThemeToggle from './components/ThemeToggle';
-import { features } from './features';
 import { StashSearchContext } from './contexts/stashSearch';
 import { ThemeProvider } from './contexts/theme';
 import { stashApi } from './services/api';
@@ -204,13 +202,6 @@ function AppContent() {
             <ThemeToggle />
           </div>
 
-          {/* Demo button — desktop only, gated by feature flag */}
-          {features.demoButton && isStashPage && stashId && signature && (
-            <div className="hidden md:block">
-              <DemoButton stashId={stashId} signature={signature} />
-            </div>
-          )}
-
           {/* Hamburger — mobile only */}
           <button
             className="md:hidden p-2 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
@@ -274,13 +265,7 @@ function AppContent() {
                   <ThemeToggle />
                 </div>
 
-                {/* Demo button */}
-                {features.demoButton && isStashPage && stashId && signature && (
-                  <>
-                    <div className="border-t border-slate-100 dark:border-slate-800 -mx-3" />
-                    <DemoButton stashId={stashId} signature={signature} />
-                  </>
-                )}
+
               </div>
             </>
           )}

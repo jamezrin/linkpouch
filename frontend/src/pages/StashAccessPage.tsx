@@ -24,6 +24,8 @@ import { Link as LinkType } from '../types';
 import { useStashSearch } from '../contexts/stashSearch';
 import { ArchiveSnapshotPicker } from '../components/ArchiveSnapshotPicker';
 import { BulkImportModal } from '../components/BulkImportModal';
+import DemoButton from '../components/DemoButton';
+import { features } from '../features';
 import { useStashEvents } from '../hooks/useStashEvents';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -1101,6 +1103,11 @@ export default function StashAccessPage() {
               <p className="text-slate-400 dark:text-slate-500 text-sm">
                 {isSearching ? 'No links match your search' : 'No links yet — paste one below'}
               </p>
+              {!isSearching && features.demoButton && stashId && signature && (
+                <div className="mt-3">
+                  <DemoButton stashId={stashId} signature={signature} />
+                </div>
+              )}
             </div>
           ) : (
             <>

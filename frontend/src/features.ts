@@ -6,6 +6,6 @@
  * literal with e.g.:  import.meta.env.VITE_FEATURE_DEMO_BUTTON === 'true'
  */
 export const features = {
-  /** Show the sparkle "Add demo links" button in the app header on pouch pages */
+  /** Show the sparkle "Add demo links" button in the sidebar empty state */
   demoButton: true,
 } as const;
