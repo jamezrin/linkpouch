@@ -61,7 +61,7 @@ jobs:
       - name: Install parent modules
         working-directory: services/stash-service
         run: |
-          mvn install -DskipTests -pl domain,application,infrastructure-redis,infrastructure-persistence -B -q
+          mvn install -DskipTests -pl domain,application,infrastructure-redis -B -q
 
       - name: Wait for PostgreSQL
         run: |
@@ -162,7 +162,7 @@ jobs:
       - name: Install parent modules
         working-directory: services/stash-service
         run: |
-          mvn install -DskipTests -pl domain,application,infrastructure-redis,infrastructure-persistence -B -q
+          mvn install -DskipTests -pl domain,application,infrastructure-redis -B -q
 
       - name: Run Flyway migrations
         working-directory: services/stash-service/infrastructure-persistence
