@@ -47,7 +47,7 @@
         <jooq.codegen.skip>false</jooq.codegen.skip>
         <!-- Spotless formatter -->
         <spotless.version>2.44.3</spotless.version>
-        <google-java-format.version>1.25.2</google-java-format.version>
+        <palantir-java-format.version>2.89.0</palantir-java-format.version>
         <error-prone.version>2.36.0</error-prone.version>
         <rewrite-maven-plugin.version>6.2.2</rewrite-maven-plugin.version>
         <rewrite-java.version>8.47.3</rewrite-java.version>
@@ -149,12 +149,11 @@
                 <artifactId>spotless-maven-plugin</artifactId>
                 <configuration>
                     <java>
-                        <!-- Use google-java-format for consistent formatting -->
-                        <googleJavaFormat>
-                            <version>${google-java-format.version}</version>
-                            <style>AOSP</style>
-                            <reflowLongStrings>true</reflowLongStrings>
-                        </googleJavaFormat>
+                        <!-- Use palantir-java-format for consistent 4-space formatting -->
+                        <palantirJavaFormat>
+                            <version>${palantir-java-format.version}</version>
+                            <style>PALANTIR</style>
+                        </palantirJavaFormat>
 
                         <!-- Remove unused imports -->
                         <removeUnusedImports>

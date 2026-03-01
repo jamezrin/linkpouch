@@ -26,8 +26,7 @@ import lombok.RequiredArgsConstructor;
  */
 @UseCase
 @RequiredArgsConstructor
-public class StashManagementService
-        implements CreateStashUseCase, UpdateStashNameUseCase, DeleteStashUseCase {
+public class StashManagementService implements CreateStashUseCase, UpdateStashNameUseCase, DeleteStashUseCase {
 
     private final StashRepository stashRepository;
 
@@ -47,11 +46,9 @@ public class StashManagementService
     @Override
     @Transactional
     public Stash execute(final UUID stashId, final String newName) {
-        final Stash stash =
-                stashRepository
-                        .findById(stashId)
-                        .orElseThrow(
-                                () -> new NotFoundException("Stash not found: " + stashId));
+        final Stash stash = stashRepository
+                .findById(stashId)
+                .orElseThrow(() -> new NotFoundException("Stash not found: " + stashId));
         stash.updateName(newName);
         return stashRepository.save(stash);
     }

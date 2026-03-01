@@ -61,53 +61,42 @@ public class LinkController implements LinksApi {
 
     @Override
     public ResponseEntity<AddLinksBatchResponseDTO> addLinksBatch(
-            final UUID stashId,
-            final String xStashSignature,
-            final AddLinksBatchRequestDTO addLinksBatchRequestDTO) {
-        final var stash =
-                findStashByIdQuery
-                        .execute(stashId)
-                        .orElseThrow(() -> new NotFoundException("Stash not found: " + stashId));
+            final UUID stashId, final String xStashSignature, final AddLinksBatchRequestDTO addLinksBatchRequestDTO) {
+        final var stash = findStashByIdQuery
+                .execute(stashId)
+                .orElseThrow(() -> new NotFoundException("Stash not found: " + stashId));
 
-        if (!signatureService.validateSignature(
-                stashId, stash.getSecretKey().getValue(), xStashSignature)) {
+        if (!signatureService.validateSignature(stashId, stash.getSecretKey().getValue(), xStashSignature)) {
             throw new UnauthorizedException("Invalid signature");
         }
 
         final var result =
-                addLinksBatchUseCase.execute(
-                        new AddLinksBatchCommand(stashId, addLinksBatchRequestDTO.getUrls()));
+                addLinksBatchUseCase.execute(new AddLinksBatchCommand(stashId, addLinksBatchRequestDTO.getUrls()));
 
         final var response = new AddLinksBatchResponseDTO();
         response.setImported(result.imported());
         response.setSkipped(result.skipped());
         response.setLinks(result.links().stream().map(this::toResponse).toList());
-        response.setErrors(
-                result.errors().stream()
-                        .map(
-                                e -> {
-                                    final var err = new BatchImportErrorDTO();
-                                    err.setUrl(e.url());
-                                    err.setReason(e.reason());
-                                    return err;
-                                })
-                        .toList());
+        response.setErrors(result.errors().stream()
+                .map(e -> {
+                    final var err = new BatchImportErrorDTO();
+                    err.setUrl(e.url());
+                    err.setReason(e.reason());
+                    return err;
+                })
+                .toList());
 
         return ResponseEntity.status(HttpStatus.MULTI_STATUS).body(response);
     }
 
     @Override
     public ResponseEntity<LinkResponseDTO> addLink(
-            final UUID stashId,
-            final String xStashSignature,
-            final AddLinkRequestDTO addLinkRequestDTO) {
-        final var stash =
-                findStashByIdQuery
-                        .execute(stashId)
-                        .orElseThrow(() -> new NotFoundException("Stash not found: " + stashId));
+            final UUID stashId, final String xStashSignature, final AddLinkRequestDTO addLinkRequestDTO) {
+        final var stash = findStashByIdQuery
+                .execute(stashId)
+                .orElseThrow(() -> new NotFoundException("Stash not found: " + stashId));
 
-        if (!signatureService.validateSignature(
-                stashId, stash.getSecretKey().getValue(), xStashSignature)) {
+        if (!signatureService.validateSignature(stashId, stash.getSecretKey().getValue(), xStashSignature)) {
             throw new UnauthorizedException("Invalid signature");
         }
 
@@ -118,22 +107,17 @@ public class LinkController implements LinksApi {
     }
 
     @Override
-    public ResponseEntity<Void> deleteLink(
-            final UUID stashId, final String xStashSignature, final UUID linkId) {
-        final var stash =
-                findStashByIdQuery
-                        .execute(stashId)
-                        .orElseThrow(() -> new NotFoundException("Stash not found: " + stashId));
+    public ResponseEntity<Void> deleteLink(final UUID stashId, final String xStashSignature, final UUID linkId) {
+        final var stash = findStashByIdQuery
+                .execute(stashId)
+                .orElseThrow(() -> new NotFoundException("Stash not found: " + stashId));
 
-        if (!signatureService.validateSignature(
-                stashId, stash.getSecretKey().getValue(), xStashSignature)) {
+        if (!signatureService.validateSignature(stashId, stash.getSecretKey().getValue(), xStashSignature)) {
             throw new UnauthorizedException("Invalid signature");
         }
 
         final var link =
-                findLinkByIdQuery
-                        .execute(linkId)
-                        .orElseThrow(() -> new NotFoundException("Link not found: " + linkId));
+                findLinkByIdQuery.execute(linkId).orElseThrow(() -> new NotFoundException("Link not found: " + linkId));
 
         if (!link.getStashId().equals(stashId)) {
             throw new ForbiddenException("Link does not belong to this stash");
@@ -150,13 +134,11 @@ public class LinkController implements LinksApi {
             final String search,
             final Integer page,
             final Integer size) {
-        final var stash =
-                findStashByIdQuery
-                        .execute(stashId)
-                        .orElseThrow(() -> new NotFoundException("Stash not found: " + stashId));
+        final var stash = findStashByIdQuery
+                .execute(stashId)
+                .orElseThrow(() -> new NotFoundException("Stash not found: " + stashId));
 
-        if (!signatureService.validateSignature(
-                stashId, stash.getSecretKey().getValue(), xStashSignature)) {
+        if (!signatureService.validateSignature(stashId, stash.getSecretKey().getValue(), xStashSignature)) {
             throw new UnauthorizedException("Invalid signature");
         }
 
@@ -173,22 +155,17 @@ public class LinkController implements LinksApi {
     }
 
     @Override
-    public ResponseEntity<Void> refreshScreenshot(
-            final UUID stashId, final String xStashSignature, final UUID linkId) {
-        final var stash =
-                findStashByIdQuery
-                        .execute(stashId)
-                        .orElseThrow(() -> new NotFoundException("Stash not found: " + stashId));
+    public ResponseEntity<Void> refreshScreenshot(final UUID stashId, final String xStashSignature, final UUID linkId) {
+        final var stash = findStashByIdQuery
+                .execute(stashId)
+                .orElseThrow(() -> new NotFoundException("Stash not found: " + stashId));
 
-        if (!signatureService.validateSignature(
-                stashId, stash.getSecretKey().getValue(), xStashSignature)) {
+        if (!signatureService.validateSignature(stashId, stash.getSecretKey().getValue(), xStashSignature)) {
             throw new UnauthorizedException("Invalid signature");
         }
 
         final var link =
-                findLinkByIdQuery
-                        .execute(linkId)
-                        .orElseThrow(() -> new NotFoundException("Link not found: " + linkId));
+                findLinkByIdQuery.execute(linkId).orElseThrow(() -> new NotFoundException("Link not found: " + linkId));
 
         if (!link.getStashId().equals(stashId)) {
             throw new ForbiddenException("Link does not belong to this stash");
@@ -200,29 +177,23 @@ public class LinkController implements LinksApi {
 
     @Override
     public ResponseEntity<LinkResponseDTO> updateLinkMetadata(
-            final UUID linkId,
-            final String xIndexerSecret,
-            final UpdateLinkMetadataRequestDTO dto) {
+            final UUID linkId, final String xIndexerSecret, final UpdateLinkMetadataRequestDTO dto) {
         if (!indexerCallbackSecret.equals(xIndexerSecret)) {
             throw new UnauthorizedException("Invalid indexer secret");
         }
-        final var link =
-                updateLinkMetadataUseCase.execute(
-                        new UpdateLinkMetadataCommand(
-                                linkId,
-                                dto.getTitle(),
-                                dto.getDescription(),
-                                dto.getFaviconUrl(),
-                                dto.getPageContent(),
-                                dto.getFinalUrl()));
+        final var link = updateLinkMetadataUseCase.execute(new UpdateLinkMetadataCommand(
+                linkId,
+                dto.getTitle(),
+                dto.getDescription(),
+                dto.getFaviconUrl(),
+                dto.getPageContent(),
+                dto.getFinalUrl()));
         return ResponseEntity.ok(toResponse(link));
     }
 
     @Override
     public ResponseEntity<Void> updateLinkStatus(
-            final UUID linkId,
-            final String xIndexerSecret,
-            final UpdateLinkStatusRequestDTO dto) {
+            final UUID linkId, final String xIndexerSecret, final UpdateLinkStatusRequestDTO dto) {
         if (!indexerCallbackSecret.equals(xIndexerSecret)) {
             throw new UnauthorizedException("Invalid indexer secret");
         }
@@ -238,9 +209,7 @@ public class LinkController implements LinksApi {
 
     @Override
     public ResponseEntity<LinkResponseDTO> updateLinkScreenshot(
-            final UUID linkId,
-            final String xIndexerSecret,
-            final UpdateLinkScreenshotRequestDTO dto) {
+            final UUID linkId, final String xIndexerSecret, final UpdateLinkScreenshotRequestDTO dto) {
         if (!indexerCallbackSecret.equals(xIndexerSecret)) {
             throw new UnauthorizedException("Invalid indexer secret");
         }
@@ -250,41 +219,28 @@ public class LinkController implements LinksApi {
 
     @Override
     public ResponseEntity<Void> reorderLinks(
-            final UUID stashId,
-            final String xStashSignature,
-            final ReorderLinksRequestDTO reorderLinksRequestDTO) {
-        final var stash =
-                findStashByIdQuery
-                        .execute(stashId)
-                        .orElseThrow(() -> new NotFoundException("Stash not found: " + stashId));
+            final UUID stashId, final String xStashSignature, final ReorderLinksRequestDTO reorderLinksRequestDTO) {
+        final var stash = findStashByIdQuery
+                .execute(stashId)
+                .orElseThrow(() -> new NotFoundException("Stash not found: " + stashId));
 
-        if (!signatureService.validateSignature(
-                stashId, stash.getSecretKey().getValue(), xStashSignature)) {
+        if (!signatureService.validateSignature(stashId, stash.getSecretKey().getValue(), xStashSignature)) {
             throw new UnauthorizedException("Invalid signature");
         }
 
         final var insertAfterIdNullable = reorderLinksRequestDTO.getInsertAfterId();
         final UUID insertAfterId =
-                insertAfterIdNullable != null && insertAfterIdNullable.isPresent()
-                        ? insertAfterIdNullable.get()
-                        : null;
+                insertAfterIdNullable != null && insertAfterIdNullable.isPresent() ? insertAfterIdNullable.get() : null;
         reorderLinksUseCase.execute(
-                new ReorderLinksCommand(
-                        stashId, reorderLinksRequestDTO.getLinkIds(), insertAfterId));
+                new ReorderLinksCommand(stashId, reorderLinksRequestDTO.getLinkIds(), insertAfterId));
         return ResponseEntity.noContent().build();
     }
 
     private LinkResponseDTO toResponse(final Link link) {
         final var dto = mapper.mapOut(link);
         if (link.getScreenshotKey() != null) {
-            dto.setScreenshotUrl(
-                    URI.create(
-                            baseUrl
-                                    + "/api/stashes/"
-                                    + link.getStashId()
-                                    + "/links/"
-                                    + link.getId()
-                                    + "/screenshot"));
+            dto.setScreenshotUrl(URI.create(
+                    baseUrl + "/api/stashes/" + link.getStashId() + "/links/" + link.getId() + "/screenshot"));
         }
         return dto;
     }

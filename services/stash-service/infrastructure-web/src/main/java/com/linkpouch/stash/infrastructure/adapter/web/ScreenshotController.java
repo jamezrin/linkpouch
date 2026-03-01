@@ -46,20 +46,16 @@ public class ScreenshotController {
 
         final String signature = headerSig != null ? headerSig : querySig;
 
-        final var stash =
-                findStashByIdQuery
-                        .execute(stashId)
-                        .orElseThrow(() -> new NotFoundException("Stash not found: " + stashId));
+        final var stash = findStashByIdQuery
+                .execute(stashId)
+                .orElseThrow(() -> new NotFoundException("Stash not found: " + stashId));
 
-        if (!signatureService.validateSignature(
-                stashId, stash.getSecretKey().getValue(), signature)) {
+        if (!signatureService.validateSignature(stashId, stash.getSecretKey().getValue(), signature)) {
             throw new UnauthorizedException("Invalid signature");
         }
 
         final var link =
-                findLinkByIdQuery
-                        .execute(linkId)
-                        .orElseThrow(() -> new NotFoundException("Link not found: " + linkId));
+                findLinkByIdQuery.execute(linkId).orElseThrow(() -> new NotFoundException("Link not found: " + linkId));
 
         if (!link.getStashId().equals(stashId)) {
             throw new ForbiddenException("Link does not belong to this stash");
@@ -70,11 +66,10 @@ public class ScreenshotController {
         }
 
         try {
-            final var request =
-                    GetObjectRequest.builder()
-                            .bucket(s3Bucket)
-                            .key(link.getScreenshotKey().getValue())
-                            .build();
+            final var request = GetObjectRequest.builder()
+                    .bucket(s3Bucket)
+                    .key(link.getScreenshotKey().getValue())
+                    .build();
 
             final byte[] bytes = s3Client.getObjectAsBytes(request).asByteArray();
 

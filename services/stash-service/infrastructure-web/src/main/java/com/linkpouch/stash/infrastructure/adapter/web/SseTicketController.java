@@ -38,13 +38,11 @@ public class SseTicketController {
             @PathVariable("stashId") final UUID stashId,
             @RequestHeader("X-Stash-Signature") final String xStashSignature) {
 
-        final var stash =
-                findStashByIdQuery
-                        .execute(stashId)
-                        .orElseThrow(() -> new NotFoundException("Stash not found: " + stashId));
+        final var stash = findStashByIdQuery
+                .execute(stashId)
+                .orElseThrow(() -> new NotFoundException("Stash not found: " + stashId));
 
-        if (!signatureService.validateSignature(
-                stashId, stash.getSecretKey().getValue(), xStashSignature)) {
+        if (!signatureService.validateSignature(stashId, stash.getSecretKey().getValue(), xStashSignature)) {
             throw new UnauthorizedException("Invalid signature");
         }
 

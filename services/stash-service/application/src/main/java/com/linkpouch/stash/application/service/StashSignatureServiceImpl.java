@@ -26,7 +26,8 @@ import lombok.extern.slf4j.Slf4j;
 public class StashSignatureServiceImpl implements StashSignatureService {
 
     private static final String ALGORITHM = "HmacSHA256";
-    private static final Base64.Encoder BASE64URL_ENCODER = Base64.getUrlEncoder().withoutPadding();
+    private static final Base64.Encoder BASE64URL_ENCODER =
+            Base64.getUrlEncoder().withoutPadding();
 
     private final String masterKey;
     private final String baseUrl;
@@ -35,8 +36,7 @@ public class StashSignatureServiceImpl implements StashSignatureService {
             @Value("${linkpouch.signature.master-key}") final String masterKey,
             @Value("${linkpouch.base-url:http://localhost:8080}") final String baseUrl) {
         if (masterKey == null || masterKey.isBlank()) {
-            throw new IllegalStateException(
-                    "SIGNATURE_MASTER_KEY environment variable must be set to a strong secret");
+            throw new IllegalStateException("SIGNATURE_MASTER_KEY environment variable must be set to a strong secret");
         }
         this.masterKey = masterKey;
         this.baseUrl = baseUrl;
@@ -68,8 +68,7 @@ public class StashSignatureServiceImpl implements StashSignatureService {
     }
 
     @Override
-    public boolean validateSignature(
-            final UUID stashId, final String stashSecretKey, final String signature) {
+    public boolean validateSignature(final UUID stashId, final String stashSecretKey, final String signature) {
         if (signature == null || signature.isEmpty()) {
             return false;
         }
@@ -77,8 +76,7 @@ public class StashSignatureServiceImpl implements StashSignatureService {
         try {
             final String expectedSignature = generateSignature(stashId, stashSecretKey);
             return MessageDigest.isEqual(
-                    signature.getBytes(StandardCharsets.UTF_8),
-                    expectedSignature.getBytes(StandardCharsets.UTF_8));
+                    signature.getBytes(StandardCharsets.UTF_8), expectedSignature.getBytes(StandardCharsets.UTF_8));
         } catch (Exception e) {
             log.warn("Signature validation failed for stash: {}", stashId, e);
             return false;

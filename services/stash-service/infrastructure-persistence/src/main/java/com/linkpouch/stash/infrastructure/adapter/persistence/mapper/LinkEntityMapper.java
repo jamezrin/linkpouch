@@ -9,10 +9,7 @@ import org.mapstruct.MappingTarget;
 import com.linkpouch.stash.domain.model.Link;
 import com.linkpouch.stash.infrastructure.adapter.persistence.jpa.entity.LinkJpaEntity;
 
-@Mapper(
-        componentModel = "spring",
-        uses = ValueObjectMapper.class,
-        config = MappingConfig.class)
+@Mapper(componentModel = "spring", uses = ValueObjectMapper.class, config = MappingConfig.class)
 public interface LinkEntityMapper {
 
     @Mapping(target = "id", source = "id")
