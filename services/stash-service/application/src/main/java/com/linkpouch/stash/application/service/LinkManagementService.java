@@ -59,10 +59,13 @@ public class LinkManagementService implements LinkManagementUseCase {
     @Override
     @Transactional
     public AddLinksBatchResult addLinks(final UUID stashId, final List<String> urls) {
-        if (urls == null || urls.isEmpty()) throw new IllegalArgumentException("urls list must not be empty");
-        if (urls.size() > 100) throw new IllegalArgumentException("urls list must not exceed 100 items");
+        if (urls == null || urls.isEmpty())
+            throw new IllegalArgumentException("urls list must not be empty");
+        if (urls.size() > 100)
+            throw new IllegalArgumentException("urls list must not exceed 100 items");
 
-        stashRepository.findById(stashId)
+        stashRepository
+                .findById(stashId)
                 .orElseThrow(() -> new NotFoundException("Stash not found: " + stashId));
 
         final Set<String> existingUrls = linkRepository.findUrlsByStashId(stashId);
@@ -105,7 +108,8 @@ public class LinkManagementService implements LinkManagementUseCase {
                             s.getId().toString(), s.getUrl().getValue(), stashId.toString()));
         }
 
-        return new AddLinksBatchResult(validUrls.size(), urls.size() - validUrls.size(), errors, saved);
+        return new AddLinksBatchResult(
+                validUrls.size(), urls.size() - validUrls.size(), errors, saved);
     }
 
     @Override

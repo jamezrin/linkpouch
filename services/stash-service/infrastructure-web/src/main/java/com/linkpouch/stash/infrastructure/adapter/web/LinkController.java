@@ -62,12 +62,16 @@ public class LinkController implements LinksApi {
         response.setImported(result.imported());
         response.setSkipped(result.skipped());
         response.setLinks(result.links().stream().map(this::toResponse).toList());
-        response.setErrors(result.errors().stream().map(e -> {
-            final var err = new BatchImportErrorDTO();
-            err.setUrl(e.url());
-            err.setReason(e.reason());
-            return err;
-        }).toList());
+        response.setErrors(
+                result.errors().stream()
+                        .map(
+                                e -> {
+                                    final var err = new BatchImportErrorDTO();
+                                    err.setUrl(e.url());
+                                    err.setReason(e.reason());
+                                    return err;
+                                })
+                        .toList());
 
         return ResponseEntity.status(HttpStatus.MULTI_STATUS).body(response);
     }

@@ -147,7 +147,10 @@ public class LinkJooqAdapter implements LinkRepository {
     @Override
     public Set<String> findUrlsByStashId(final UUID stashId) {
         return new HashSet<>(
-                dsl.select(LINKS.URL).from(LINKS).where(LINKS.STASH_ID.eq(stashId)).fetch(LINKS.URL));
+                dsl.select(LINKS.URL)
+                        .from(LINKS)
+                        .where(LINKS.STASH_ID.eq(stashId))
+                        .fetch(LINKS.URL));
     }
 
     @Override
