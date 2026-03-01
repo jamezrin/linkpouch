@@ -61,6 +61,10 @@ public class Link {
     }
 
     public static Link create(final UUID stashId, final String url) {
+        return create(stashId, url, 0);
+    }
+
+    public static Link create(final UUID stashId, final String url, final int position) {
         return new Link(
                 null,
                 stashId,
@@ -74,7 +78,7 @@ public class Link {
                 null,
                 null,
                 null,
-                0,
+                position,
                 LinkStatus.PENDING);
     }
 

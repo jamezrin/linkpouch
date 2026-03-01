@@ -57,3 +57,19 @@ export interface EmbeddabilityCheckResponse {
   embeddable: boolean;
   reason?: string;
 }
+
+export interface BulkImportError {
+  url: string;
+  reason: string;
+}
+
+export interface BulkImportRequest {
+  urls: string[];
+}
+
+export interface BulkImportResponse {
+  imported: number;
+  skipped: number;
+  errors: BulkImportError[];
+  links: Link[];
+}

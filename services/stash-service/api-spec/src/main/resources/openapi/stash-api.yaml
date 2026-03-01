@@ -263,6 +263,48 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
+  /stashes/{stashId}/links/batch:
+    parameters:
+      - name: stashId
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+      - name: X-Stash-Signature
+        in: header
+        required: true
+        schema: { type: string }
+        description: HMAC-SHA256 signature for stash access
+    post:
+      summary: Add multiple links to stash in bulk
+      operationId: addLinksBatch
+      tags: [Links]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/AddLinksBatchRequest' }
+      responses:
+        '207':
+          description: Bulk import completed (partial success possible)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AddLinksBatchResponse' }
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+        '401':
+          description: Invalid or missing signature
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+        '404':
+          description: Stash not found
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+
   /stashes/{stashId}/links/{linkId}:
     parameters:
       - name: stashId
@@ -699,6 +741,34 @@ components:
           type: boolean
         reason:
           type: string
+
+    AddLinksBatchRequest:
+      type: object
+      required: [urls]
+      properties:
+        urls:
+          type: array
+          items: { type: string }
+          minItems: 1
+          maxItems: 100
+
+    BatchImportError:
+      type: object
+      properties:
+        url: { type: string }
+        reason: { type: string }
+
+    AddLinksBatchResponse:
+      type: object
+      properties:
+        imported: { type: integer }
+        skipped: { type: integer }
+        errors:
+          type: array
+          items: { $ref: '#/components/schemas/BatchImportError' }
+        links:
+          type: array
+          items: { $ref: '#/components/schemas/LinkResponse' }
 
     ErrorResponse:
       type: object

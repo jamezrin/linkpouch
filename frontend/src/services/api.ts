@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { Stash, Link, PagedLinkResponse, CreateStashRequest, AddLinkRequest, EmbeddabilityCheckResponse } from '../types';
+import { Stash, Link, PagedLinkResponse, CreateStashRequest, AddLinkRequest, EmbeddabilityCheckResponse, BulkImportRequest, BulkImportResponse } from '../types';
 
 const api = axios.create({
   baseURL: '/api',
@@ -73,6 +73,11 @@ export const linkApi = {
 
   reorderLinks: (stashId: string, signature: string, linkIds: string[], insertAfterId: string | null) =>
     api.patch(`/stashes/${stashId}/links`, { linkIds, insertAfterId }, {
+      headers: { 'X-Stash-Signature': signature },
+    }),
+
+  addLinksBatch: (stashId: string, signature: string, data: BulkImportRequest) =>
+    api.post<BulkImportResponse>(`/stashes/${stashId}/links/batch`, data, {
       headers: { 'X-Stash-Signature': signature },
     }),
 };

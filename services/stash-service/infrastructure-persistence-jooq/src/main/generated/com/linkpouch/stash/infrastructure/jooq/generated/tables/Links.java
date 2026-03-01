@@ -137,6 +137,11 @@ public class Links extends TableImpl<LinksRecord> {
      */
     public final TableField<LinksRecord, Integer> POSITION = createField(DSL.name("position"), SQLDataType.INTEGER.nullable(false).defaultValue(DSL.field(DSL.raw("0"), SQLDataType.INTEGER)), this, "");
 
+    /**
+     * The column <code>public.links.status</code>.
+     */
+    public final TableField<LinksRecord, String> STATUS = createField(DSL.name("status"), SQLDataType.CLOB.nullable(false).defaultValue(DSL.field(DSL.raw("'PENDING'::text"), SQLDataType.CLOB)), this, "");
+
     private Links(Name alias, Table<LinksRecord> aliased) {
         this(alias, aliased, (Field<?>[]) null, null);
     }
