@@ -58,9 +58,10 @@ const DEMO_URLS = [
 interface DemoButtonProps {
   stashId: string;
   signature: string;
+  variant?: 'button' | 'inline';
 }
 
-export default function DemoButton({ stashId, signature }: DemoButtonProps) {
+export default function DemoButton({ stashId, signature, variant = 'button' }: DemoButtonProps) {
   const queryClient = useQueryClient();
   const [isLoading, setIsLoading] = useState(false);
 
@@ -74,6 +75,19 @@ export default function DemoButton({ stashId, signature }: DemoButtonProps) {
     await queryClient.invalidateQueries({ queryKey: ['links', stashId] });
     setIsLoading(false);
   };
+
+  if (variant === 'inline') {
+    return (
+      <button
+        type="button"
+        onClick={handleClick}
+        disabled={isLoading}
+        className="italic underline underline-offset-2 decoration-dotted hover:text-slate-600 dark:hover:text-slate-300 disabled:cursor-not-allowed transition-colors"
+      >
+        {isLoading ? 'adding…' : 'add some examples'}
+      </button>
+    );
+  }
 
   return (
     <button
@@ -89,7 +103,6 @@ export default function DemoButton({ stashId, signature }: DemoButtonProps) {
         </>
       ) : (
         <>
-          {/* Heroicons sparkles */}
           <svg
             className="w-3.5 h-3.5 flex-shrink-0"
             fill="none"

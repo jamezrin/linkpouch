@@ -1104,9 +1104,9 @@ export default function StashAccessPage() {
                 {isSearching ? 'No links match your search' : 'No links yet — paste one below'}
               </p>
               {!isSearching && features.demoButton && stashId && signature && (
-                <div className="mt-3">
-                  <DemoButton stashId={stashId} signature={signature} />
-                </div>
+                <p className="text-slate-400 dark:text-slate-500 text-sm mt-1">
+                  Or <DemoButton stashId={stashId} signature={signature} variant="inline" />
+                </p>
               )}
             </div>
           ) : (
