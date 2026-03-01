@@ -10,14 +10,27 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.linkpouch.stash.api.controller.LinksApi;
 import com.linkpouch.stash.api.model.*;
-import com.linkpouch.stash.application.exception.ForbiddenException;
-import com.linkpouch.stash.application.exception.NotFoundException;
-import com.linkpouch.stash.application.exception.UnauthorizedException;
-import com.linkpouch.stash.application.service.LinkManagementService;
-import com.linkpouch.stash.application.service.SignatureValidationService;
-import com.linkpouch.stash.application.service.StashManagementService;
+import com.linkpouch.stash.domain.exception.ForbiddenException;
+import com.linkpouch.stash.domain.exception.NotFoundException;
+import com.linkpouch.stash.domain.exception.UnauthorizedException;
 import com.linkpouch.stash.domain.model.Link;
 import com.linkpouch.stash.domain.model.LinkStatus;
+import com.linkpouch.stash.domain.port.in.AddLinkCommand;
+import com.linkpouch.stash.domain.port.in.AddLinkUseCase;
+import com.linkpouch.stash.domain.port.in.AddLinksBatchCommand;
+import com.linkpouch.stash.domain.port.in.AddLinksBatchUseCase;
+import com.linkpouch.stash.domain.port.in.DeleteLinkUseCase;
+import com.linkpouch.stash.domain.port.in.FindLinkByIdQuery;
+import com.linkpouch.stash.domain.port.in.FindStashByIdQuery;
+import com.linkpouch.stash.domain.port.in.ListLinksQuery;
+import com.linkpouch.stash.domain.port.in.ReorderLinksCommand;
+import com.linkpouch.stash.domain.port.in.ReorderLinksUseCase;
+import com.linkpouch.stash.domain.port.in.RequestScreenshotRefreshUseCase;
+import com.linkpouch.stash.domain.port.in.UpdateLinkMetadataCommand;
+import com.linkpouch.stash.domain.port.in.UpdateLinkMetadataUseCase;
+import com.linkpouch.stash.domain.port.in.UpdateLinkScreenshotUseCase;
+import com.linkpouch.stash.domain.port.in.UpdateLinkStatusUseCase;
+import com.linkpouch.stash.domain.service.StashSignatureService;
 import com.linkpouch.stash.infrastructure.adapter.web.mapper.ApiDtoMapper;
 
 import lombok.RequiredArgsConstructor;
@@ -26,9 +39,18 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class LinkController implements LinksApi {
 
-    private final LinkManagementService linkService;
-    private final StashManagementService stashService;
-    private final SignatureValidationService signatureService;
+    private final AddLinkUseCase addLinkUseCase;
+    private final AddLinksBatchUseCase addLinksBatchUseCase;
+    private final DeleteLinkUseCase deleteLinkUseCase;
+    private final UpdateLinkMetadataUseCase updateLinkMetadataUseCase;
+    private final UpdateLinkScreenshotUseCase updateLinkScreenshotUseCase;
+    private final UpdateLinkStatusUseCase updateLinkStatusUseCase;
+    private final RequestScreenshotRefreshUseCase requestScreenshotRefreshUseCase;
+    private final ReorderLinksUseCase reorderLinksUseCase;
+    private final FindLinkByIdQuery findLinkByIdQuery;
+    private final ListLinksQuery listLinksQuery;
+    private final FindStashByIdQuery findStashByIdQuery;
+    private final StashSignatureService signatureService;
     private final ApiDtoMapper mapper;
 
     @Value("${linkpouch.base-url:http://localhost:8080}")
@@ -43,8 +65,8 @@ public class LinkController implements LinksApi {
             final String xStashSignature,
             final AddLinksBatchRequestDTO addLinksBatchRequestDTO) {
         final var stash =
-                stashService
-                        .findStashById(stashId)
+                findStashByIdQuery
+                        .execute(stashId)
                         .orElseThrow(() -> new NotFoundException("Stash not found: " + stashId));
 
         if (!signatureService.validateSignature(
@@ -52,7 +74,9 @@ public class LinkController implements LinksApi {
             throw new UnauthorizedException("Invalid signature");
         }
 
-        final var result = linkService.addLinks(stashId, addLinksBatchRequestDTO.getUrls());
+        final var result =
+                addLinksBatchUseCase.execute(
+                        new AddLinksBatchCommand(stashId, addLinksBatchRequestDTO.getUrls()));
 
         final var response = new AddLinksBatchResponseDTO();
         response.setImported(result.imported());
@@ -78,8 +102,8 @@ public class LinkController implements LinksApi {
             final String xStashSignature,
             final AddLinkRequestDTO addLinkRequestDTO) {
         final var stash =
-                stashService
-                        .findStashById(stashId)
+                findStashByIdQuery
+                        .execute(stashId)
                         .orElseThrow(() -> new NotFoundException("Stash not found: " + stashId));
 
         if (!signatureService.validateSignature(
@@ -87,8 +111,9 @@ public class LinkController implements LinksApi {
             throw new UnauthorizedException("Invalid signature");
         }
 
-        final var request = mapper.mapIn(addLinkRequestDTO);
-        final var link = linkService.addLink(stashId, request.url());
+        final String url =
+                addLinkRequestDTO.getUrl() != null ? addLinkRequestDTO.getUrl().toString() : null;
+        final var link = addLinkUseCase.execute(new AddLinkCommand(stashId, url));
         return ResponseEntity.status(HttpStatus.CREATED).body(toResponse(link));
     }
 
@@ -96,8 +121,8 @@ public class LinkController implements LinksApi {
     public ResponseEntity<Void> deleteLink(
             final UUID stashId, final String xStashSignature, final UUID linkId) {
         final var stash =
-                stashService
-                        .findStashById(stashId)
+                findStashByIdQuery
+                        .execute(stashId)
                         .orElseThrow(() -> new NotFoundException("Stash not found: " + stashId));
 
         if (!signatureService.validateSignature(
@@ -106,15 +131,15 @@ public class LinkController implements LinksApi {
         }
 
         final var link =
-                linkService
-                        .findLinkById(linkId)
+                findLinkByIdQuery
+                        .execute(linkId)
                         .orElseThrow(() -> new NotFoundException("Link not found: " + linkId));
 
         if (!link.getStashId().equals(stashId)) {
             throw new ForbiddenException("Link does not belong to this stash");
         }
 
-        linkService.deleteLink(linkId);
+        deleteLinkUseCase.execute(linkId);
         return ResponseEntity.noContent().build();
     }
 
@@ -126,8 +151,8 @@ public class LinkController implements LinksApi {
             final Integer page,
             final Integer size) {
         final var stash =
-                stashService
-                        .findStashById(stashId)
+                findStashByIdQuery
+                        .execute(stashId)
                         .orElseThrow(() -> new NotFoundException("Stash not found: " + stashId));
 
         if (!signatureService.validateSignature(
@@ -135,7 +160,7 @@ public class LinkController implements LinksApi {
             throw new UnauthorizedException("Invalid signature");
         }
 
-        final var pagedResult = linkService.listLinks(stashId, search, page, size);
+        final var pagedResult = listLinksQuery.execute(stashId, search, page, size);
 
         final PagedLinkResponseDTO response = new PagedLinkResponseDTO();
         response.setContent(pagedResult.content().stream().map(this::toResponse).toList());
@@ -151,8 +176,8 @@ public class LinkController implements LinksApi {
     public ResponseEntity<Void> refreshScreenshot(
             final UUID stashId, final String xStashSignature, final UUID linkId) {
         final var stash =
-                stashService
-                        .findStashById(stashId)
+                findStashByIdQuery
+                        .execute(stashId)
                         .orElseThrow(() -> new NotFoundException("Stash not found: " + stashId));
 
         if (!signatureService.validateSignature(
@@ -161,15 +186,15 @@ public class LinkController implements LinksApi {
         }
 
         final var link =
-                linkService
-                        .findLinkById(linkId)
+                findLinkByIdQuery
+                        .execute(linkId)
                         .orElseThrow(() -> new NotFoundException("Link not found: " + linkId));
 
         if (!link.getStashId().equals(stashId)) {
             throw new ForbiddenException("Link does not belong to this stash");
         }
 
-        linkService.requestScreenshotRefresh(linkId);
+        requestScreenshotRefreshUseCase.execute(linkId);
         return ResponseEntity.accepted().build();
     }
 
@@ -182,13 +207,14 @@ public class LinkController implements LinksApi {
             throw new UnauthorizedException("Invalid indexer secret");
         }
         final var link =
-                linkService.updateLinkMetadata(
-                        linkId,
-                        dto.getTitle(),
-                        dto.getDescription(),
-                        dto.getFaviconUrl(),
-                        dto.getPageContent(),
-                        dto.getFinalUrl());
+                updateLinkMetadataUseCase.execute(
+                        new UpdateLinkMetadataCommand(
+                                linkId,
+                                dto.getTitle(),
+                                dto.getDescription(),
+                                dto.getFaviconUrl(),
+                                dto.getPageContent(),
+                                dto.getFinalUrl()));
         return ResponseEntity.ok(toResponse(link));
     }
 
@@ -206,7 +232,7 @@ public class LinkController implements LinksApi {
         } catch (IllegalArgumentException e) {
             throw new IllegalArgumentException("Invalid status value: " + dto.getStatus());
         }
-        linkService.updateLinkStatus(linkId, status);
+        updateLinkStatusUseCase.execute(linkId, status);
         return ResponseEntity.noContent().build();
     }
 
@@ -218,7 +244,7 @@ public class LinkController implements LinksApi {
         if (!indexerCallbackSecret.equals(xIndexerSecret)) {
             throw new UnauthorizedException("Invalid indexer secret");
         }
-        final var link = linkService.updateLinkScreenshot(linkId, dto.getScreenshotKey());
+        final var link = updateLinkScreenshotUseCase.execute(linkId, dto.getScreenshotKey());
         return ResponseEntity.ok(toResponse(link));
     }
 
@@ -228,8 +254,8 @@ public class LinkController implements LinksApi {
             final String xStashSignature,
             final ReorderLinksRequestDTO reorderLinksRequestDTO) {
         final var stash =
-                stashService
-                        .findStashById(stashId)
+                findStashByIdQuery
+                        .execute(stashId)
                         .orElseThrow(() -> new NotFoundException("Stash not found: " + stashId));
 
         if (!signatureService.validateSignature(
@@ -242,7 +268,9 @@ public class LinkController implements LinksApi {
                 insertAfterIdNullable != null && insertAfterIdNullable.isPresent()
                         ? insertAfterIdNullable.get()
                         : null;
-        linkService.reorderLinks(stashId, reorderLinksRequestDTO.getLinkIds(), insertAfterId);
+        reorderLinksUseCase.execute(
+                new ReorderLinksCommand(
+                        stashId, reorderLinksRequestDTO.getLinkIds(), insertAfterId));
         return ResponseEntity.noContent().build();
     }
 

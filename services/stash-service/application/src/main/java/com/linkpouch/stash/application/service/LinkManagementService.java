@@ -7,15 +7,29 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
-import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.linkpouch.stash.application.dto.PagedResult;
-import com.linkpouch.stash.application.exception.NotFoundException;
+import com.linkpouch.stash.application.annotation.UseCase;
+import com.linkpouch.stash.domain.event.LinkAddedEvent;
+import com.linkpouch.stash.domain.event.ScreenshotRefreshRequestedEvent;
+import com.linkpouch.stash.domain.exception.NotFoundException;
 import com.linkpouch.stash.domain.model.Link;
 import com.linkpouch.stash.domain.model.LinkStatus;
+import com.linkpouch.stash.domain.model.Stash;
 import com.linkpouch.stash.domain.model.Url;
-import com.linkpouch.stash.domain.port.inbound.LinkManagementUseCase;
+import com.linkpouch.stash.domain.port.in.AddLinkCommand;
+import com.linkpouch.stash.domain.port.in.AddLinkUseCase;
+import com.linkpouch.stash.domain.port.in.AddLinksBatchCommand;
+import com.linkpouch.stash.domain.port.in.AddLinksBatchUseCase;
+import com.linkpouch.stash.domain.port.in.DeleteLinkUseCase;
+import com.linkpouch.stash.domain.port.in.ListLinksQuery;
+import com.linkpouch.stash.domain.port.in.PagedResult;
+import com.linkpouch.stash.domain.port.in.ReorderLinksCommand;
+import com.linkpouch.stash.domain.port.in.ReorderLinksUseCase;
+import com.linkpouch.stash.domain.port.in.UpdateLinkMetadataCommand;
+import com.linkpouch.stash.domain.port.in.UpdateLinkMetadataUseCase;
+import com.linkpouch.stash.domain.port.in.UpdateLinkScreenshotUseCase;
+import com.linkpouch.stash.domain.port.in.UpdateLinkStatusUseCase;
 import com.linkpouch.stash.domain.port.outbound.EventPublisher;
 import com.linkpouch.stash.domain.port.outbound.LinkRepository;
 import com.linkpouch.stash.domain.port.outbound.LinkStatusBroadcaster;
@@ -27,38 +41,67 @@ import lombok.extern.slf4j.Slf4j;
 /**
  * Application Service: Link Management Implements use cases with transaction boundaries at the
  * application layer.
+ *
+ * <p>Note: FindLinkByIdQuery and RequestScreenshotRefreshUseCase are not implemented directly here
+ * because they conflict with DeleteLinkUseCase over the void/Optional execute(UUID) signature.
+ * Thin adapter beans in this package delegate to the public methods below.
  */
 @Slf4j
-@Service
+@UseCase
 @RequiredArgsConstructor
-public class LinkManagementService implements LinkManagementUseCase {
+public class LinkManagementService
+        implements AddLinkUseCase,
+                AddLinksBatchUseCase,
+                DeleteLinkUseCase,
+                UpdateLinkMetadataUseCase,
+                UpdateLinkScreenshotUseCase,
+                UpdateLinkStatusUseCase,
+                ReorderLinksUseCase,
+                ListLinksQuery {
 
     private final LinkRepository linkRepository;
     private final StashRepository stashRepository;
     private final EventPublisher eventPublisher;
     private final LinkStatusBroadcaster linkStatusBroadcaster;
 
+    // ==================== AddLinkUseCase ====================
+
     @Override
     @Transactional
-    public Link addLink(final UUID stashId, final String url) {
-        stashRepository
-                .findById(stashId)
-                .orElseThrow(() -> new NotFoundException("Stash not found: " + stashId));
+    public Link execute(final AddLinkCommand command) {
+        final Stash stash =
+                stashRepository
+                        .findByIdWithLinks(command.stashId())
+                        .orElseThrow(
+                                () ->
+                                        new NotFoundException(
+                                                "Stash not found: " + command.stashId()));
 
-        linkRepository.shiftPositionsDown(stashId);
-        final Link link = Link.create(stashId, url);
-        final Link saved = linkRepository.save(link);
+        linkRepository.shiftPositionsDown(command.stashId());
+        final Link link = Link.create(command.stashId(), command.url());
+        stash.addLink(link);
+        final Stash saved = stashRepository.save(stash);
+
+        final Link savedLink =
+                saved.getLinks().stream()
+                        .filter(l -> l.getId().equals(link.getId()))
+                        .findFirst()
+                        .orElse(link);
 
         eventPublisher.publishLinkAdded(
-                new EventPublisher.LinkAddedEvent(
-                        saved.getId().toString(), saved.getUrl().getValue(), stashId.toString()));
+                new LinkAddedEvent(savedLink.getId(), command.stashId(), command.url()));
 
-        return saved;
+        return savedLink;
     }
+
+    // ==================== AddLinksBatchUseCase ====================
 
     @Override
     @Transactional
-    public AddLinksBatchResult addLinks(final UUID stashId, final List<String> urls) {
+    public AddLinksBatchResult execute(final AddLinksBatchCommand command) {
+        final UUID stashId = command.stashId();
+        final List<String> urls = command.urls();
+
         if (urls == null || urls.isEmpty())
             throw new IllegalArgumentException("urls list must not be empty");
         if (urls.size() > 100)
@@ -98,92 +141,190 @@ public class LinkManagementService implements LinkManagementUseCase {
 
         linkRepository.shiftPositionsDownBy(stashId, validUrls.size());
 
-        final List<Link> saved = new ArrayList<>();
+        // Reload stash with links AFTER shift so domain-model positions are current
+        final Stash stash =
+                stashRepository
+                        .findByIdWithLinks(stashId)
+                        .orElseThrow(() -> new NotFoundException("Stash not found: " + stashId));
+
+        final List<Link> newLinks = new ArrayList<>();
         for (int i = 0; i < validUrls.size(); i++) {
             final Link link = Link.create(stashId, validUrls.get(i), i);
-            final Link s = linkRepository.save(link);
+            stash.addLink(link);
+            newLinks.add(link);
+        }
+
+        final Stash savedStash = stashRepository.save(stash);
+
+        final List<Link> saved = new ArrayList<>();
+        for (final Link newLink : newLinks) {
+            final Link s =
+                    savedStash.getLinks().stream()
+                            .filter(l -> l.getId().equals(newLink.getId()))
+                            .findFirst()
+                            .orElse(newLink);
             saved.add(s);
             eventPublisher.publishLinkAdded(
-                    new EventPublisher.LinkAddedEvent(
-                            s.getId().toString(), s.getUrl().getValue(), stashId.toString()));
+                    new LinkAddedEvent(s.getId(), stashId, s.getUrl().getValue()));
         }
 
         return new AddLinksBatchResult(
                 validUrls.size(), urls.size() - validUrls.size(), errors, saved);
     }
 
-    @Override
-    @Transactional(readOnly = true)
-    public Optional<Link> findLinkById(final UUID linkId) {
-        return linkRepository.findById(linkId);
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public List<Link> getLinksByStashId(final UUID stashId) {
-        return linkRepository.findByStashIdOrderByCreatedAtDesc(stashId);
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public List<Link> searchLinks(final UUID stashId, final String query) {
-        return linkRepository.searchByStashIdAndQuery(stashId, query);
-    }
+    // ==================== DeleteLinkUseCase ====================
 
     @Override
     @Transactional
-    public void deleteLink(final UUID linkId) {
-        linkRepository.deleteById(linkId);
-    }
-
-    @Override
-    @Transactional
-    public Link updateLinkMetadata(
-            final UUID linkId,
-            final String title,
-            final String description,
-            final String faviconUrl,
-            final String pageContent,
-            final String finalUrl) {
+    public void execute(final UUID linkId) {
         final Link link =
                 linkRepository
                         .findById(linkId)
                         .orElseThrow(() -> new NotFoundException("Link not found: " + linkId));
-        link.updateMetadata(title, description, faviconUrl, pageContent, finalUrl);
-        final Link saved = linkRepository.save(link);
-        linkStatusBroadcaster.broadcastLinkUpdated(saved.getStashId(), saved);
-        return saved;
+
+        final Stash stash =
+                stashRepository
+                        .findByIdWithLinks(link.getStashId())
+                        .orElseThrow(
+                                () ->
+                                        new NotFoundException(
+                                                "Stash not found: " + link.getStashId()));
+
+        stash.removeLink(link);
+        stashRepository.save(stash);
     }
+
+    // ==================== UpdateLinkMetadataUseCase ====================
 
     @Override
     @Transactional
-    public Link updateLinkScreenshot(final UUID linkId, final String screenshotKey) {
+    public Link execute(final UpdateLinkMetadataCommand command) {
+        final Link link =
+                linkRepository
+                        .findById(command.linkId())
+                        .orElseThrow(
+                                () ->
+                                        new NotFoundException(
+                                                "Link not found: " + command.linkId()));
+
+        final Stash stash =
+                stashRepository
+                        .findByIdWithLinks(link.getStashId())
+                        .orElseThrow(
+                                () ->
+                                        new NotFoundException(
+                                                "Stash not found: " + link.getStashId()));
+
+        final Link domainLink =
+                stash.getLinks().stream()
+                        .filter(l -> l.getId().equals(command.linkId()))
+                        .findFirst()
+                        .orElseThrow(
+                                () ->
+                                        new NotFoundException(
+                                                "Link not found in stash: " + command.linkId()));
+
+        domainLink.updateMetadata(
+                command.title(),
+                command.description(),
+                command.faviconUrl(),
+                command.pageContent(),
+                command.finalUrl());
+
+        final Stash saved = stashRepository.save(stash);
+        final Link savedLink =
+                saved.getLinks().stream()
+                        .filter(l -> l.getId().equals(command.linkId()))
+                        .findFirst()
+                        .orElse(domainLink);
+
+        linkStatusBroadcaster.broadcastLinkUpdated(savedLink.getStashId(), savedLink);
+        return savedLink;
+    }
+
+    // ==================== UpdateLinkScreenshotUseCase ====================
+
+    @Override
+    @Transactional
+    public Link execute(final UUID linkId, final String screenshotKey) {
         final Link link =
                 linkRepository
                         .findById(linkId)
                         .orElseThrow(() -> new NotFoundException("Link not found: " + linkId));
-        link.updateScreenshot(screenshotKey);
-        final Link saved = linkRepository.save(link);
-        linkStatusBroadcaster.broadcastLinkUpdated(saved.getStashId(), saved);
-        return saved;
+
+        final Stash stash =
+                stashRepository
+                        .findByIdWithLinks(link.getStashId())
+                        .orElseThrow(
+                                () ->
+                                        new NotFoundException(
+                                                "Stash not found: " + link.getStashId()));
+
+        final Link domainLink =
+                stash.getLinks().stream()
+                        .filter(l -> l.getId().equals(linkId))
+                        .findFirst()
+                        .orElseThrow(
+                                () ->
+                                        new NotFoundException(
+                                                "Link not found in stash: " + linkId));
+
+        domainLink.updateScreenshot(screenshotKey);
+        final Stash saved = stashRepository.save(stash);
+        final Link savedLink =
+                saved.getLinks().stream()
+                        .filter(l -> l.getId().equals(linkId))
+                        .findFirst()
+                        .orElse(domainLink);
+
+        linkStatusBroadcaster.broadcastLinkUpdated(savedLink.getStashId(), savedLink);
+        return savedLink;
     }
+
+    // ==================== UpdateLinkStatusUseCase ====================
 
     @Override
     @Transactional
-    public Link updateLinkStatus(final UUID linkId, final LinkStatus status) {
+    public Link execute(final UUID linkId, final LinkStatus status) {
         final Link link =
                 linkRepository
                         .findById(linkId)
                         .orElseThrow(() -> new NotFoundException("Link not found: " + linkId));
+
+        final Stash stash =
+                stashRepository
+                        .findByIdWithLinks(link.getStashId())
+                        .orElseThrow(
+                                () ->
+                                        new NotFoundException(
+                                                "Stash not found: " + link.getStashId()));
+
+        final Link domainLink =
+                stash.getLinks().stream()
+                        .filter(l -> l.getId().equals(linkId))
+                        .findFirst()
+                        .orElseThrow(
+                                () ->
+                                        new NotFoundException(
+                                                "Link not found in stash: " + linkId));
+
         if (status == LinkStatus.FAILED) {
-            link.markFailed();
+            domainLink.markFailed();
         }
-        final Link saved = linkRepository.save(link);
-        linkStatusBroadcaster.broadcastLinkUpdated(saved.getStashId(), saved);
-        return saved;
+
+        final Stash saved = stashRepository.save(stash);
+        final Link savedLink =
+                saved.getLinks().stream()
+                        .filter(l -> l.getId().equals(linkId))
+                        .findFirst()
+                        .orElse(domainLink);
+
+        linkStatusBroadcaster.broadcastLinkUpdated(savedLink.getStashId(), savedLink);
+        return savedLink;
     }
 
-    @Override
+    // ==================== RequestScreenshotRefreshUseCase (delegated via adapter) ====================
+
     @Transactional
     public void requestScreenshotRefresh(final UUID linkId) {
         log.info("Requesting screenshot refresh for link: {}", linkId);
@@ -193,26 +334,62 @@ public class LinkManagementService implements LinkManagementUseCase {
                         .findById(linkId)
                         .orElseThrow(() -> new NotFoundException("Link not found: " + linkId));
 
-        link.markScreenshotRefreshPending();
-        final Link saved = linkRepository.save(link);
-        linkStatusBroadcaster.broadcastLinkUpdated(saved.getStashId(), saved);
+        final Stash stash =
+                stashRepository
+                        .findByIdWithLinks(link.getStashId())
+                        .orElseThrow(
+                                () ->
+                                        new NotFoundException(
+                                                "Stash not found: " + link.getStashId()));
 
-        log.info("Found link with URL: {}, publishing refresh event", link.getUrl().getValue());
+        final Link domainLink =
+                stash.getLinks().stream()
+                        .filter(l -> l.getId().equals(linkId))
+                        .findFirst()
+                        .orElseThrow(
+                                () ->
+                                        new NotFoundException(
+                                                "Link not found in stash: " + linkId));
+
+        domainLink.markScreenshotRefreshPending();
+        final Stash saved = stashRepository.save(stash);
+        final Link savedLink =
+                saved.getLinks().stream()
+                        .filter(l -> l.getId().equals(linkId))
+                        .findFirst()
+                        .orElse(domainLink);
+
+        linkStatusBroadcaster.broadcastLinkUpdated(savedLink.getStashId(), savedLink);
+
+        log.info(
+                "Found link with URL: {}, publishing refresh event", link.getUrl().getValue());
 
         eventPublisher.publishScreenshotRefreshRequested(
-                new EventPublisher.ScreenshotRefreshEvent(
-                        linkId.toString(), link.getUrl().getValue(), link.getStashId().toString()));
+                new ScreenshotRefreshRequestedEvent(
+                        linkId, link.getStashId(), link.getUrl().getValue()));
     }
+
+    // ==================== FindLinkByIdQuery (delegated via adapter) ====================
+
+    @Transactional(readOnly = true)
+    public Optional<Link> findLinkById(final UUID linkId) {
+        return linkRepository.findById(linkId);
+    }
+
+    // ==================== ReorderLinksUseCase ====================
 
     @Override
     @Transactional
-    public void reorderLinks(
-            final UUID stashId, final List<UUID> movedLinkIds, final UUID insertAfterId) {
-        linkRepository.reorderLinks(stashId, movedLinkIds, insertAfterId);
+    public void execute(final ReorderLinksCommand command) {
+        linkRepository.reorderLinks(
+                command.stashId(), command.movedLinkIds(), command.insertAfterId());
     }
 
+    // ==================== ListLinksQuery ====================
+
+    @Override
     @Transactional(readOnly = true)
-    public PagedResult<Link> listLinks(
+    public PagedResult<Link> execute(
             final UUID stashId, final String search, final int page, final int size) {
         if (page < 0) {
             throw new IllegalArgumentException("page must be >= 0");
@@ -225,7 +402,7 @@ public class LinkManagementService implements LinkManagementUseCase {
         }
 
         if (search != null && !search.isEmpty()) {
-            final List<Link> results = searchLinks(stashId, search);
+            final List<Link> results = linkRepository.searchByStashIdAndQuery(stashId, search);
             final int totalElements = results.size();
             final int totalPages = (int) Math.ceil((double) totalElements / size);
             final int fromIndex = page * size;

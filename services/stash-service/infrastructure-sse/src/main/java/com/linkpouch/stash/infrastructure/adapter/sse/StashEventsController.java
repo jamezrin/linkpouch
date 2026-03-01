@@ -8,8 +8,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
-import com.linkpouch.stash.application.exception.UnauthorizedException;
-import com.linkpouch.stash.application.service.SseTicketService;
+import com.linkpouch.stash.domain.exception.UnauthorizedException;
+import com.linkpouch.stash.domain.port.outbound.SseTicketPort;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -30,7 +30,7 @@ public class StashEventsController {
     /** 10 minutes in milliseconds. EventSource auto-reconnects after timeout. */
     private static final long SSE_TIMEOUT_MS = 10L * 60 * 1_000;
 
-    private final SseTicketService sseTicketService;
+    private final SseTicketPort sseTicketPort;
     private final SseConnectionRegistry registry;
 
     @GetMapping(value = "/stashes/{stashId}/events")
@@ -38,7 +38,7 @@ public class StashEventsController {
             @PathVariable("stashId") final UUID stashId,
             @RequestParam(name = "ticket") final String ticket) {
 
-        final var ticketStashId = sseTicketService.validate(ticket);
+        final var ticketStashId = sseTicketPort.validate(ticket);
 
         if (ticketStashId.isEmpty() || !ticketStashId.get().equals(stashId)) {
             throw new UnauthorizedException("Invalid or expired SSE ticket");

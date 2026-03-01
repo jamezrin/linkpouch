@@ -8,8 +8,7 @@ COPY pom.xml .
 COPY api-spec/pom.xml api-spec/
 COPY domain/pom.xml domain/
 COPY application/pom.xml application/
-COPY infrastructure-persistence-jpa/pom.xml infrastructure-persistence-jpa/
-COPY infrastructure-persistence-jooq/pom.xml infrastructure-persistence-jooq/
+COPY infrastructure-persistence/pom.xml infrastructure-persistence/
 COPY infrastructure-redis/pom.xml infrastructure-redis/
 COPY infrastructure-http/pom.xml infrastructure-http/
 COPY infrastructure-web/pom.xml infrastructure-web/
@@ -23,16 +22,12 @@ RUN mvn dependency:go-offline -B
 COPY api-spec/src api-spec/src
 COPY domain/src domain/src
 COPY application/src application/src
-COPY infrastructure-persistence-jpa/src infrastructure-persistence-jpa/src
-COPY infrastructure-persistence-jooq/src infrastructure-persistence-jooq/src
+COPY infrastructure-persistence/src infrastructure-persistence/src
 COPY infrastructure-redis/src infrastructure-redis/src
 COPY infrastructure-http/src infrastructure-http/src
 COPY infrastructure-web/src infrastructure-web/src
 COPY infrastructure-sse/src infrastructure-sse/src
 COPY boot/src boot/src
-
-# Copy Flyway migrations
-COPY infrastructure-persistence-jpa/src/main/resources/db/migration infrastructure-persistence-jpa/src/main/resources/db/migration
 
 # Build (jOOQ sources are pre-generated in src/main/generated, codegen skipped)
 RUN mvn package -DskipTests -Djooq.codegen.skip=true -B

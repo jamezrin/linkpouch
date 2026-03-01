@@ -19,6 +19,12 @@
         <!-- Internal modules -->
         <dependency>
             <groupId>com.linkpouch</groupId>
+            <artifactId>application</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.linkpouch</groupId>
             <artifactId>infrastructure-web</artifactId>
             <version>${project.version}</version>
         </dependency>
@@ -43,13 +49,7 @@
 
         <dependency>
             <groupId>com.linkpouch</groupId>
-            <artifactId>infrastructure-persistence-jpa</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-
-        <dependency>
-            <groupId>com.linkpouch</groupId>
-            <artifactId>infrastructure-persistence-jooq</artifactId>
+            <artifactId>infrastructure-persistence</artifactId>
             <version>${project.version}</version>
         </dependency>
 

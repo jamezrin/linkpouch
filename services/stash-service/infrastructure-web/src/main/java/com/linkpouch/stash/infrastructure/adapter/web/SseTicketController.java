@@ -8,11 +8,11 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.linkpouch.stash.application.exception.NotFoundException;
-import com.linkpouch.stash.application.exception.UnauthorizedException;
-import com.linkpouch.stash.application.service.SignatureValidationService;
-import com.linkpouch.stash.application.service.SseTicketService;
-import com.linkpouch.stash.application.service.StashManagementService;
+import com.linkpouch.stash.domain.exception.NotFoundException;
+import com.linkpouch.stash.domain.exception.UnauthorizedException;
+import com.linkpouch.stash.domain.port.in.FindStashByIdQuery;
+import com.linkpouch.stash.domain.port.outbound.SseTicketPort;
+import com.linkpouch.stash.domain.service.StashSignatureService;
 
 import lombok.RequiredArgsConstructor;
 
@@ -27,9 +27,9 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class SseTicketController {
 
-    private final StashManagementService stashService;
-    private final SignatureValidationService signatureService;
-    private final SseTicketService sseTicketService;
+    private final FindStashByIdQuery findStashByIdQuery;
+    private final StashSignatureService signatureService;
+    private final SseTicketPort sseTicketPort;
 
     public record SseTicketResponse(String ticket, int expiresIn) {}
 
@@ -39,8 +39,8 @@ public class SseTicketController {
             @RequestHeader("X-Stash-Signature") final String xStashSignature) {
 
         final var stash =
-                stashService
-                        .findStashById(stashId)
+                findStashByIdQuery
+                        .execute(stashId)
                         .orElseThrow(() -> new NotFoundException("Stash not found: " + stashId));
 
         if (!signatureService.validateSignature(
@@ -48,7 +48,7 @@ public class SseTicketController {
             throw new UnauthorizedException("Invalid signature");
         }
 
-        final String ticket = sseTicketService.issue(stashId);
+        final String ticket = sseTicketPort.issue(stashId);
         return ResponseEntity.ok(new SseTicketResponse(ticket, 900));
     }
 }

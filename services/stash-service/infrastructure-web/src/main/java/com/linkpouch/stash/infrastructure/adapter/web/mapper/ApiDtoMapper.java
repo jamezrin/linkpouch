@@ -8,29 +8,33 @@ import java.util.List;
 
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
-import org.mapstruct.Named;
 
 import com.linkpouch.stash.api.model.*;
-import com.linkpouch.stash.application.dto.AddLinkRequest;
-import com.linkpouch.stash.application.dto.CreateStashRequest;
 import com.linkpouch.stash.domain.model.*;
+import com.linkpouch.stash.domain.port.in.AddLinkCommand;
+import com.linkpouch.stash.domain.port.in.CreateStashCommand;
 
 @Mapper(componentModel = "spring")
 public interface ApiDtoMapper {
 
     // ==================== REQUEST MAPPERS ====================
 
-    CreateStashRequest mapIn(CreateStashRequestDTO dto);
+    default CreateStashCommand mapIn(CreateStashRequestDTO dto) {
+        return new CreateStashCommand(dto.getName());
+    }
 
-    @Mapping(target = "url", source = "url", qualifiedByName = "uriToString")
-    AddLinkRequest mapIn(AddLinkRequestDTO dto);
+    default AddLinkCommand mapIn(AddLinkRequestDTO dto) {
+        final URI uri = dto.getUrl();
+        return new AddLinkCommand(null, uri != null ? uri.toString() : null);
+    }
 
     // ==================== STASH RESPONSE MAPPERS ====================
 
-    @Mapping(target = "name", source = "name", qualifiedByName = "stashNameToString")
+    @Mapping(target = "name", source = "name")
     @Mapping(target = "linkCount", constant = "0")
-    @Mapping(target = "createdAt", source = "createdAt", qualifiedByName = "toOffsetDateTime")
-    @Mapping(target = "updatedAt", source = "updatedAt", qualifiedByName = "toOffsetDateTime")
+    @Mapping(target = "createdAt", source = "createdAt")
+    @Mapping(target = "updatedAt", source = "updatedAt")
+    @Mapping(target = "signedUrl", ignore = true)
     StashResponseDTO mapOut(Stash stash);
 
     List<StashResponseDTO> mapOutStashes(List<Stash> stashes);
@@ -38,22 +42,16 @@ public interface ApiDtoMapper {
     // ==================== LINK RESPONSE MAPPERS ====================
 
     @Mapping(target = "stashId", source = "stashId")
-    @Mapping(target = "url", source = "url", qualifiedByName = "urlToUri")
-    @Mapping(target = "title", source = "title", qualifiedByName = "linkTitleToString")
-    @Mapping(
-            target = "description",
-            source = "description",
-            qualifiedByName = "linkDescriptionToString")
-    @Mapping(target = "faviconUrl", source = "faviconUrl", qualifiedByName = "urlToUri")
+    @Mapping(target = "url", source = "url")
+    @Mapping(target = "title", source = "title")
+    @Mapping(target = "description", source = "description")
+    @Mapping(target = "faviconUrl", source = "faviconUrl")
     @Mapping(target = "screenshotUrl", ignore = true)
-    @Mapping(
-            target = "screenshotGeneratedAt",
-            source = "screenshotGeneratedAt",
-            qualifiedByName = "toOffsetDateTime")
-    @Mapping(target = "createdAt", source = "createdAt", qualifiedByName = "toOffsetDateTime")
-    @Mapping(target = "updatedAt", source = "updatedAt", qualifiedByName = "toOffsetDateTime")
+    @Mapping(target = "screenshotGeneratedAt", source = "screenshotGeneratedAt")
+    @Mapping(target = "createdAt", source = "createdAt")
+    @Mapping(target = "updatedAt", source = "updatedAt")
     @Mapping(target = "position", source = "position")
-    @Mapping(target = "status", source = "status", qualifiedByName = "linkStatusToString")
+    @Mapping(target = "status", source = "status")
     LinkResponseDTO mapOut(Link link);
 
     List<LinkResponseDTO> mapOutLinks(List<Link> links);
@@ -64,12 +62,10 @@ public interface ApiDtoMapper {
 
     // ==================== VALUE OBJECT CONVERTERS ====================
 
-    @Named("stashNameToString")
     default String stashNameToString(StashName name) {
         return name != null ? name.getValue() : null;
     }
 
-    @Named("urlToUri")
     default URI urlToUri(Url url) {
         if (url == null) return null;
         try {
@@ -79,17 +75,14 @@ public interface ApiDtoMapper {
         }
     }
 
-    @Named("linkTitleToString")
     default String linkTitleToString(LinkTitle title) {
         return title != null ? title.getValue() : null;
     }
 
-    @Named("linkDescriptionToString")
     default String linkDescriptionToString(LinkDescription description) {
         return description != null ? description.getValue() : null;
     }
 
-    @Named("toOffsetDateTime")
     default OffsetDateTime toOffsetDateTime(LocalDateTime localDateTime) {
         if (localDateTime == null) {
             return null;
@@ -97,15 +90,6 @@ public interface ApiDtoMapper {
         return localDateTime.atOffset(ZoneOffset.UTC);
     }
 
-    @Named("uriToString")
-    default String uriToString(URI uri) {
-        if (uri == null) {
-            return null;
-        }
-        return uri.toString();
-    }
-
-    @Named("linkStatusToString")
     default String linkStatusToString(LinkStatus status) {
         return status != null ? status.name() : LinkStatus.PENDING.name();
     }
