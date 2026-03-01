@@ -225,7 +225,7 @@ class RedisStreamConsumer:
                         link_id=link_id,
                         error=str(status_err),
                     )
-                raise
+                    raise e
     
     async def _handle_screenshot_event(self, data: dict) -> None:
         """Handle screenshot.refresh.requested event."""

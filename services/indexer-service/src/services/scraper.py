@@ -7,7 +7,7 @@ from urllib.parse import urljoin, urlparse
 
 import structlog
 from playwright.async_api import async_playwright
-from tenacity import retry, stop_after_attempt, wait_exponential
+from tenacity import retry, retry_if_not_exception_type, stop_after_attempt, wait_exponential
 
 from src.config.settings import Settings
 from src.services.storage_service import ScreenshotStorageService
@@ -63,6 +63,7 @@ class LinkScraper:
     @retry(
         stop=stop_after_attempt(3),
         wait=wait_exponential(multiplier=1, min=4, max=10),
+        retry=retry_if_not_exception_type(ValueError),
     )
     async def scrape_and_screenshot(
         self, url: str, stash_id: str, link_id: str
@@ -147,6 +148,7 @@ class LinkScraper:
     @retry(
         stop=stop_after_attempt(3),
         wait=wait_exponential(multiplier=1, min=4, max=10),
+        retry=retry_if_not_exception_type(ValueError),
     )
     async def take_screenshot(
         self, url: str, stash_id: str, link_id: str

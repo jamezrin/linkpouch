@@ -6,10 +6,6 @@ import java.util.UUID;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PatchMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.linkpouch.stash.api.controller.LinksApi;
@@ -196,11 +192,11 @@ public class LinkController implements LinksApi {
         return ResponseEntity.ok(toResponse(link));
     }
 
-    @PatchMapping("/links/{linkId}/status")
+    @Override
     public ResponseEntity<Void> updateLinkStatus(
-            @PathVariable final UUID linkId,
-            @RequestHeader("X-Indexer-Secret") final String xIndexerSecret,
-            @RequestBody final UpdateLinkStatusRequestDTO dto) {
+            final UUID linkId,
+            final String xIndexerSecret,
+            final UpdateLinkStatusRequestDTO dto) {
         if (!indexerCallbackSecret.equals(xIndexerSecret)) {
             throw new UnauthorizedException("Invalid indexer secret");
         }
