@@ -132,10 +132,22 @@ public class LinkJooqAdapter implements LinkRepository {
 
     @Override
     public void shiftPositionsDown(final UUID stashId) {
+        shiftPositionsDownBy(stashId, 1);
+    }
+
+    @Override
+    public void shiftPositionsDownBy(final UUID stashId, final int count) {
+        if (count <= 0) return;
         dsl.update(LINKS)
-                .set(LINKS.POSITION, LINKS.POSITION.add(1))
+                .set(LINKS.POSITION, LINKS.POSITION.add(count))
                 .where(LINKS.STASH_ID.eq(stashId))
                 .execute();
+    }
+
+    @Override
+    public Set<String> findUrlsByStashId(final UUID stashId) {
+        return new HashSet<>(
+                dsl.select(LINKS.URL).from(LINKS).where(LINKS.STASH_ID.eq(stashId)).fetch(LINKS.URL));
     }
 
     @Override

@@ -13,6 +13,12 @@ public interface LinkManagementUseCase {
     /** Add a new link to a stash. */
     Link addLink(UUID stashId, String url);
 
+    /** Add multiple links to a stash in bulk. */
+    AddLinksBatchResult addLinks(UUID stashId, List<String> urls);
+
+    record AddLinksBatchResult(int imported, int skipped, List<BatchLinkError> errors, List<Link> links) {}
+    record BatchLinkError(String url, String reason) {}
+
     /** Find a link by its ID. */
     Optional<Link> findLinkById(UUID linkId);
 

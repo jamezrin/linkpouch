@@ -1,7 +1,10 @@
 package com.linkpouch.stash.application.service;
 
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 import org.springframework.stereotype.Service;
@@ -11,6 +14,7 @@ import com.linkpouch.stash.application.dto.PagedResult;
 import com.linkpouch.stash.application.exception.NotFoundException;
 import com.linkpouch.stash.domain.model.Link;
 import com.linkpouch.stash.domain.model.LinkStatus;
+import com.linkpouch.stash.domain.model.Url;
 import com.linkpouch.stash.domain.port.inbound.LinkManagementUseCase;
 import com.linkpouch.stash.domain.port.outbound.EventPublisher;
 import com.linkpouch.stash.domain.port.outbound.LinkRepository;
@@ -50,6 +54,58 @@ public class LinkManagementService implements LinkManagementUseCase {
                         saved.getId().toString(), saved.getUrl().getValue(), stashId.toString()));
 
         return saved;
+    }
+
+    @Override
+    @Transactional
+    public AddLinksBatchResult addLinks(final UUID stashId, final List<String> urls) {
+        if (urls == null || urls.isEmpty()) throw new IllegalArgumentException("urls list must not be empty");
+        if (urls.size() > 100) throw new IllegalArgumentException("urls list must not exceed 100 items");
+
+        stashRepository.findById(stashId)
+                .orElseThrow(() -> new NotFoundException("Stash not found: " + stashId));
+
+        final Set<String> existingUrls = linkRepository.findUrlsByStashId(stashId);
+        final Set<String> seenInBatch = new LinkedHashSet<>();
+        final List<String> validUrls = new ArrayList<>();
+        final List<BatchLinkError> errors = new ArrayList<>();
+
+        for (final String rawUrl : urls) {
+            final String url = rawUrl == null ? null : rawUrl.trim();
+            try {
+                Url.of(url);
+            } catch (IllegalArgumentException e) {
+                errors.add(new BatchLinkError(rawUrl, e.getMessage()));
+                continue;
+            }
+            if (!seenInBatch.add(url)) {
+                errors.add(new BatchLinkError(url, "Duplicate URL in batch"));
+                continue;
+            }
+            if (existingUrls.contains(url)) {
+                errors.add(new BatchLinkError(url, "URL already exists in stash"));
+                continue;
+            }
+            validUrls.add(url);
+        }
+
+        if (validUrls.isEmpty()) {
+            return new AddLinksBatchResult(0, urls.size(), errors, List.of());
+        }
+
+        linkRepository.shiftPositionsDownBy(stashId, validUrls.size());
+
+        final List<Link> saved = new ArrayList<>();
+        for (int i = 0; i < validUrls.size(); i++) {
+            final Link link = Link.create(stashId, validUrls.get(i), i);
+            final Link s = linkRepository.save(link);
+            saved.add(s);
+            eventPublisher.publishLinkAdded(
+                    new EventPublisher.LinkAddedEvent(
+                            s.getId().toString(), s.getUrl().getValue(), stashId.toString()));
+        }
+
+        return new AddLinksBatchResult(validUrls.size(), urls.size() - validUrls.size(), errors, saved);
     }
 
     @Override

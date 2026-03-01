@@ -42,6 +42,37 @@ public class LinkController implements LinksApi {
     private String indexerCallbackSecret;
 
     @Override
+    public ResponseEntity<AddLinksBatchResponseDTO> addLinksBatch(
+            final UUID stashId,
+            final String xStashSignature,
+            final AddLinksBatchRequestDTO addLinksBatchRequestDTO) {
+        final var stash =
+                stashService
+                        .findStashById(stashId)
+                        .orElseThrow(() -> new NotFoundException("Stash not found: " + stashId));
+
+        if (!signatureService.validateSignature(
+                stashId, stash.getSecretKey().getValue(), xStashSignature)) {
+            throw new UnauthorizedException("Invalid signature");
+        }
+
+        final var result = linkService.addLinks(stashId, addLinksBatchRequestDTO.getUrls());
+
+        final var response = new AddLinksBatchResponseDTO();
+        response.setImported(result.imported());
+        response.setSkipped(result.skipped());
+        response.setLinks(result.links().stream().map(this::toResponse).toList());
+        response.setErrors(result.errors().stream().map(e -> {
+            final var err = new BatchImportErrorDTO();
+            err.setUrl(e.url());
+            err.setReason(e.reason());
+            return err;
+        }).toList());
+
+        return ResponseEntity.status(HttpStatus.MULTI_STATUS).body(response);
+    }
+
+    @Override
     public ResponseEntity<LinkResponseDTO> addLink(
             final UUID stashId,
             final String xStashSignature,

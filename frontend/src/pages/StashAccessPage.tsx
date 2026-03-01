@@ -23,6 +23,7 @@ import { stashApi, linkApi, utilsApi } from '../services/api';
 import { Link as LinkType } from '../types';
 import { useStashSearch } from '../contexts/stashSearch';
 import { ArchiveSnapshotPicker } from '../components/ArchiveSnapshotPicker';
+import { BulkImportModal } from '../components/BulkImportModal';
 import { useStashEvents } from '../hooks/useStashEvents';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -351,6 +352,7 @@ export default function StashAccessPage() {
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [newLinkUrl, setNewLinkUrl] = useState('');
   const [urlError, setUrlError] = useState<string | null>(null);
+  const [bulkImportOpen, setBulkImportOpen] = useState(false);
   const [links, setLinks] = useState<LinkType[]>([]);
   const [screenshotModalOpen, setScreenshotModalOpen] = useState(false);
   const [previewMode, setPreviewMode] = useState<PreviewMode>('live');
@@ -929,6 +931,7 @@ export default function StashAccessPage() {
   // ─── Main layout ─────────────────────────────────────────────────────────────
 
   return (
+    <>
     <div className="h-full w-full flex overflow-hidden">
       {/* ── Sidebar ─────────────────────────────────────────────────────────── */}
       <div className={[
@@ -1149,8 +1152,19 @@ export default function StashAccessPage() {
           </div>
         )}
 
+        {/* Bulk import */}
+        <div className="px-3 pt-2.5 border-t border-slate-200/70 dark:border-slate-800/70">
+          <button
+            type="button"
+            onClick={() => setBulkImportOpen(true)}
+            className="w-full py-1.5 rounded-lg border border-dashed border-slate-300/70 dark:border-slate-700/70 text-[12px] text-slate-400 dark:text-slate-500 hover:border-indigo-400/70 dark:hover:border-indigo-600/70 hover:text-indigo-500 dark:hover:text-indigo-400 hover:bg-indigo-50/50 dark:hover:bg-indigo-900/10 transition-colors"
+          >
+            Bulk import
+          </button>
+        </div>
+
         {/* Add link — at the bottom */}
-        <form onSubmit={handleAddLink} className="px-3 py-2.5 border-t border-slate-200/70 dark:border-slate-800/70">
+        <form onSubmit={handleAddLink} className="px-3 py-2.5">
           <div className="flex gap-2">
             <input
               type="text"
@@ -1590,5 +1604,15 @@ export default function StashAccessPage() {
         )}
       </div>
     </div>
+
+    {bulkImportOpen && stashId && signature && (
+      <BulkImportModal
+        stashId={stashId}
+        signature={signature}
+        onClose={() => setBulkImportOpen(false)}
+        onSuccess={() => queryClient.invalidateQueries({ queryKey: ['links', stashId] })}
+      />
+    )}
+    </>
   );
 }
