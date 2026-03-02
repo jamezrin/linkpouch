@@ -22,6 +22,7 @@ public class Stash {
     private LocalDateTime updatedAt;
     private StashName name;
     private SecretKey secretKey;
+    private String passwordHash;
     private final Set<Link> links;
 
     public Stash(
@@ -30,17 +31,33 @@ public class Stash {
             final LocalDateTime updatedAt,
             final StashName name,
             final SecretKey secretKey,
+            final String passwordHash,
             final Set<Link> links) {
         this.id = id != null ? id : UUID.randomUUID();
         this.createdAt = createdAt != null ? createdAt : LocalDateTime.now(ZoneOffset.UTC);
         this.updatedAt = updatedAt != null ? updatedAt : this.createdAt;
         this.name = name != null ? name : StashName.of("Untitled Stash");
         this.secretKey = secretKey != null ? secretKey : SecretKey.generate();
+        this.passwordHash = passwordHash;
         this.links = links != null ? new HashSet<>(links) : new HashSet<>();
     }
 
     public static Stash create(final String name) {
-        return new Stash(null, null, null, StashName.of(name), null, null);
+        return new Stash(null, null, null, StashName.of(name), null, null, null);
+    }
+
+    public boolean isPasswordProtected() {
+        return passwordHash != null;
+    }
+
+    public void setPasswordHash(final String hash) {
+        this.passwordHash = hash;
+        this.updatedAt = LocalDateTime.now(ZoneOffset.UTC);
+    }
+
+    public void removePassword() {
+        this.passwordHash = null;
+        this.updatedAt = LocalDateTime.now(ZoneOffset.UTC);
     }
 
     public void updateName(final String newName) {

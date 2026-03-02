@@ -57,18 +57,18 @@ const DEMO_URLS = [
 
 interface DemoButtonProps {
   stashId: string;
-  signature: string;
+  accessToken: string;
   variant?: 'button' | 'inline';
 }
 
-export default function DemoButton({ stashId, signature, variant = 'button' }: DemoButtonProps) {
+export default function DemoButton({ stashId, accessToken, variant = 'button' }: DemoButtonProps) {
   const queryClient = useQueryClient();
   const [isLoading, setIsLoading] = useState(false);
 
   const handleClick = async () => {
     setIsLoading(true);
     try {
-      await linkApi.addLinksBatch(stashId, signature, { urls: DEMO_URLS });
+      await linkApi.addLinksBatch(stashId, accessToken, { urls: DEMO_URLS });
     } catch {
       // ignore — partial successes are fine
     }
