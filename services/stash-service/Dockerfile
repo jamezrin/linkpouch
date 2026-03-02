@@ -1,38 +1,11 @@
-# Build stage
-FROM maven:3.9-eclipse-temurin-21-alpine AS builder
+# Runtime-only image — expects a pre-built Spring Boot JAR.
+#
+# Build the JAR first with Maven (requires a live PostgreSQL for jOOQ codegen):
+#   mvn clean verify -B
+#
+# Then build the image:
+#   docker build -t stash-service .
 
-WORKDIR /app
-
-# Copy parent POM first
-COPY pom.xml .
-COPY api-spec/pom.xml api-spec/
-COPY domain/pom.xml domain/
-COPY application/pom.xml application/
-COPY infrastructure-persistence/pom.xml infrastructure-persistence/
-COPY infrastructure-redis/pom.xml infrastructure-redis/
-COPY infrastructure-http/pom.xml infrastructure-http/
-COPY infrastructure-web/pom.xml infrastructure-web/
-COPY infrastructure-sse/pom.xml infrastructure-sse/
-COPY boot/pom.xml boot/
-
-# Download dependencies
-RUN mvn dependency:go-offline -B
-
-# Copy source code
-COPY api-spec/src api-spec/src
-COPY domain/src domain/src
-COPY application/src application/src
-COPY infrastructure-persistence/src infrastructure-persistence/src
-COPY infrastructure-redis/src infrastructure-redis/src
-COPY infrastructure-http/src infrastructure-http/src
-COPY infrastructure-web/src infrastructure-web/src
-COPY infrastructure-sse/src infrastructure-sse/src
-COPY boot/src boot/src
-
-# Build (jOOQ sources are pre-generated in src/main/generated, codegen skipped)
-RUN mvn package -DskipTests -Djooq.codegen.skip=true -B
-
-# Runtime stage - using eclipse-temurin which supports arm64
 FROM eclipse-temurin:21-jre-alpine
 
 WORKDIR /app
@@ -40,8 +13,8 @@ WORKDIR /app
 # Install wget for healthcheck
 RUN apk add --no-cache wget
 
-# Copy the built JAR from boot module
-COPY --from=builder /app/boot/target/*.jar app.jar
+# Copy the Spring Boot executable JAR from the boot module
+COPY boot/target/*.jar app.jar
 
 # Create non-root user
 RUN addgroup -S linkpouch && adduser -S linkpouch -G linkpouch
