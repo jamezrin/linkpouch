@@ -43,8 +43,15 @@
         <mapstruct.version>1.6.3</mapstruct.version>
         <!-- AWS SDK v2 -->
         <aws-sdk.version>2.29.52</aws-sdk.version>
-        <!-- jOOQ codegen: set to true to skip (e.g. in Docker builds) -->
+        <!-- jOOQ/Flyway: set to true to skip codegen+migration (e.g. when DB is unavailable) -->
         <jooq.codegen.skip>false</jooq.codegen.skip>
+        <!-- Default DB connection for local development (override with -D flags in CI) -->
+        <flyway.url>jdbc:postgresql://localhost:5432/linkpouch</flyway.url>
+        <flyway.user>linkpouch</flyway.user>
+        <flyway.password>linkpouch_secret</flyway.password>
+        <jooq.url>jdbc:postgresql://localhost:5432/linkpouch</jooq.url>
+        <jooq.user>linkpouch</jooq.user>
+        <jooq.password>linkpouch_secret</jooq.password>
         <!-- Spotless formatter -->
         <spotless.version>2.44.3</spotless.version>
         <palantir-java-format.version>2.89.0</palantir-java-format.version>

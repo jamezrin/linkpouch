@@ -25,7 +25,8 @@ env:
   IMAGE_NAME: ${{ github.repository }}/stash-service
 
 jobs:
-  build-amd64:
+  # ── Step 1: Build the JAR (once, platform-independent) ──────────────────────
+  build-jar:
     runs-on: ubuntu-24.04
     services:
       postgres:
@@ -53,48 +54,32 @@ jobs:
           distribution: 'temurin'
           cache: maven
 
-      - name: Install parent POM
+      - name: Build and test
         working-directory: services/stash-service
         run: |
-          mvn install -N -B -q
+          mvn clean verify -B
 
-      - name: Install parent modules
-        working-directory: services/stash-service
-        run: |
-          mvn install -DskipTests -pl domain,application,infrastructure-redis -B -q
+      - name: Upload boot JAR
+        uses: actions/upload-artifact@v4
+        with:
+          name: stash-service-jar
+          path: services/stash-service/boot/target/*.jar
+          retention-days: 1
+          if-no-files-found: error
 
-      - name: Wait for PostgreSQL
-        run: |
-          for i in {1..30}; do
-            if pg_isready -h localhost -p 5432 -U linkpouch; then
-              echo "PostgreSQL is ready!"
-              break
-            fi
-            echo "Waiting for PostgreSQL... ($i/30)"
-            sleep 2
-          done
+  # ── Step 2: Build multi-arch container images ───────────────────────────────
+  build-amd64:
+    runs-on: ubuntu-24.04
+    needs: build-jar
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-      - name: Run Flyway migrations
-        working-directory: services/stash-service/infrastructure-persistence
-        env:
-          FLYWAY_URL: jdbc:postgresql://localhost:5432/linkpouch
-          FLYWAY_USER: linkpouch
-          FLYWAY_PASSWORD: linkpouch_secret
-        run: |
-          mvn flyway:migrate -B -q
-
-      - name: Generate jOOQ code
-        working-directory: services/stash-service/infrastructure-persistence
-        run: |
-          mvn jooq-codegen:generate -B -q \
-            -Djooq.url=jdbc:postgresql://localhost:5432/linkpouch \
-            -Djooq.user=linkpouch \
-            -Djooq.password=linkpouch_secret
-
-      - name: Build JAR
-        working-directory: services/stash-service
-        run: |
-          mvn package -DskipTests -B -q
+      - name: Download boot JAR
+        uses: actions/download-artifact@v4
+        with:
+          name: stash-service-jar
+          path: services/stash-service/boot/target
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -118,7 +103,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: services/stash-service
-          file: services/stash-service/Dockerfile.ci
+          file: services/stash-service/Dockerfile
           platforms: linux/amd64
           push: true
           tags: ${{ steps.meta.outputs.tags }}
@@ -128,63 +113,16 @@ jobs:
 
   build-arm64:
     runs-on: ubuntu-24.04-arm
-    services:
-      postgres:
-        image: postgres:16-alpine
-        env:
-          POSTGRES_DB: linkpouch
-          POSTGRES_USER: linkpouch
-          POSTGRES_PASSWORD: linkpouch_secret
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 5432:5432
-
+    needs: build-jar
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up JDK 21
-        uses: actions/setup-java@v4
+      - name: Download boot JAR
+        uses: actions/download-artifact@v4
         with:
-          java-version: '21'
-          distribution: 'temurin'
-          cache: maven
-
-      - name: Install parent POM
-        working-directory: services/stash-service
-        run: |
-          mvn install -N -B -q
-
-      - name: Install parent modules
-        working-directory: services/stash-service
-        run: |
-          mvn install -DskipTests -pl domain,application,infrastructure-redis -B -q
-
-      - name: Run Flyway migrations
-        working-directory: services/stash-service/infrastructure-persistence
-        env:
-          FLYWAY_URL: jdbc:postgresql://localhost:5432/linkpouch
-          FLYWAY_USER: linkpouch
-          FLYWAY_PASSWORD: linkpouch_secret
-        run: |
-          mvn flyway:migrate -B -q
-
-      - name: Generate jOOQ code
-        working-directory: services/stash-service/infrastructure-persistence
-        run: |
-          mvn jooq-codegen:generate -B -q \
-            -Djooq.url=jdbc:postgresql://localhost:5432/linkpouch \
-            -Djooq.user=linkpouch \
-            -Djooq.password=linkpouch_secret
-
-      - name: Build JAR
-        working-directory: services/stash-service
-        run: |
-          mvn package -DskipTests -B -q
+          name: stash-service-jar
+          path: services/stash-service/boot/target
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -208,7 +146,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: services/stash-service
-          file: services/stash-service/Dockerfile.ci
+          file: services/stash-service/Dockerfile
           platforms: linux/arm64
           push: true
           tags: ${{ steps.meta.outputs.tags }}
@@ -216,6 +154,7 @@ jobs:
           cache-from: type=gha,scope=stash-service-arm64
           cache-to: type=gha,mode=max,scope=stash-service-arm64
 
+  # ── Step 3: Merge into a multi-arch manifest ────────────────────────────────
   merge-manifests:
     runs-on: ubuntu-24.04
     needs: [build-amd64, build-arm64]
@@ -246,10 +185,7 @@ jobs:
 
       - name: Create and push multi-arch manifest
         run: |
-          # Get the short SHA from github context
           SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
-          
-          # Create multi-arch manifest
           docker buildx imagetools create \
             --tag ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest \
             --tag ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:sha-${SHORT_SHA} \

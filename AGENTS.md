@@ -27,8 +27,9 @@ mise exec java -- mvn test -Dtest=StashTest#createStash
 # Run tests for specific module
 mise exec java -- mvn test -pl domain
 
-# Full build (requires database for jOOQ)
-mise exec java -- mvn clean package -DskipTests
+# Full build including tests (requires PostgreSQL for jOOQ codegen)
+# Default DB connection is localhost:5432/linkpouch (matches docker-compose)
+mise exec java -- mvn clean verify -B
 
 # Format all Java code (Spotless + palantir-java-format)
 mise exec java -- mvn spotless:apply
@@ -153,25 +154,24 @@ StashResponseDTO mapOut(StashResponse response);
 - Dependency direction: domain ← application ← infrastructure
 
 **Infrastructure Module Isolation:**
-- 6 separate infrastructure modules with no circular dependencies:
+- 5 separate infrastructure modules with no circular dependencies:
   - infrastructure-web: REST controllers and API adapters (depends on api-spec)
   - infrastructure-redis: Event publishing via Redis Streams
-  - infrastructure-persistence-jpa: JPA entities and repositories (write operations)
-  - infrastructure-persistence-jooq: jOOQ queries (read operations)
+  - infrastructure-persistence: JPA entities/repositories (writes) + jOOQ queries (reads)
   - infrastructure-http: Outbound HTTP adapter (embeddability check, SSRF protection)
   - infrastructure-sse: Server-Sent Events adapter (real-time link status broadcasts)
 - Each module is independent with its own dependencies
 
 **Code Generation:**
 - OpenAPI: Define in `api-spec/src/main/resources/openapi/*.yaml`, use plugin v7.20.0
-- jOOQ: Generated from live DB schema to `target/generated-sources/jooq/`
+- jOOQ: Generated from live DB schema to `infrastructure-persistence/src/main/generated/`
 - Lombok for boilerplate reduction
 - NEVER commit generated code (jOOQ, OpenAPI)
 - Regenerate jOOQ after migrations: `mvn jooq-codegen:generate`
 - Build fails without generated code - intentional
 
 **Database:**
-- Flyway migrations in infrastructure-persistence-jpa
+- Flyway migrations in infrastructure-persistence
 - jOOQ requires running DB for generation
 
 **Transaction Boundaries:**
