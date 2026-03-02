@@ -80,6 +80,26 @@ Report success or any rollout errors clearly.
 
 Local deployment does **not** require committing, pushing, or waiting for CI. It builds images directly from local source files.
 
+### Pre-build step for stash-service
+
+The stash-service Dockerfile is a thin runtime-only image — it expects a pre-built JAR. You must build the JAR with Maven before running `docker-compose up --build`.
+
+The Maven build requires a live PostgreSQL for jOOQ code generation, so start infrastructure first:
+
+```bash
+cd /home/jamezrin/dev/linkpouch
+docker-compose up -d postgres redis seaweedfs
+```
+
+Then build the JAR (the POM has default connection properties matching docker-compose):
+
+```bash
+cd services/stash-service
+mise exec java -- mvn clean verify -B
+```
+
+Other services (frontend, api-gateway, indexer-service) do **not** need a pre-build step — their Dockerfiles handle everything.
+
 ### Rebuild and restart the service
 
 ```bash
@@ -87,7 +107,7 @@ cd /home/jamezrin/dev/linkpouch
 docker-compose up -d --build <service-name>
 ```
 
-For `all`:
+For `all` (after running the stash-service pre-build above):
 
 ```bash
 docker-compose up -d --build frontend stash-service api-gateway indexer-service
