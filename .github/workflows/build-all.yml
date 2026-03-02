@@ -32,3 +32,11 @@ jobs:
       dockerfile-path: ./services/api-gateway/Dockerfile
       context-path: ./services/api-gateway
     secrets: inherit
+
+  build-frontend:
+    uses: ./.github/workflows/build-container.yml
+    with:
+      service-name: frontend
+      dockerfile-path: ./frontend/Dockerfile
+      context-path: ./frontend
+    secrets: inherit
