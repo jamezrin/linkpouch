@@ -30,6 +30,9 @@ public class StashJpaEntity {
     @Column(name = "secret_key", nullable = false)
     private String secretKey;
 
+    @Column(name = "password_hash")
+    private String passwordHash;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;

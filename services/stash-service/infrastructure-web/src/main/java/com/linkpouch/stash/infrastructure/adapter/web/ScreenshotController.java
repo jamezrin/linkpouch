@@ -2,6 +2,8 @@ package com.linkpouch.stash.infrastructure.adapter.web;
 
 import java.util.UUID;
 
+import jakarta.servlet.http.HttpServletRequest;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -9,16 +11,14 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestHeader;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.linkpouch.stash.domain.exception.ForbiddenException;
 import com.linkpouch.stash.domain.exception.NotFoundException;
-import com.linkpouch.stash.domain.exception.UnauthorizedException;
 import com.linkpouch.stash.domain.port.in.FindLinkByIdQuery;
 import com.linkpouch.stash.domain.port.in.FindStashByIdQuery;
-import com.linkpouch.stash.domain.service.StashSignatureService;
+import com.linkpouch.stash.domain.service.StashAccessClaims;
+import com.linkpouch.stash.domain.service.StashTokenService;
 
 import lombok.RequiredArgsConstructor;
 import software.amazon.awssdk.services.s3.S3Client;
@@ -31,8 +31,9 @@ public class ScreenshotController {
 
     private final FindStashByIdQuery findStashByIdQuery;
     private final FindLinkByIdQuery findLinkByIdQuery;
-    private final StashSignatureService signatureService;
+    private final StashTokenService tokenService;
     private final S3Client s3Client;
+    private final HttpServletRequest httpRequest;
 
     @Value("${linkpouch.s3.bucket}")
     private String s3Bucket;
@@ -40,18 +41,19 @@ public class ScreenshotController {
     @GetMapping("/stashes/{stashId}/links/{linkId}/screenshot")
     public ResponseEntity<byte[]> getScreenshot(
             @PathVariable("stashId") final UUID stashId,
-            @PathVariable("linkId") final UUID linkId,
-            @RequestHeader(value = "X-Stash-Signature", required = false) final String headerSig,
-            @RequestParam(value = "sig", required = false) final String querySig) {
+            @PathVariable("linkId") final UUID linkId) {
 
-        final String signature = headerSig != null ? headerSig : querySig;
-
+        // JWT validation (including ?token= fallback) is handled by StashJwtInterceptor.
+        // Here we only validate the pwdKey claim if the stash is password-protected.
         final var stash = findStashByIdQuery
                 .execute(stashId)
                 .orElseThrow(() -> new NotFoundException("Stash not found: " + stashId));
 
-        if (!signatureService.validateSignature(stashId, stash.getSecretKey().getValue(), signature)) {
-            throw new UnauthorizedException("Invalid signature");
+        if (stash.isPasswordProtected()) {
+            final Object claimsAttr = httpRequest.getAttribute(StashJwtInterceptor.CLAIMS_ATTR);
+            if (claimsAttr instanceof StashAccessClaims claims) {
+                tokenService.validatePwdKey(claims, stashId, stash.getPasswordHash());
+            }
         }
 
         final var link =

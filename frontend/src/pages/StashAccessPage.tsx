@@ -19,7 +19,7 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { restrictToVerticalAxis, restrictToParentElement } from '@dnd-kit/modifiers';
-import { stashApi, linkApi, utilsApi } from '../services/api';
+import { stashApi, linkApi, utilsApi, isTokenValid, tokenStorageKey } from '../services/api';
 import { Link as LinkType } from '../types';
 import { useStashSearch } from '../contexts/stashSearch';
 import { ArchiveSnapshotPicker } from '../components/ArchiveSnapshotPicker';
@@ -364,7 +364,12 @@ export default function StashAccessPage() {
   const [liveFailed, setLiveFailed] = useState(false);
   const [selectedArchiveTimestamp, setSelectedArchiveTimestamp] = useState<string | null>(null);
   const [draggingId, setDraggingId] = useState<string | null>(null);
-  const [screenshotBlobUrl, setScreenshotBlobUrl] = useState<string | null>(null);
+  const [accessToken, setAccessToken] = useState<string | null>(null);
+  type AuthState = 'acquiring' | 'password_required' | 'ready' | 'error';
+  const [authState, setAuthState] = useState<AuthState>('acquiring');
+  const [passwordInput, setPasswordInput] = useState('');
+  const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [passwordSubmitting, setPasswordSubmitting] = useState(false);
   const sentinelRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const liveIframeRef = useRef<HTMLIFrameElement>(null);
@@ -402,13 +407,59 @@ export default function StashAccessPage() {
     },
   });
 
+  // ─── Token acquisition ────────────────────────────────────────────────────────
+  useEffect(() => {
+    if (!stashId || !signature) return;
+
+    // Try cached token first
+    const cached = sessionStorage.getItem(tokenStorageKey(stashId));
+    if (cached && isTokenValid(cached)) {
+      setAccessToken(cached);
+      setAuthState('ready');
+      return;
+    }
+
+    // Acquire new token
+    setAuthState('acquiring');
+    stashApi.acquireAccessToken(stashId, signature).then((res) => {
+      const token = res.data.accessToken;
+      sessionStorage.setItem(tokenStorageKey(stashId), token);
+      setAccessToken(token);
+      setAuthState('ready');
+    }).catch((err) => {
+      if (err?.response?.data?.errorCode === 'PASSWORD_REQUIRED') {
+        setAuthState('password_required');
+      } else {
+        setAuthState('error');
+      }
+    });
+  }, [stashId, signature]);
+
+  const handlePasswordSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!stashId || !signature || !passwordInput.trim()) return;
+    setPasswordSubmitting(true);
+    setPasswordError(null);
+    try {
+      const res = await stashApi.acquireAccessToken(stashId, signature, passwordInput);
+      const token = res.data.accessToken;
+      sessionStorage.setItem(tokenStorageKey(stashId), token);
+      setAccessToken(token);
+      setAuthState('ready');
+    } catch (err: unknown) {
+      setPasswordError('Incorrect password. Please try again.');
+    } finally {
+      setPasswordSubmitting(false);
+    }
+  };
+
   const { isLoading: stashLoading, error: stashError } = useQuery({
     queryKey: ['stash', stashId],
     queryFn: async () => {
-      const res = await stashApi.getStash(stashId, signature);
+      const res = await stashApi.getStash(stashId, accessToken!);
       return res.data;
     },
-    enabled: !!stashId && !!signature,
+    enabled: !!stashId && !!accessToken,
   });
 
   const {
@@ -422,7 +473,7 @@ export default function StashAccessPage() {
     queryFn: async ({ pageParam = 0 }) => {
       const res = await linkApi.listLinks(
         stashId,
-        signature,
+        accessToken!,
         debouncedSearch || undefined,
         pageParam as number,
         20
@@ -435,7 +486,7 @@ export default function StashAccessPage() {
       return currentPage + 1 < totalPages ? currentPage + 1 : undefined;
     },
     initialPageParam: 0,
-    enabled: !!stashId && !!signature,
+    enabled: !!stashId && !!accessToken,
   });
 
   // Flatten all pages into the local links array
@@ -481,45 +532,10 @@ export default function StashAccessPage() {
     [links, activeLinkId]
   );
 
-  // Fetch screenshot via authenticated header — <img> tags cannot send custom headers,
-  // so we use fetch() with X-Stash-Signature and create a blob URL for the <img> src.
-  useEffect(() => {
-    const screenshotUrl = activeLink?.screenshotUrl;
-    if (!screenshotUrl || !signature) {
-      setScreenshotBlobUrl(null);
-      return;
-    }
-
-    let cancelled = false;
-    let objectUrl: string | null = null;
-
-    fetch(screenshotUrl, {
-      headers: { 'X-Stash-Signature': signature },
-    })
-      .then(res => {
-        if (!res.ok) throw new Error(`Screenshot fetch failed: ${res.status}`);
-        return res.blob();
-      })
-      .then(blob => {
-        if (cancelled) return;
-        objectUrl = URL.createObjectURL(blob);
-        setScreenshotBlobUrl(objectUrl);
-      })
-      .catch(err => {
-        if (!cancelled) {
-          console.error('Failed to load screenshot:', err);
-          setScreenshotBlobUrl(null);
-        }
-      });
-
-    return () => {
-      cancelled = true;
-      if (objectUrl) {
-        URL.revokeObjectURL(objectUrl);
-        setScreenshotBlobUrl(null);
-      }
-    };
-  }, [activeLink?.screenshotUrl, signature]);
+  const getScreenshotSrc = (link: LinkType | null) => {
+    if (!link?.screenshotUrl || !accessToken) return null;
+    return linkApi.screenshotUrl(link.stashId, link.id, accessToken);
+  };
 
   // Server-side embeddability check — fires in parallel with the live iframe load.
   // Switches to archive mode immediately when the backend reports that the site
@@ -640,7 +656,7 @@ export default function StashAccessPage() {
         const newLinks = arrayMove(links, activeIdx, overIdx);
         setLinks(newLinks);
         const insertAfterId = overIdx > 0 ? newLinks[overIdx - 1].id : null;
-        linkApi.reorderLinks(stashId!, signature!, [activeId], insertAfterId);
+        linkApi.reorderLinks(stashId!, accessToken!, [activeId], insertAfterId);
       } else {
         // Multi-item drag — move entire selection group
         const selected = links.filter((l) => selectedLinkIds.has(l.id));
@@ -663,20 +679,20 @@ export default function StashAccessPage() {
         const insertAfterId = insertAt > 0 ? unselected[insertAt - 1].id : null;
         linkApi.reorderLinks(
           stashId!,
-          signature!,
+          accessToken!,
           selected.map((l) => l.id),
           insertAfterId
         );
       }
     },
-    [links, selectedLinkIds, isSearching, stashId, signature]
+    [links, selectedLinkIds, isSearching, stashId, accessToken]
   );
 
   // ─── Mutations ───────────────────────────────────────────────────────────────
 
   const addLinkMutation = useMutation({
     mutationFn: async (url: string) => {
-      const res = await linkApi.addLink(stashId!, signature!, { url });
+      const res = await linkApi.addLink(stashId!, accessToken!, { url });
       return res;
     },
     onSuccess: () => {
@@ -695,7 +711,7 @@ export default function StashAccessPage() {
 
   const batchDeleteMutation = useMutation({
     mutationFn: async (ids: string[]) => {
-      await Promise.all(ids.map((id) => linkApi.deleteLink(stashId!, signature!, id)));
+      await Promise.all(ids.map((id) => linkApi.deleteLink(stashId!, accessToken!, id)));
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['links', stashId] });
@@ -705,7 +721,7 @@ export default function StashAccessPage() {
   });
 
   const refreshScreenshotMutation = useMutation({
-    mutationFn: (linkId: string) => linkApi.refreshScreenshot(stashId!, signature!, linkId),
+    mutationFn: (linkId: string) => linkApi.refreshScreenshot(stashId!, accessToken!, linkId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['links', stashId] });
     },
@@ -887,6 +903,60 @@ export default function StashAccessPage() {
   }, [links, allVisibleSelected]);
 
   // ─── Error / Loading states ───────────────────────────────────────────────────
+
+  // Password required — show unlock modal
+  if (authState === 'password_required') {
+    return (
+      <div className="h-full w-full flex items-center justify-center bg-white dark:bg-slate-950">
+        <div className="text-center max-w-sm w-full mx-4">
+          <div className="w-16 h-16 bg-indigo-100 dark:bg-indigo-900/20 rounded-2xl flex items-center justify-center mx-auto mb-5">
+            <svg className="w-8 h-8 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+            </svg>
+          </div>
+          <h2 className="text-xl font-bold text-slate-800 dark:text-slate-100 mb-2">Password required</h2>
+          <p className="text-slate-500 dark:text-slate-400 text-sm mb-6">
+            This pouch is password-protected. Enter the password to access it.
+          </p>
+          <form onSubmit={handlePasswordSubmit} className="flex flex-col gap-3">
+            <input
+              type="password"
+              value={passwordInput}
+              onChange={(e) => setPasswordInput(e.target.value)}
+              placeholder="Enter password"
+              autoFocus
+              className="w-full px-4 py-2.5 bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-800 dark:text-slate-200 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500/60 text-sm"
+            />
+            {passwordError && (
+              <p className="text-red-500 text-sm">{passwordError}</p>
+            )}
+            <button
+              type="submit"
+              disabled={passwordSubmitting || !passwordInput.trim()}
+              className="w-full px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-medium text-sm transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              {passwordSubmitting ? 'Unlocking…' : 'Unlock'}
+            </button>
+          </form>
+          <a href="/" className="mt-6 inline-block text-slate-400 hover:text-indigo-400 text-sm transition-colors">
+            ← Go back home
+          </a>
+        </div>
+      </div>
+    );
+  }
+
+  // Acquiring token — show loading
+  if (authState === 'acquiring') {
+    return (
+      <div className="h-full w-full flex items-center justify-center bg-white dark:bg-slate-950">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+          <p className="text-slate-500 text-sm">Loading pouch…</p>
+        </div>
+      </div>
+    );
+  }
 
   if (stashError instanceof AxiosError && stashError.response?.status === 401) {
     return (
@@ -1103,9 +1173,9 @@ export default function StashAccessPage() {
               <p className="text-slate-400 dark:text-slate-500 text-sm">
                 {isSearching ? 'No links match your search' : 'No links yet — paste one below'}
               </p>
-              {!isSearching && features.demoButton && stashId && signature && (
+              {!isSearching && features.demoButton && stashId && accessToken && (
                 <p className="text-slate-400 dark:text-slate-500 text-sm mt-1">
-                  Or <DemoButton stashId={stashId} signature={signature} variant="inline" />
+                  Or <DemoButton stashId={stashId} accessToken={accessToken} variant="inline" />
                 </p>
               )}
             </div>
@@ -1312,22 +1382,20 @@ export default function StashAccessPage() {
 
               {/* Screenshot thumbnail — desktop only (shown in row 2 on mobile) */}
               <div className="hidden md:block flex-shrink-0">
-                {activeLink.screenshotUrl ? (
-                  screenshotBlobUrl ? (
-                    <button
-                      onClick={() => setScreenshotModalOpen(true)}
-                      className="w-16 h-8 rounded overflow-hidden border border-slate-200 dark:border-slate-700 hover:border-indigo-400 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                      title="View screenshot"
-                    >
-                      <img
-                        src={screenshotBlobUrl}
-                        alt="Screenshot"
-                        className="w-full h-full object-cover object-top"
-                      />
-                    </button>
-                  ) : (
-                    <div className="w-16 h-8 rounded border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-700 animate-pulse" />
-                  )
+                {activeLink.screenshotUrl && accessToken ? (
+                  <button
+                    onClick={() => setScreenshotModalOpen(true)}
+                    className="w-16 h-8 rounded overflow-hidden border border-slate-200 dark:border-slate-700 hover:border-indigo-400 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    title="View screenshot"
+                  >
+                    <img
+                      src={linkApi.screenshotUrl(activeLink.stashId, activeLink.id, accessToken)}
+                      alt="Screenshot"
+                      className="w-full h-full object-cover object-top"
+                    />
+                  </button>
+                ) : activeLink.screenshotUrl ? (
+                  <div className="w-16 h-8 rounded border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-700 animate-pulse" />
                 ) : (
                   <button
                     onClick={() => refreshScreenshotMutation.mutate(activeLink.id)}
@@ -1422,18 +1490,16 @@ export default function StashAccessPage() {
                 <div className="flex-1" />
                 {/* Screenshot thumbnail */}
                 <div className="flex-shrink-0">
-                  {activeLink.screenshotUrl ? (
-                    screenshotBlobUrl ? (
-                      <button
-                        onClick={() => setScreenshotModalOpen(true)}
-                        className="w-14 h-7 rounded overflow-hidden border border-slate-200 dark:border-slate-700 hover:border-indigo-400 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                        title="View screenshot"
-                      >
-                        <img src={screenshotBlobUrl} alt="Screenshot" className="w-full h-full object-cover object-top" />
-                      </button>
-                    ) : (
-                      <div className="w-14 h-7 rounded border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-700 animate-pulse" />
-                    )
+                  {activeLink.screenshotUrl && accessToken ? (
+                    <button
+                      onClick={() => setScreenshotModalOpen(true)}
+                      className="w-14 h-7 rounded overflow-hidden border border-slate-200 dark:border-slate-700 hover:border-indigo-400 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      title="View screenshot"
+                    >
+                      <img src={linkApi.screenshotUrl(activeLink.stashId, activeLink.id, accessToken)} alt="Screenshot" className="w-full h-full object-cover object-top" />
+                    </button>
+                  ) : activeLink.screenshotUrl ? (
+                    <div className="w-14 h-7 rounded border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-700 animate-pulse" />
                   ) : (
                     <button
                       onClick={() => refreshScreenshotMutation.mutate(activeLink.id)}
@@ -1592,9 +1658,9 @@ export default function StashAccessPage() {
               </svg>
             </button>
             <div className="max-w-5xl w-full mx-4" onClick={(e) => e.stopPropagation()}>
-              {screenshotBlobUrl ? (
+              {getScreenshotSrc(activeLink) ? (
                 <img
-                  src={screenshotBlobUrl}
+                  src={getScreenshotSrc(activeLink)!}
                   alt={`Screenshot of ${activeLink.title || activeLink.url}`}
                   className="w-full max-h-[85vh] object-contain rounded-xl shadow-2xl"
                 />
@@ -1612,10 +1678,10 @@ export default function StashAccessPage() {
       </div>
     </div>
 
-    {bulkImportOpen && stashId && signature && (
+    {bulkImportOpen && stashId && accessToken && (
       <BulkImportModal
         stashId={stashId}
-        signature={signature}
+        accessToken={accessToken}
         onClose={() => setBulkImportOpen(false)}
         onSuccess={() => queryClient.invalidateQueries({ queryKey: ['links', stashId] })}
       />

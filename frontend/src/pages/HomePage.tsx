@@ -114,6 +114,15 @@ const FEATURES: Array<{ icon: React.ReactNode; title: string; desc: string }> = 
   {
     icon: (
       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+      </svg>
+    ),
+    title: 'Password-protected pouches',
+    desc: 'Add an optional passphrase on top of the signed URL — share your pouch with a specific audience while keeping it locked for everyone else.',
+  },
+  {
+    icon: (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
       </svg>
     ),
@@ -192,15 +201,6 @@ const ROADMAP: Array<{ icon: React.ReactNode; title: string; desc: string }> = [
     ),
     title: 'Multiple archival sources',
     desc: 'Choose from archive.org, archive.is, and more for the best chance of a working snapshot.',
-  },
-  {
-    icon: (
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-      </svg>
-    ),
-    title: 'Password-protected pouches',
-    desc: 'Add an optional passphrase on top of the signed URL — for sharing with a specific audience.',
   },
   {
     icon: (
@@ -486,46 +486,75 @@ function AppMockup() {
 function CreateForm({
   value,
   onChange,
+  password,
+  onPasswordChange,
   onSubmit,
   isPending,
 }: {
   value: string;
   onChange: (v: string) => void;
+  password: string;
+  onPasswordChange: (v: string) => void;
   onSubmit: (e: React.FormEvent) => void;
   isPending: boolean;
 }) {
+  const [showPassword, setShowPassword] = useState(false);
   return (
-    <form onSubmit={onSubmit} className="flex gap-3">
-      <input
-        type="text"
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder="Name your pouch..."
-        className="flex-1 px-5 py-3.5 bg-slate-800/80 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 text-[15px]"
-      />
-      <button
-        type="submit"
-        disabled={isPending || !value.trim()}
-        className="btn-shimmer p-3.5 md:px-5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed text-white font-semibold rounded-xl transition-colors text-[15px] whitespace-nowrap flex items-center justify-center flex-shrink-0"
-        style={DISPLAY}
-      >
-        {isPending ? (
-          <>
-            <svg className="w-5 h-5 md:hidden animate-spin" fill="none" viewBox="0 0 24 24">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4l3-3-3-3v4a8 8 0 00-8 8h4z" />
-            </svg>
-            <span className="hidden md:inline">Creating…</span>
-          </>
-        ) : (
-          <>
-            <svg className="w-5 h-5 md:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-            </svg>
-            <span className="hidden md:inline">Create pouch →</span>
-          </>
+    <form onSubmit={onSubmit} className="flex flex-col gap-2">
+      <div className="flex gap-3">
+        <input
+          type="text"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder="Name your pouch..."
+          className="flex-1 px-5 py-3.5 bg-slate-800/80 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 text-[15px]"
+        />
+        <button
+          type="submit"
+          disabled={isPending || !value.trim()}
+          className="btn-shimmer p-3.5 md:px-5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed text-white font-semibold rounded-xl transition-colors text-[15px] whitespace-nowrap flex items-center justify-center flex-shrink-0"
+          style={DISPLAY}
+        >
+          {isPending ? (
+            <>
+              <svg className="w-5 h-5 md:hidden animate-spin" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4l3-3-3-3v4a8 8 0 00-8 8h4z" />
+              </svg>
+              <span className="hidden md:inline">Creating…</span>
+            </>
+          ) : (
+            <>
+              <svg className="w-5 h-5 md:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+              </svg>
+              <span className="hidden md:inline">Create pouch →</span>
+            </>
+          )}
+        </button>
+      </div>
+      <div>
+        <button
+          type="button"
+          onClick={() => { setShowPassword((s) => !s); if (showPassword) onPasswordChange(''); }}
+          className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-300 transition-colors"
+          style={MONO}
+        >
+          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+          </svg>
+          {showPassword ? 'Remove password' : 'Set password (optional)'}
+        </button>
+        {showPassword && (
+          <input
+            type="password"
+            value={password}
+            onChange={(e) => onPasswordChange(e.target.value)}
+            placeholder="Passphrase for this pouch…"
+            className="mt-2 w-full px-4 py-2.5 bg-slate-800/80 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 text-[14px]"
+          />
         )}
-      </button>
+      </div>
     </form>
   );
 }
@@ -534,6 +563,7 @@ function CreateForm({
 
 export default function HomePage() {
   const [newStashName, setNewStashName] = useState('');
+  const [newStashPassword, setNewStashPassword] = useState('');
   const navigate = useNavigate();
   const featuresRef = useReveal();
   const stepsRef    = useReveal();
@@ -541,7 +571,8 @@ export default function HomePage() {
   const roadmapRef  = useReveal();
 
   const createMutation = useMutation({
-    mutationFn: (name: string) => stashApi.createStash({ name }),
+    mutationFn: ({ name, password }: { name: string; password?: string }) =>
+      stashApi.createStash({ name, password: password || undefined }),
     onSuccess: (response) => {
       const signedUrl = response.data.signedUrl;
       if (signedUrl) navigate(new URL(signedUrl).pathname);
@@ -554,7 +585,9 @@ export default function HomePage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (newStashName.trim()) createMutation.mutate(newStashName.trim());
+    if (newStashName.trim()) {
+      createMutation.mutate({ name: newStashName.trim(), password: newStashPassword.trim() || undefined });
+    }
   };
 
   return (
@@ -642,6 +675,8 @@ export default function HomePage() {
                 <CreateForm
                   value={newStashName}
                   onChange={setNewStashName}
+                  password={newStashPassword}
+                  onPasswordChange={setNewStashPassword}
                   onSubmit={handleSubmit}
                   isPending={createMutation.isPending}
                 />
@@ -868,6 +903,8 @@ export default function HomePage() {
             <CreateForm
               value={newStashName}
               onChange={setNewStashName}
+              password={newStashPassword}
+              onPasswordChange={setNewStashPassword}
               onSubmit={handleSubmit}
               isPending={createMutation.isPending}
             />

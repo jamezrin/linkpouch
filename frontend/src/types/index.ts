@@ -1,6 +1,7 @@
 export interface Stash {
   id: string;
   name: string;
+  passwordProtected: boolean;
   linkCount: number;
   createdAt: string;
   updatedAt: string;
@@ -32,13 +33,18 @@ export interface PagedLinkResponse {
 
 export interface CreateStashRequest {
   name: string;
-  secretKey?: string;
+  password?: string;
 }
 
 export interface AddLinkRequest {
   url: string;
   title?: string;
   description?: string;
+}
+
+export interface AccessTokenResponse {
+  accessToken: string;
+  expiresIn: number;
 }
 
 export interface WaybackMonthSummary {

@@ -20,7 +20,7 @@ public interface ApiDtoMapper {
     // ==================== REQUEST MAPPERS ====================
 
     default CreateStashCommand mapIn(CreateStashRequestDTO dto) {
-        return new CreateStashCommand(dto.getName());
+        return new CreateStashCommand(dto.getName(), dto.getPassword());
     }
 
     default AddLinkCommand mapIn(AddLinkRequestDTO dto) {
@@ -31,6 +31,7 @@ public interface ApiDtoMapper {
     // ==================== STASH RESPONSE MAPPERS ====================
 
     @Mapping(target = "name", source = "name")
+    @Mapping(target = "passwordProtected", expression = "java(stash.isPasswordProtected())")
     @Mapping(target = "linkCount", constant = "0")
     @Mapping(target = "createdAt", source = "createdAt")
     @Mapping(target = "updatedAt", source = "updatedAt")

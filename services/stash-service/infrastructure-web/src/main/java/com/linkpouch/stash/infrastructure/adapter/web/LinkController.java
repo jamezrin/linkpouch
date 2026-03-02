@@ -3,6 +3,8 @@ package com.linkpouch.stash.infrastructure.adapter.web;
 import java.net.URI;
 import java.util.UUID;
 
+import jakarta.servlet.http.HttpServletRequest;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -30,7 +32,8 @@ import com.linkpouch.stash.domain.port.in.UpdateLinkMetadataCommand;
 import com.linkpouch.stash.domain.port.in.UpdateLinkMetadataUseCase;
 import com.linkpouch.stash.domain.port.in.UpdateLinkScreenshotUseCase;
 import com.linkpouch.stash.domain.port.in.UpdateLinkStatusUseCase;
-import com.linkpouch.stash.domain.service.StashSignatureService;
+import com.linkpouch.stash.domain.service.StashAccessClaims;
+import com.linkpouch.stash.domain.service.StashTokenService;
 import com.linkpouch.stash.infrastructure.adapter.web.mapper.ApiDtoMapper;
 
 import lombok.RequiredArgsConstructor;
@@ -50,8 +53,9 @@ public class LinkController implements LinksApi {
     private final FindLinkByIdQuery findLinkByIdQuery;
     private final ListLinksQuery listLinksQuery;
     private final FindStashByIdQuery findStashByIdQuery;
-    private final StashSignatureService signatureService;
+    private final StashTokenService tokenService;
     private final ApiDtoMapper mapper;
+    private final HttpServletRequest httpRequest;
 
     @Value("${linkpouch.base-url:http://localhost:8080}")
     private String baseUrl;
@@ -61,14 +65,12 @@ public class LinkController implements LinksApi {
 
     @Override
     public ResponseEntity<AddLinksBatchResponseDTO> addLinksBatch(
-            final UUID stashId, final String xStashSignature, final AddLinksBatchRequestDTO addLinksBatchRequestDTO) {
+            final UUID stashId, final AddLinksBatchRequestDTO addLinksBatchRequestDTO) {
         final var stash = findStashByIdQuery
                 .execute(stashId)
                 .orElseThrow(() -> new NotFoundException("Stash not found: " + stashId));
 
-        if (!signatureService.validateSignature(stashId, stash.getSecretKey().getValue(), xStashSignature)) {
-            throw new UnauthorizedException("Invalid signature");
-        }
+        validatePwdKeyIfProtected(stashId, stash.getPasswordHash(), stash.isPasswordProtected());
 
         final var result =
                 addLinksBatchUseCase.execute(new AddLinksBatchCommand(stashId, addLinksBatchRequestDTO.getUrls()));
@@ -91,14 +93,12 @@ public class LinkController implements LinksApi {
 
     @Override
     public ResponseEntity<LinkResponseDTO> addLink(
-            final UUID stashId, final String xStashSignature, final AddLinkRequestDTO addLinkRequestDTO) {
+            final UUID stashId, final AddLinkRequestDTO addLinkRequestDTO) {
         final var stash = findStashByIdQuery
                 .execute(stashId)
                 .orElseThrow(() -> new NotFoundException("Stash not found: " + stashId));
 
-        if (!signatureService.validateSignature(stashId, stash.getSecretKey().getValue(), xStashSignature)) {
-            throw new UnauthorizedException("Invalid signature");
-        }
+        validatePwdKeyIfProtected(stashId, stash.getPasswordHash(), stash.isPasswordProtected());
 
         final String url =
                 addLinkRequestDTO.getUrl() != null ? addLinkRequestDTO.getUrl().toString() : null;
@@ -107,14 +107,12 @@ public class LinkController implements LinksApi {
     }
 
     @Override
-    public ResponseEntity<Void> deleteLink(final UUID stashId, final String xStashSignature, final UUID linkId) {
+    public ResponseEntity<Void> deleteLink(final UUID stashId, final UUID linkId) {
         final var stash = findStashByIdQuery
                 .execute(stashId)
                 .orElseThrow(() -> new NotFoundException("Stash not found: " + stashId));
 
-        if (!signatureService.validateSignature(stashId, stash.getSecretKey().getValue(), xStashSignature)) {
-            throw new UnauthorizedException("Invalid signature");
-        }
+        validatePwdKeyIfProtected(stashId, stash.getPasswordHash(), stash.isPasswordProtected());
 
         final var link =
                 findLinkByIdQuery.execute(linkId).orElseThrow(() -> new NotFoundException("Link not found: " + linkId));
@@ -130,7 +128,6 @@ public class LinkController implements LinksApi {
     @Override
     public ResponseEntity<PagedLinkResponseDTO> listLinks(
             final UUID stashId,
-            final String xStashSignature,
             final String search,
             final Integer page,
             final Integer size) {
@@ -138,9 +135,7 @@ public class LinkController implements LinksApi {
                 .execute(stashId)
                 .orElseThrow(() -> new NotFoundException("Stash not found: " + stashId));
 
-        if (!signatureService.validateSignature(stashId, stash.getSecretKey().getValue(), xStashSignature)) {
-            throw new UnauthorizedException("Invalid signature");
-        }
+        validatePwdKeyIfProtected(stashId, stash.getPasswordHash(), stash.isPasswordProtected());
 
         final var pagedResult = listLinksQuery.execute(stashId, search, page, size);
 
@@ -155,14 +150,12 @@ public class LinkController implements LinksApi {
     }
 
     @Override
-    public ResponseEntity<Void> refreshScreenshot(final UUID stashId, final String xStashSignature, final UUID linkId) {
+    public ResponseEntity<Void> refreshScreenshot(final UUID stashId, final UUID linkId) {
         final var stash = findStashByIdQuery
                 .execute(stashId)
                 .orElseThrow(() -> new NotFoundException("Stash not found: " + stashId));
 
-        if (!signatureService.validateSignature(stashId, stash.getSecretKey().getValue(), xStashSignature)) {
-            throw new UnauthorizedException("Invalid signature");
-        }
+        validatePwdKeyIfProtected(stashId, stash.getPasswordHash(), stash.isPasswordProtected());
 
         final var link =
                 findLinkByIdQuery.execute(linkId).orElseThrow(() -> new NotFoundException("Link not found: " + linkId));
@@ -219,14 +212,12 @@ public class LinkController implements LinksApi {
 
     @Override
     public ResponseEntity<Void> reorderLinks(
-            final UUID stashId, final String xStashSignature, final ReorderLinksRequestDTO reorderLinksRequestDTO) {
+            final UUID stashId, final ReorderLinksRequestDTO reorderLinksRequestDTO) {
         final var stash = findStashByIdQuery
                 .execute(stashId)
                 .orElseThrow(() -> new NotFoundException("Stash not found: " + stashId));
 
-        if (!signatureService.validateSignature(stashId, stash.getSecretKey().getValue(), xStashSignature)) {
-            throw new UnauthorizedException("Invalid signature");
-        }
+        validatePwdKeyIfProtected(stashId, stash.getPasswordHash(), stash.isPasswordProtected());
 
         final var insertAfterIdNullable = reorderLinksRequestDTO.getInsertAfterId();
         final UUID insertAfterId =
@@ -234,6 +225,16 @@ public class LinkController implements LinksApi {
         reorderLinksUseCase.execute(
                 new ReorderLinksCommand(stashId, reorderLinksRequestDTO.getLinkIds(), insertAfterId));
         return ResponseEntity.noContent().build();
+    }
+
+    private void validatePwdKeyIfProtected(
+            final UUID stashId, final String passwordHash, final boolean isPasswordProtected) {
+        if (!isPasswordProtected) return;
+        final Object claimsAttr = httpRequest.getAttribute(StashJwtInterceptor.CLAIMS_ATTR);
+        if (!(claimsAttr instanceof StashAccessClaims claims)) {
+            throw new UnauthorizedException("Access token is missing");
+        }
+        tokenService.validatePwdKey(claims, stashId, passwordHash);
     }
 
     private LinkResponseDTO toResponse(final Link link) {

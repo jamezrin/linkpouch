@@ -4,7 +4,7 @@ import { BulkImportResponse } from '../types';
 
 interface BulkImportModalProps {
   stashId: string;
-  signature: string;
+  accessToken: string;
   onClose: () => void;
   onSuccess: () => void;
 }
@@ -18,7 +18,7 @@ function parseUrls(text: string): string[] {
     .filter((l) => l.startsWith('http://') || l.startsWith('https://'));
 }
 
-export function BulkImportModal({ stashId, signature, onClose, onSuccess }: BulkImportModalProps) {
+export function BulkImportModal({ stashId, accessToken, onClose, onSuccess }: BulkImportModalProps) {
   const [tab, setTab] = useState<Tab>('paste');
   const [pasteText, setPasteText] = useState('');
   const [isDragOver, setIsDragOver] = useState(false);
@@ -77,7 +77,7 @@ export function BulkImportModal({ stashId, signature, onClose, onSuccess }: Bulk
     setIsLoading(true);
     setError(null);
     try {
-      const res = await linkApi.addLinksBatch(stashId, signature, { urls: validUrls });
+      const res = await linkApi.addLinksBatch(stashId, accessToken, { urls: validUrls });
       setResult(res.data);
       if (res.data.imported > 0) onSuccess();
     } catch {
