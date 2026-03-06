@@ -6,7 +6,7 @@ import StashAccessPage from './pages/StashAccessPage';
 import ThemeToggle from './components/ThemeToggle';
 import { StashSearchContext } from './contexts/stashSearch';
 import { ThemeProvider } from './contexts/theme';
-import { stashApi } from './services/api';
+import { stashApi, tokenStorageKey } from './services/api';
 
 const queryClient = new QueryClient();
 
@@ -34,6 +34,8 @@ function AppContent() {
   const [stashSettingsOpen, setStashSettingsOpen] = useState(false);
   const queryClient = useQueryClient();
 
+  const accessToken = stashId ? (sessionStorage.getItem(tokenStorageKey(stashId)) ?? undefined) : undefined;
+
   // Close mobile menu and reset pane whenever the route changes
   useEffect(() => {
     setMobileMenuOpen(false);
@@ -43,16 +45,20 @@ function AppContent() {
   const { data: stash } = useQuery({
     queryKey: ['stash', stashId],
     queryFn: async () => {
-      const res = await stashApi.getStash(stashId!, signature!);
-      setEditedName(res.data.name);
+      const res = await stashApi.getStash(stashId!, accessToken!);
       return res.data;
     },
-    enabled: !!stashId && !!signature,
+    enabled: !!stashId && !!accessToken,
   });
+
+  // Sync editedName whenever the stash name changes (from this query or shared cache)
+  useEffect(() => {
+    if (stash?.name) setEditedName(stash.name);
+  }, [stash?.name]);
 
   const updateStashMutation = useMutation({
     mutationFn: async (name: string) => {
-      const res = await stashApi.updateStash(stashId!, signature!, { name });
+      const res = await stashApi.updateStash(stashId!, accessToken!, { name });
       return res.data;
     },
     onSuccess: (data) => {
