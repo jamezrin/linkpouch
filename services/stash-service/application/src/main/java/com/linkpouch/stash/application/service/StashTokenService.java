@@ -10,6 +10,7 @@ import java.util.Date;
 import java.util.UUID;
 
 import javax.crypto.Mac;
+import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 
 import org.springframework.beans.factory.annotation.Value;
@@ -24,8 +25,6 @@ import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import lombok.extern.slf4j.Slf4j;
-
-import javax.crypto.SecretKey;
 
 /**
  * Application Service: Stash Access Token
@@ -60,8 +59,7 @@ public class StashTokenService implements com.linkpouch.stash.domain.service.Sta
             @Value("${linkpouch.jwt.expiry-hours:8}") final long expiryHours) {
         // Derive a 256-bit HS256 signing key from the master key so we only need one env var.
         final byte[] derived = hmac(
-                masterKey.getBytes(StandardCharsets.UTF_8),
-                "linkpouch-jwt-signing".getBytes(StandardCharsets.UTF_8));
+                masterKey.getBytes(StandardCharsets.UTF_8), "linkpouch-jwt-signing".getBytes(StandardCharsets.UTF_8));
         this.signingKey = Keys.hmacShaKeyFor(derived);
         this.expirySeconds = expiryHours * 3600L;
     }
@@ -137,10 +135,8 @@ public class StashTokenService implements com.linkpouch.stash.domain.service.Sta
 
         final String expectedPwdKey = computePwdKey(stashId, currentPasswordHash);
         if (!MessageDigest.isEqual(
-                claimedPwdKey.getBytes(StandardCharsets.UTF_8),
-                expectedPwdKey.getBytes(StandardCharsets.UTF_8))) {
-            throw new UnauthorizedException(
-                    "Password was changed; please re-authenticate");
+                claimedPwdKey.getBytes(StandardCharsets.UTF_8), expectedPwdKey.getBytes(StandardCharsets.UTF_8))) {
+            throw new UnauthorizedException("Password was changed; please re-authenticate");
         }
     }
 
