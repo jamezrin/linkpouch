@@ -370,7 +370,7 @@ export default function StashAccessPage() {
   const [passwordInput, setPasswordInput] = useState('');
   const [passwordError, setPasswordError] = useState<string | null>(null);
   const [passwordSubmitting, setPasswordSubmitting] = useState(false);
-  const [stashSettingsOpen, setStashSettingsOpen] = useState(false);
+  const { stashSettingsOpen, setStashSettingsOpen } = useStashSearch();
   const [settingsPassword, setSettingsPassword] = useState('');
   const [settingsPasswordError, setSettingsPasswordError] = useState<string | null>(null);
   const [settingsPasswordPending, setSettingsPasswordPending] = useState(false);
@@ -1059,43 +1059,14 @@ export default function StashAccessPage() {
 
   return (
     <>
-    <div className="h-full w-full flex flex-col overflow-hidden">
-      {/* ── Page header ────────────────────────────────────────────────────── */}
-      <header className="h-11 flex-shrink-0 flex items-center gap-3 px-4 bg-white dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800">
-        <div className="flex items-center gap-2 flex-1 min-w-0">
-          <svg className="w-4 h-4 text-indigo-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
-          </svg>
-          <span className="text-sm font-semibold text-slate-800 dark:text-slate-200 truncate">
-            {stash?.name ?? '…'}
-          </span>
-          {stash?.passwordProtected && (
-            <svg className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-            </svg>
-          )}
-        </div>
-        <button
-          onClick={() => { setStashSettingsOpen(true); setSettingsPassword(''); setSettingsPasswordError(null); setRemovePasswordConfirm(false); }}
-          title="Stash settings"
-          className="p-1.5 rounded-lg text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors flex-shrink-0"
-        >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-          </svg>
-        </button>
-      </header>
-
-      {/* ── Content: sidebar + preview ─────────────────────────────────────── */}
-      <div className="flex-1 flex overflow-hidden">
-        {/* ── Sidebar ─────────────────────────────────────────────────────────── */}
-        <div className={[
-          'h-full flex-col bg-white dark:bg-slate-950',
-          'border-r border-slate-200 dark:border-slate-800',
-          'w-full md:w-80 md:flex-shrink-0',
-          mobilePane === 'preview' ? 'hidden md:flex' : 'flex',
-        ].join(' ')}>
+    <div className="h-full w-full flex overflow-hidden">
+      {/* ── Sidebar ─────────────────────────────────────────────────────────── */}
+      <div className={[
+        'h-full flex-col bg-white dark:bg-slate-950',
+        'border-r border-slate-200 dark:border-slate-800',
+        'w-full md:w-80 md:flex-shrink-0',
+        mobilePane === 'preview' ? 'hidden md:flex' : 'flex',
+      ].join(' ')}>
         {/* Selection actions bar — always visible */}
         <div className="px-3 py-2 border-b border-slate-200/70 dark:border-slate-800/70 bg-slate-100/60 dark:bg-slate-900/60 flex items-center gap-1.5">
           {/* Master checkbox */}
@@ -1761,8 +1732,7 @@ export default function StashAccessPage() {
           </div>
         )}
       </div>
-      </div>{/* end content row */}
-    </div>{/* end outer */}
+    </div>
 
     {bulkImportOpen && stashId && accessToken && (
       <BulkImportModal
