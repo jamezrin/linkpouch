@@ -370,6 +370,11 @@ export default function StashAccessPage() {
   const [passwordInput, setPasswordInput] = useState('');
   const [passwordError, setPasswordError] = useState<string | null>(null);
   const [passwordSubmitting, setPasswordSubmitting] = useState(false);
+  const [stashSettingsOpen, setStashSettingsOpen] = useState(false);
+  const [settingsPassword, setSettingsPassword] = useState('');
+  const [settingsPasswordError, setSettingsPasswordError] = useState<string | null>(null);
+  const [settingsPasswordPending, setSettingsPasswordPending] = useState(false);
+  const [removePasswordConfirm, setRemovePasswordConfirm] = useState(false);
   const sentinelRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const liveIframeRef = useRef<HTMLIFrameElement>(null);
@@ -453,7 +458,50 @@ export default function StashAccessPage() {
     }
   };
 
-  const { isLoading: stashLoading, error: stashError } = useQuery({
+  const handleSetPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!stashId || !signature || !accessToken || !settingsPassword.trim()) return;
+    setSettingsPasswordPending(true);
+    setSettingsPasswordError(null);
+    try {
+      await stashApi.setPassword(stashId, signature, settingsPassword, accessToken);
+      // Re-acquire token — pwdKey changes when password is set/changed
+      sessionStorage.removeItem(tokenStorageKey(stashId));
+      const res = await stashApi.acquireAccessToken(stashId, signature, settingsPassword);
+      const token = res.data.accessToken;
+      sessionStorage.setItem(tokenStorageKey(stashId), token);
+      setAccessToken(token);
+      setSettingsPassword('');
+      await queryClient.invalidateQueries({ queryKey: ['stash', stashId] });
+    } catch {
+      setSettingsPasswordError('Failed to set password. Please try again.');
+    } finally {
+      setSettingsPasswordPending(false);
+    }
+  };
+
+  const handleRemovePassword = async () => {
+    if (!stashId || !signature || !accessToken) return;
+    setSettingsPasswordPending(true);
+    setSettingsPasswordError(null);
+    try {
+      await stashApi.removePassword(stashId, signature, accessToken);
+      // Re-acquire token — pwdKey is gone now
+      sessionStorage.removeItem(tokenStorageKey(stashId));
+      const res = await stashApi.acquireAccessToken(stashId, signature);
+      const token = res.data.accessToken;
+      sessionStorage.setItem(tokenStorageKey(stashId), token);
+      setAccessToken(token);
+      setRemovePasswordConfirm(false);
+      await queryClient.invalidateQueries({ queryKey: ['stash', stashId] });
+    } catch {
+      setSettingsPasswordError('Failed to remove password. Please try again.');
+    } finally {
+      setSettingsPasswordPending(false);
+    }
+  };
+
+  const { data: stash, isLoading: stashLoading, error: stashError } = useQuery({
     queryKey: ['stash', stashId],
     queryFn: async () => {
       const res = await stashApi.getStash(stashId, accessToken!);
@@ -1108,7 +1156,104 @@ export default function StashAccessPage() {
               />
             </svg>
           </button>
+
+          {/* Divider */}
+          <span className="w-px h-3.5 bg-slate-200 dark:bg-slate-700 mx-0.5 flex-shrink-0" />
+
+          {/* Stash settings */}
+          <button
+            onClick={() => { setStashSettingsOpen((o) => !o); setSettingsPassword(''); setSettingsPasswordError(null); setRemovePasswordConfirm(false); }}
+            title="Stash settings"
+            className={[
+              'p-1.5 rounded transition-colors',
+              stashSettingsOpen
+                ? 'text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/50'
+                : 'text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700',
+            ].join(' ')}
+          >
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+          </button>
         </div>
+
+        {/* Settings panel */}
+        {stashSettingsOpen && (
+          <div className="border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 px-3 py-3 flex flex-col gap-3">
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">Password</p>
+
+            {stash?.passwordProtected ? (
+              <>
+                <form onSubmit={handleSetPassword} className="flex flex-col gap-2">
+                  <input
+                    type="password"
+                    value={settingsPassword}
+                    onChange={(e) => setSettingsPassword(e.target.value)}
+                    placeholder="New password…"
+                    className="w-full px-3 py-2 text-[13px] bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-800 dark:text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500/60"
+                  />
+                  <button
+                    type="submit"
+                    disabled={settingsPasswordPending || !settingsPassword.trim()}
+                    className="w-full py-1.5 text-[13px] font-medium bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    {settingsPasswordPending ? 'Saving…' : 'Change password'}
+                  </button>
+                </form>
+
+                {removePasswordConfirm ? (
+                  <div className="flex flex-col gap-1.5">
+                    <p className="text-[12px] text-slate-500 dark:text-slate-400">Remove the password? Anyone with the URL will be able to access this pouch.</p>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={handleRemovePassword}
+                        disabled={settingsPasswordPending}
+                        className="flex-1 py-1.5 text-[13px] font-medium bg-red-600 hover:bg-red-500 text-white rounded-lg transition-colors disabled:opacity-40"
+                      >
+                        {settingsPasswordPending ? 'Removing…' : 'Confirm remove'}
+                      </button>
+                      <button
+                        onClick={() => setRemovePasswordConfirm(false)}
+                        className="flex-1 py-1.5 text-[13px] text-slate-600 dark:text-slate-300 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 rounded-lg transition-colors"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => setRemovePasswordConfirm(true)}
+                    className="w-full py-1.5 text-[13px] text-red-500 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-lg transition-colors"
+                  >
+                    Remove password
+                  </button>
+                )}
+              </>
+            ) : (
+              <form onSubmit={handleSetPassword} className="flex flex-col gap-2">
+                <input
+                  type="password"
+                  value={settingsPassword}
+                  onChange={(e) => setSettingsPassword(e.target.value)}
+                  placeholder="Set a password…"
+                  className="w-full px-3 py-2 text-[13px] bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-800 dark:text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500/60"
+                />
+                <button
+                  type="submit"
+                  disabled={settingsPasswordPending || !settingsPassword.trim()}
+                  className="w-full py-1.5 text-[13px] font-medium bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  {settingsPasswordPending ? 'Saving…' : 'Set password'}
+                </button>
+              </form>
+            )}
+
+            {settingsPasswordError && (
+              <p className="text-[12px] text-red-500">{settingsPasswordError}</p>
+            )}
+          </div>
+        )}
 
         {/* Search */}
         <div className="flex items-center gap-2 px-3 py-2 border-b border-slate-200/70 dark:border-slate-800/70">

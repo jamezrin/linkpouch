@@ -486,75 +486,46 @@ function AppMockup() {
 function CreateForm({
   value,
   onChange,
-  password,
-  onPasswordChange,
   onSubmit,
   isPending,
 }: {
   value: string;
   onChange: (v: string) => void;
-  password: string;
-  onPasswordChange: (v: string) => void;
   onSubmit: (e: React.FormEvent) => void;
   isPending: boolean;
 }) {
-  const [showPassword, setShowPassword] = useState(false);
   return (
-    <form onSubmit={onSubmit} className="flex flex-col gap-2">
-      <div className="flex gap-3">
-        <input
-          type="text"
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder="Name your pouch..."
-          className="flex-1 px-5 py-3.5 bg-slate-800/80 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 text-[15px]"
-        />
-        <button
-          type="submit"
-          disabled={isPending || !value.trim()}
-          className="btn-shimmer p-3.5 md:px-5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed text-white font-semibold rounded-xl transition-colors text-[15px] whitespace-nowrap flex items-center justify-center flex-shrink-0"
-          style={DISPLAY}
-        >
-          {isPending ? (
-            <>
-              <svg className="w-5 h-5 md:hidden animate-spin" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4l3-3-3-3v4a8 8 0 00-8 8h4z" />
-              </svg>
-              <span className="hidden md:inline">Creating…</span>
-            </>
-          ) : (
-            <>
-              <svg className="w-5 h-5 md:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-              </svg>
-              <span className="hidden md:inline">Create pouch →</span>
-            </>
-          )}
-        </button>
-      </div>
-      <div>
-        <button
-          type="button"
-          onClick={() => { setShowPassword((s) => !s); if (showPassword) onPasswordChange(''); }}
-          className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-300 transition-colors"
-          style={MONO}
-        >
-          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-          </svg>
-          {showPassword ? 'Remove password' : 'Set password (optional)'}
-        </button>
-        {showPassword && (
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => onPasswordChange(e.target.value)}
-            placeholder="Passphrase for this pouch…"
-            className="mt-2 w-full px-4 py-2.5 bg-slate-800/80 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 text-[14px]"
-          />
+    <form onSubmit={onSubmit} className="flex gap-3">
+      <input
+        type="text"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder="Name your pouch..."
+        className="flex-1 px-5 py-3.5 bg-slate-800/80 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 text-[15px]"
+      />
+      <button
+        type="submit"
+        disabled={isPending || !value.trim()}
+        className="btn-shimmer p-3.5 md:px-5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed text-white font-semibold rounded-xl transition-colors text-[15px] whitespace-nowrap flex items-center justify-center flex-shrink-0"
+        style={DISPLAY}
+      >
+        {isPending ? (
+          <>
+            <svg className="w-5 h-5 md:hidden animate-spin" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4l3-3-3-3v4a8 8 0 00-8 8h4z" />
+            </svg>
+            <span className="hidden md:inline">Creating…</span>
+          </>
+        ) : (
+          <>
+            <svg className="w-5 h-5 md:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+            </svg>
+            <span className="hidden md:inline">Create pouch →</span>
+          </>
         )}
-      </div>
+      </button>
     </form>
   );
 }
@@ -563,7 +534,6 @@ function CreateForm({
 
 export default function HomePage() {
   const [newStashName, setNewStashName] = useState('');
-  const [newStashPassword, setNewStashPassword] = useState('');
   const navigate = useNavigate();
   const featuresRef = useReveal();
   const stepsRef    = useReveal();
@@ -571,8 +541,7 @@ export default function HomePage() {
   const roadmapRef  = useReveal();
 
   const createMutation = useMutation({
-    mutationFn: ({ name, password }: { name: string; password?: string }) =>
-      stashApi.createStash({ name, password: password || undefined }),
+    mutationFn: (name: string) => stashApi.createStash({ name }),
     onSuccess: (response) => {
       const signedUrl = response.data.signedUrl;
       if (signedUrl) navigate(new URL(signedUrl).pathname);
@@ -585,9 +554,7 @@ export default function HomePage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (newStashName.trim()) {
-      createMutation.mutate({ name: newStashName.trim(), password: newStashPassword.trim() || undefined });
-    }
+    if (newStashName.trim()) createMutation.mutate(newStashName.trim());
   };
 
   return (
@@ -675,8 +642,6 @@ export default function HomePage() {
                 <CreateForm
                   value={newStashName}
                   onChange={setNewStashName}
-                  password={newStashPassword}
-                  onPasswordChange={setNewStashPassword}
                   onSubmit={handleSubmit}
                   isPending={createMutation.isPending}
                 />
@@ -903,8 +868,6 @@ export default function HomePage() {
             <CreateForm
               value={newStashName}
               onChange={setNewStashName}
-              password={newStashPassword}
-              onPasswordChange={setNewStashPassword}
               onSubmit={handleSubmit}
               isPending={createMutation.isPending}
             />
