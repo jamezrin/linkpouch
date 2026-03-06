@@ -92,8 +92,7 @@ public class LinkController implements LinksApi {
     }
 
     @Override
-    public ResponseEntity<LinkResponseDTO> addLink(
-            final UUID stashId, final AddLinkRequestDTO addLinkRequestDTO) {
+    public ResponseEntity<LinkResponseDTO> addLink(final UUID stashId, final AddLinkRequestDTO addLinkRequestDTO) {
         final var stash = findStashByIdQuery
                 .execute(stashId)
                 .orElseThrow(() -> new NotFoundException("Stash not found: " + stashId));
@@ -127,10 +126,7 @@ public class LinkController implements LinksApi {
 
     @Override
     public ResponseEntity<PagedLinkResponseDTO> listLinks(
-            final UUID stashId,
-            final String search,
-            final Integer page,
-            final Integer size) {
+            final UUID stashId, final String search, final Integer page, final Integer size) {
         final var stash = findStashByIdQuery
                 .execute(stashId)
                 .orElseThrow(() -> new NotFoundException("Stash not found: " + stashId));
@@ -211,8 +207,7 @@ public class LinkController implements LinksApi {
     }
 
     @Override
-    public ResponseEntity<Void> reorderLinks(
-            final UUID stashId, final ReorderLinksRequestDTO reorderLinksRequestDTO) {
+    public ResponseEntity<Void> reorderLinks(final UUID stashId, final ReorderLinksRequestDTO reorderLinksRequestDTO) {
         final var stash = findStashByIdQuery
                 .execute(stashId)
                 .orElseThrow(() -> new NotFoundException("Stash not found: " + stashId));

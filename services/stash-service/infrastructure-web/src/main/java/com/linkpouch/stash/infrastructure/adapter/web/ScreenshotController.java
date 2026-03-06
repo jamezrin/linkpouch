@@ -40,8 +40,7 @@ public class ScreenshotController {
 
     @GetMapping("/stashes/{stashId}/links/{linkId}/screenshot")
     public ResponseEntity<byte[]> getScreenshot(
-            @PathVariable("stashId") final UUID stashId,
-            @PathVariable("linkId") final UUID linkId) {
+            @PathVariable("stashId") final UUID stashId, @PathVariable("linkId") final UUID linkId) {
 
         // JWT validation (including ?token= fallback) is handled by StashJwtInterceptor.
         // Here we only validate the pwdKey claim if the stash is password-protected.

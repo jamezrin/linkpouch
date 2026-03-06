@@ -42,9 +42,8 @@ public class StashController implements StashesApi {
 
     @Override
     public ResponseEntity<StashResponseDTO> createStash(final CreateStashRequestDTO createStashRequestDTO) {
-        final var command = new CreateStashCommand(
-                createStashRequestDTO.getName(),
-                createStashRequestDTO.getPassword());
+        final var command =
+                new CreateStashCommand(createStashRequestDTO.getName(), createStashRequestDTO.getPassword());
         final var stash = createStashUseCase.execute(command);
 
         final var response = mapper.mapOut(stash);
@@ -69,8 +68,7 @@ public class StashController implements StashesApi {
             throw new UnauthorizedException("Invalid signature");
         }
 
-        final String rawPassword =
-                acquireAccessRequestDTO != null ? acquireAccessRequestDTO.getPassword() : null;
+        final String rawPassword = acquireAccessRequestDTO != null ? acquireAccessRequestDTO.getPassword() : null;
 
         // Throws PasswordRequiredException (401 PASSWORD_REQUIRED) or UnauthorizedException
         final var authenticatedStash =
@@ -127,9 +125,7 @@ public class StashController implements StashesApi {
 
     @Override
     public ResponseEntity<StashResponseDTO> setStashPassword(
-            final UUID stashId,
-            final String xStashSignature,
-            final SetPasswordRequestDTO setPasswordRequestDTO) {
+            final UUID stashId, final String xStashSignature, final SetPasswordRequestDTO setPasswordRequestDTO) {
 
         final var stash = findStashByIdQuery
                 .execute(stashId)
@@ -146,14 +142,13 @@ public class StashController implements StashesApi {
             tokenService.validatePwdKey(claims, stashId, stash.getPasswordHash());
         }
 
-        final var updatedStash =
-                setStashPasswordUseCase.execute(new SetStashPasswordCommand(stashId, setPasswordRequestDTO.getPassword()));
+        final var updatedStash = setStashPasswordUseCase.execute(
+                new SetStashPasswordCommand(stashId, setPasswordRequestDTO.getPassword()));
         return ResponseEntity.ok(mapper.mapOut(updatedStash));
     }
 
     @Override
-    public ResponseEntity<Void> removeStashPassword(
-            final UUID stashId, final String xStashSignature) {
+    public ResponseEntity<Void> removeStashPassword(final UUID stashId, final String xStashSignature) {
 
         final var stash = findStashByIdQuery
                 .execute(stashId)

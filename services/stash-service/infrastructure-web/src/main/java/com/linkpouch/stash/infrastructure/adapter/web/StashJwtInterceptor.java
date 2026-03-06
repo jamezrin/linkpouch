@@ -45,8 +45,7 @@ public class StashJwtInterceptor implements HandlerInterceptor {
     public static final String CLAIMS_ATTR = "stashJwtClaims";
 
     private static final String BEARER_PREFIX = "Bearer ";
-    private static final Pattern STASH_ID_PATTERN =
-            Pattern.compile("^/(?:api/)?stashes/([0-9a-fA-F-]{36})(?:/|$)");
+    private static final Pattern STASH_ID_PATTERN = Pattern.compile("^/(?:api/)?stashes/([0-9a-fA-F-]{36})(?:/|$)");
 
     private final StashTokenService tokenService;
 
