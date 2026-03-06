@@ -22,6 +22,7 @@ import { restrictToVerticalAxis, restrictToParentElement } from '@dnd-kit/modifi
 import { stashApi, linkApi, utilsApi, isTokenValid, tokenStorageKey } from '../services/api';
 import { Link as LinkType } from '../types';
 import { useStashSearch } from '../contexts/stashSearch';
+import { useStashToken } from '../hooks/useStashToken';
 import { ArchiveSnapshotPicker } from '../components/ArchiveSnapshotPicker';
 import { BulkImportModal } from '../components/BulkImportModal';
 import DemoButton from '../components/DemoButton';
@@ -364,7 +365,7 @@ export default function StashAccessPage() {
   const [liveFailed, setLiveFailed] = useState(false);
   const [selectedArchiveTimestamp, setSelectedArchiveTimestamp] = useState<string | null>(null);
   const [draggingId, setDraggingId] = useState<string | null>(null);
-  const [accessToken, setAccessToken] = useState<string | null>(null);
+  const { token: accessToken, setToken: setAccessToken } = useStashToken(stashId);
   type AuthState = 'acquiring' | 'password_required' | 'ready' | 'error';
   const [authState, setAuthState] = useState<AuthState>('acquiring');
   const [passwordInput, setPasswordInput] = useState('');
@@ -416,10 +417,9 @@ export default function StashAccessPage() {
   useEffect(() => {
     if (!stashId || !signature) return;
 
-    // Try cached token first
+    // Try cached token first (read directly from sessionStorage to avoid stale closure)
     const cached = sessionStorage.getItem(tokenStorageKey(stashId));
     if (cached && isTokenValid(cached)) {
-      setAccessToken(cached);
       setAuthState('ready');
       return;
     }
@@ -427,9 +427,7 @@ export default function StashAccessPage() {
     // Acquire new token
     setAuthState('acquiring');
     stashApi.acquireAccessToken(stashId, signature).then((res) => {
-      const token = res.data.accessToken;
-      sessionStorage.setItem(tokenStorageKey(stashId), token);
-      setAccessToken(token);
+      setAccessToken(res.data.accessToken);
       setAuthState('ready');
     }).catch((err) => {
       if (err?.response?.data?.errorCode === 'PASSWORD_REQUIRED') {
@@ -447,9 +445,7 @@ export default function StashAccessPage() {
     setPasswordError(null);
     try {
       const res = await stashApi.acquireAccessToken(stashId, signature, passwordInput);
-      const token = res.data.accessToken;
-      sessionStorage.setItem(tokenStorageKey(stashId), token);
-      setAccessToken(token);
+      setAccessToken(res.data.accessToken);
       setAuthState('ready');
     } catch (err: unknown) {
       setPasswordError('Incorrect password. Please try again.');
@@ -466,11 +462,8 @@ export default function StashAccessPage() {
     try {
       await stashApi.setPassword(stashId, signature, settingsPassword, accessToken);
       // Re-acquire token — pwdKey changes when password is set/changed
-      sessionStorage.removeItem(tokenStorageKey(stashId));
       const res = await stashApi.acquireAccessToken(stashId, signature, settingsPassword);
-      const token = res.data.accessToken;
-      sessionStorage.setItem(tokenStorageKey(stashId), token);
-      setAccessToken(token);
+      setAccessToken(res.data.accessToken);
       setSettingsPassword('');
       await queryClient.invalidateQueries({ queryKey: ['stash', stashId] });
     } catch {
@@ -487,11 +480,8 @@ export default function StashAccessPage() {
     try {
       await stashApi.removePassword(stashId, signature, accessToken);
       // Re-acquire token — pwdKey is gone now
-      sessionStorage.removeItem(tokenStorageKey(stashId));
       const res = await stashApi.acquireAccessToken(stashId, signature);
-      const token = res.data.accessToken;
-      sessionStorage.setItem(tokenStorageKey(stashId), token);
-      setAccessToken(token);
+      setAccessToken(res.data.accessToken);
       setRemovePasswordConfirm(false);
       await queryClient.invalidateQueries({ queryKey: ['stash', stashId] });
     } catch {

@@ -6,7 +6,8 @@ import StashAccessPage from './pages/StashAccessPage';
 import ThemeToggle from './components/ThemeToggle';
 import { StashSearchContext } from './contexts/stashSearch';
 import { ThemeProvider } from './contexts/theme';
-import { stashApi, tokenStorageKey } from './services/api';
+import { stashApi } from './services/api';
+import { useStashToken } from './hooks/useStashToken';
 
 const queryClient = new QueryClient();
 
@@ -34,7 +35,7 @@ function AppContent() {
   const [stashSettingsOpen, setStashSettingsOpen] = useState(false);
   const queryClient = useQueryClient();
 
-  const accessToken = stashId ? (sessionStorage.getItem(tokenStorageKey(stashId)) ?? undefined) : undefined;
+  const { token: accessToken } = useStashToken(stashId);
 
   // Close mobile menu and reset pane whenever the route changes
   useEffect(() => {
