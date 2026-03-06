@@ -16,7 +16,6 @@ public class WebMvcConfig implements WebMvcConfigurer {
     @Override
     public void addInterceptors(@NonNull final InterceptorRegistry registry) {
         registry.addInterceptor(stashJwtInterceptor)
-                .addPathPatterns("/api/stashes/**", "/api/links/**",
-                        "/stashes/**", "/links/**");
+                .addPathPatterns("/api/stashes/**", "/api/links/**", "/stashes/**", "/links/**");
     }
 }
