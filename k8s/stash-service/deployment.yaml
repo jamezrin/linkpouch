@@ -17,6 +17,32 @@ spec:
     spec:
       imagePullSecrets:
       - name: ghcr-secret
+      initContainers:
+      - name: atlas-migrate
+        image: ghcr.io/jamezrin/linkpouch/stash-service:latest
+        imagePullPolicy: Always
+        command:
+          - atlas
+          - migrate
+          - apply
+          - --dir
+          - file:///migrations
+          - --url
+          - "postgres://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@$(POSTGRES_HOST):$(POSTGRES_PORT)/$(POSTGRES_DB)?search_path=public&sslmode=disable"
+        env:
+        - name: POSTGRES_HOST
+          value: postgres-rw.postgres
+        - name: POSTGRES_PORT
+          value: "5432"
+        - name: POSTGRES_DB
+          value: linkpouch
+        - name: POSTGRES_USER
+          value: linkpouch
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: postgres-secret
+              key: POSTGRES_PASSWORD
       containers:
       - name: stash-service
         image: ghcr.io/jamezrin/linkpouch/stash-service:latest

@@ -1,8 +1,4 @@
--- V1: Create stashes table
--- Anonymous stash containers with signed URL access
-
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
-
 CREATE TABLE stashes (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
@@ -10,6 +6,5 @@ CREATE TABLE stashes (
     name TEXT NOT NULL,
     secret_key TEXT NOT NULL
 );
-
 -- Index for faster lookups by creation date
 CREATE INDEX idx_stashes_created_at ON stashes(created_at DESC);

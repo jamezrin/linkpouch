@@ -60,17 +60,6 @@
             <version>${postgresql.version}</version>
         </dependency>
 
-        <!-- Flyway -->
-        <dependency>
-            <groupId>org.flywaydb</groupId>
-            <artifactId>flyway-core</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>org.flywaydb</groupId>
-            <artifactId>flyway-database-postgresql</artifactId>
-        </dependency>
-
         <!-- MapStruct -->
         <dependency>
             <groupId>org.mapstruct</groupId>
@@ -122,29 +111,6 @@
     <build>
         <plugins>
             <plugin>
-                <groupId>org.flywaydb</groupId>
-                <artifactId>flyway-maven-plugin</artifactId>
-                <configuration>
-                    <skip>${jooq.codegen.skip}</skip>
-                    <url>${flyway.url}</url>
-                    <user>${flyway.user}</user>
-                    <password>${flyway.password}</password>
-                    <locations>
-                        <location>filesystem:src/main/resources/db/migration</location>
-                    </locations>
-                </configuration>
-                <executions>
-                    <execution>
-                        <id>flyway-migrate</id>
-                        <phase>generate-sources</phase>
-                        <goals>
-                            <goal>migrate</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
-
-            <plugin>
                 <groupId>org.jooq</groupId>
                 <artifactId>jooq-codegen-maven</artifactId>
                 <version>${jooq.version}</version>
@@ -160,7 +126,7 @@
                         <database>
                             <name>org.jooq.meta.postgres.PostgresDatabase</name>
                             <includes>.*</includes>
-                            <excludes>flyway_schema_history</excludes>
+                            <excludes>atlas_schema_revisions</excludes>
                             <inputSchema>public</inputSchema>
                         </database>
                         <target>
