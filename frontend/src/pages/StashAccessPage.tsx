@@ -1740,7 +1740,7 @@ export default function StashAccessPage() {
                 <img
                   src={getScreenshotSrc(activeLink)!}
                   alt={`Screenshot of ${activeLink.title || activeLink.url}`}
-                  className="w-full max-h-[85vh] object-contain rounded-xl shadow-2xl"
+                  className="w-full max-h-[85dvh] object-contain rounded-xl shadow-2xl"
                 />
               ) : (
                 <div className="w-full h-64 bg-white/10 animate-pulse rounded-xl" />
