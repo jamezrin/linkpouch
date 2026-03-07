@@ -44,12 +44,12 @@ spec:
           valueFrom:
             secretKeyRef:
               name: seaweedfs-secret
-              key: access-key
+              key: indexer-access-key
         - name: S3_SECRET_KEY
           valueFrom:
             secretKeyRef:
               name: seaweedfs-secret
-              key: secret-key
+              key: indexer-secret-key
         - name: S3_BUCKET
           value: linkpouch-screenshots
         - name: STASH_SERVICE_URL

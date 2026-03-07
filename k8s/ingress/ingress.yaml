@@ -15,32 +15,14 @@ spec:
     - host: linkpou.ch
       http:
         paths:
-          # Frontend - React app
+          # Maintenance mode — all traffic routed to maintenance page
           - path: /
             pathType: Prefix
             backend:
               service:
-                name: frontend
+                name: maintenance
                 port:
                   number: 80
-          
-          # API Gateway - all API routes
-          - path: /api
-            pathType: Prefix
-            backend:
-              service:
-                name: api-gateway
-                port:
-                  number: 8080
-
-          # Actuator health checks
-          - path: /actuator
-            pathType: Prefix
-            backend:
-              service:
-                name: api-gateway
-                port:
-                  number: 8080
   tls:
     - hosts:
         - linkpou.ch
