@@ -35,20 +35,16 @@
         <spring-boot.version>3.4.3</spring-boot.version>
         <!-- Latest jOOQ -->
         <jooq.version>3.19.14</jooq.version>
-        <!-- Latest Flyway -->
-        <flyway.version>11.0.0</flyway.version>
         <!-- Other dependencies -->
         <postgresql.version>42.7.4</postgresql.version>
         <lombok.version>1.18.42</lombok.version>
         <mapstruct.version>1.6.3</mapstruct.version>
         <!-- AWS SDK v2 -->
         <aws-sdk.version>2.29.52</aws-sdk.version>
-        <!-- jOOQ/Flyway: set to true to skip codegen+migration (e.g. when DB is unavailable) -->
+        <!-- jOOQ: set to true to skip codegen when DB is unavailable. -->
+        <!-- Apply Atlas migrations before codegen: atlas migrate apply (env local) -->
         <jooq.codegen.skip>false</jooq.codegen.skip>
         <!-- Default DB connection for local development (override with -D flags in CI) -->
-        <flyway.url>jdbc:postgresql://localhost:5432/linkpouch</flyway.url>
-        <flyway.user>linkpouch</flyway.user>
-        <flyway.password>linkpouch_secret</flyway.password>
         <jooq.url>jdbc:postgresql://localhost:5432/linkpouch</jooq.url>
         <jooq.user>linkpouch</jooq.user>
         <jooq.password>linkpouch_secret</jooq.password>
@@ -136,11 +132,6 @@
                     <groupId>org.springframework.boot</groupId>
                     <artifactId>spring-boot-maven-plugin</artifactId>
                     <version>${spring-boot.version}</version>
-                </plugin>
-                <plugin>
-                    <groupId>org.flywaydb</groupId>
-                    <artifactId>flyway-maven-plugin</artifactId>
-                    <version>${flyway.version}</version>
                 </plugin>
                 <plugin>
                     <groupId>com.diffplug.spotless</groupId>

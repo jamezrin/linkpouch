@@ -12,6 +12,7 @@ python = "3.13"
 
 # Infrastructure tools
 kubectl = "latest"
+atlas = "latest"
 
 [tasks.build]
 description = "Build all services"
@@ -30,8 +31,20 @@ description = "Stop local development environment"
 run = "docker-compose down"
 
 [tasks.migrate]
-description = "Run database migrations"
-run = "cd services/stash-service && mvn flyway:migrate -pl infrastructure-persistence-jpa"
+description = "Apply pending Atlas migrations to the local database"
+run = "atlas migrate apply --env local"
+
+[tasks.migrate-new]
+description = "Create a new blank Atlas migration file (usage: mise run migrate-new -- <name>)"
+run = "atlas migrate new --env local $@"
+
+[tasks.migrate-hash]
+description = "Recalculate atlas.sum after manually editing migration files"
+run = "atlas migrate hash --env local"
+
+[tasks.migrate-status]
+description = "Show migration status for the local database"
+run = "atlas migrate status --env local"
 
 [tasks.k8s-deploy]
 description = "Deploy to Kubernetes dev namespace"

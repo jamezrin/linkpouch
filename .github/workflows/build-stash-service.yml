@@ -5,11 +5,13 @@ on:
     branches: [main, master]
     paths:
       - 'services/stash-service/**'
+      - 'atlas.hcl'
       - '.github/workflows/build-stash-service.yml'
   pull_request:
     branches: [main, master]
     paths:
       - 'services/stash-service/**'
+      - 'atlas.hcl'
   workflow_dispatch:
 
 concurrency:
@@ -46,6 +48,14 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Install Atlas
+        uses: ariga/setup-atlas@v0
+
+      - name: Apply database migrations
+        run: |
+          atlas migrate apply --env ci \
+            --var db_url="postgres://linkpouch:linkpouch_secret@localhost:5432/linkpouch?search_path=public&sslmode=disable"
 
       - name: Set up JDK 21
         uses: actions/setup-java@v4

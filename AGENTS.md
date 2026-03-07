@@ -29,6 +29,8 @@ mise exec java -- mvn test -pl domain
 
 # Full build including tests (requires PostgreSQL for jOOQ codegen)
 # Default DB connection is localhost:5432/linkpouch (matches docker-compose)
+# Run Atlas migrations FIRST so jOOQ can introspect the schema:
+atlas migrate apply --env local
 mise exec java -- mvn clean verify -B
 
 # Format all Java code (Spotless + palantir-java-format)
@@ -36,6 +38,22 @@ mise exec java -- mvn spotless:apply
 
 # Check formatting without modifying files
 mise exec java -- mvn spotless:check
+```
+
+### Atlas (Database Migrations)
+
+```bash
+# Apply pending migrations to local DB
+atlas migrate apply --env local
+
+# Create a new blank migration file
+atlas migrate new --env local <name>
+
+# Recalculate atlas.sum after manually editing a migration file
+atlas migrate hash --env local
+
+# Show current migration status
+atlas migrate status --env local
 ```
 
 ### Python (Indexer Service)
@@ -171,8 +189,9 @@ StashResponseDTO mapOut(StashResponse response);
 - Build fails without generated code - intentional
 
 **Database:**
-- Flyway migrations in infrastructure-persistence
-- jOOQ requires running DB for generation
+- Atlas migrations in `infrastructure-persistence/src/main/resources/db/migrations/` (versioned, with `atlas.sum`)
+- Atlas config at repo root: `atlas.hcl` (defines `local` and `ci` environments)
+- jOOQ requires a running DB with migrations already applied for code generation
 
 **Transaction Boundaries:**
 - Application layer only (services/use cases)
