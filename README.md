@@ -231,12 +231,9 @@ Images are built on every push to `main` (multi-platform: `amd64`/`arm64`) and p
 
 ## Kubernetes Deployment
 
-```bash
-# Deploy to k3s cluster
-mise run k8s-deploy
-```
+The cluster is managed via **ArgoCD** (`argocd.jamezrin.com`), which watches the `k8s/` directory on `main` and automatically syncs any changes. There is no need to apply manifests manually — pushing to `main` is sufficient.
 
-The production setup includes: Traefik ingress with TLS (cert-manager), NetworkPolicies, HPA for the indexer, and Spring Boot Actuator liveness/readiness probes.
+The production setup includes: Traefik ingress with TLS (cert-manager), KEDA-based autoscaling for the indexer, and Spring Boot Actuator liveness/readiness probes.
 
 ## License
 
