@@ -1,206 +1,298 @@
 # Linkpouch Stash Service
 
+Core API service for managing anonymous stashes and bookmarks. Built with Spring Boot 3.4.3 and follows Hexagonal Architecture.
+
 ## Prerequisites
 
 - mise (tool version manager) - see [mise installation](https://mise.jdx.dev/getting-started.html)
 - Docker & Docker Compose
-- kubectl (for Kubernetes deployment)
+- PostgreSQL 16 (via Docker)
+- Redis 7.4 (via Docker)
 
-## Setup
-
-### 1. Install Tools via mise
+## Quick Start
 
 ```bash
-# Install all tools (Java 21, Maven 3.9, Node 22, Python 3.13)
+# 1. Install tools (Java 21, Maven 3.9)
 mise install
 
-# Verify Java version
-mise exec java -- java -version  # Should show Java 21
+# 2. Start infrastructure
+docker-compose up -d postgres redis
+
+# 3. Apply migrations and generate jOOQ code (first run only)
+atlas migrate apply --env local
+mise exec java -- mvn jooq-codegen:generate -pl infrastructure-persistence
+
+# 4. Build and run
+cd services/stash-service
+mise exec java -- mvn clean package -DskipTests
+mise exec java -- mvn spring-boot:run -pl boot
 ```
 
-### 2. Start Infrastructure
+The service runs on `http://localhost:8081` (behind API Gateway on port 8080).
 
-```bash
-# Start PostgreSQL, Redis, MinIO
-docker-compose up -d postgres redis minio
+## Module Structure
 
-# Wait for PostgreSQL to be ready
-docker-compose exec postgres pg_isready -U linkpouch
+Following **Hexagonal Architecture** with strict dependency direction: `domain` ← `application` ← `infrastructure-*`
+
+```
+stash-service/
+├── api-spec/                    # OpenAPI 3.0 specs + generated DTOs/controllers
+├── domain/                      # Pure business logic (no framework deps)
+│   ├── model/                   # Stash, Link, value objects
+│   └── port/                    # Inbound/outbound port interfaces
+├── application/                 # Use cases, transaction boundaries
+│   └── service/                 # Domain services with @Transactional
+├── infrastructure-persistence/  # JPA entities + jOOQ queries + Atlas migrations
+├── infrastructure-redis/        # Redis Streams event publisher
+├── infrastructure-http/         # Outbound HTTP client (embeddability, SSRF protection)
+├── infrastructure-web/          # REST controllers (implements OpenAPI spec)
+├── infrastructure-sse/          # Server-Sent Events (real-time link status)
+└── boot/                        # Spring Boot application entry point
 ```
 
-### 3. Database Setup
+### Infrastructure Module Responsibilities
 
-```bash
-cd services/stash-service/infrastructure
+| Module | Responsibility |
+|--------|----------------|
+| `infrastructure-persistence` | JPA entities, repositories (writes), jOOQ queries (reads/FTS), Atlas migrations |
+| `infrastructure-redis` | Redis Streams publisher for link indexing events |
+| `infrastructure-http` | Outbound HTTP with SSRF protection, embeddability checks |
+| `infrastructure-web` | REST controllers implementing generated OpenAPI interfaces |
+| `infrastructure-sse` | Server-Sent Events for real-time link status updates |
+| `boot` | Spring Boot auto-configuration, component scanning |
 
-# Run migrations
-mise exec java -- mvn flyway:migrate
-
-# Generate jOOQ code (REQUIRED before compiling)
-mise exec java -- mvn jooq-codegen:generate
-```
-
-### 4. Build the Project
+## Build Commands
 
 ```bash
 cd services/stash-service
 
-# Install parent modules first
-mise exec java -- mvn install -DskipTests -pl domain,application
+# Compile only
+mise exec java -- mvn clean compile
 
-# Compile everything (after jOOQ generation)
-mise exec java -- mvn compile
+# Build package (skip tests)
+mise exec java -- mvn clean package -DskipTests
 
-# Or build the full package
-mise exec java -- mvn package -DskipTests
+# Run all tests (requires PostgreSQL)
+mise exec java -- mvn test
+
+# Run single test class
+mise exec java -- mvn test -Dtest=StashTest
+
+# Run single test method
+mise exec java -- mvn test -Dtest=StashTest#createStash
+
+# Run tests for specific module
+mise exec java -- mvn test -pl domain
+
+# Full build with tests and verification
+mise exec java -- mvn clean verify -B
+
+# Format code (Spotless + palantir-java-format)
+mise exec java -- mvn spotless:apply
+
+# Check formatting without modifying
+mise exec java -- mvn spotless:check
 ```
+
+## Database Migrations (Atlas)
+
+This project uses **Atlas** for schema migrations (not Flyway).
+
+```bash
+# Apply pending migrations to local DB
+atlas migrate apply --env local
+
+# Create a new blank migration file
+atlas migrate new --env local <name>
+
+# Recalculate atlas.sum after editing migrations
+atlas migrate hash --env local
+
+# Check migration status
+atlas migrate status --env local
+```
+
+Migrations live in: `infrastructure-persistence/src/main/resources/db/migrations/`
 
 ## jOOQ Code Generation
 
-**IMPORTANT**: This project uses ACTUAL jOOQ code generation from a live database schema. The generated code is NOT committed to the repository.
-
-### First Time Setup
-
-After starting the database and running migrations, generate jOOQ classes:
+**IMPORTANT**: jOOQ generates Java code from the live database schema. Generated code is NOT committed.
 
 ```bash
-cd services/stash-service/infrastructure
-mise exec java -- mvn jooq-codegen:generate
+# 1. Ensure DB is running and migrations are applied
+atlas migrate apply --env local
+
+# 2. Generate jOOQ classes
+mise exec java -- mvn jooq-codegen:generate -pl infrastructure-persistence
 ```
 
-This will create classes in `target/generated-sources/jooq/`
+Generated code goes to: `infrastructure-persistence/src/main/generated/`
 
-### Regenerating jOOQ Code
+**Note**: `mvn clean` deletes generated code. You must regenerate after cleaning.
 
-If you modify the database schema:
+### Troubleshooting jOOQ
 
-```bash
-# 1. Run migrations first
-cd services/stash-service/infrastructure
-mise exec java -- mvn flyway:migrate
-
-# 2. Regenerate jOOQ code
-mise exec java -- mvn jooq-codegen:generate
-```
-
-### Why Manual Code Generation?
-
-jOOQ generates Java code from your actual database schema. This requires:
-1. A running PostgreSQL instance
-2. Migrated schema
-
-The generated code is added to the source path during compilation via the build-helper-maven-plugin.
-
-**Note**: Running `mvn clean` will delete generated jOOQ code. You'll need to regenerate it.
+| Error | Solution |
+|-------|----------|
+| `package com.linkpouch.stash.infrastructure.jooq.generated does not exist` | Run jOOQ generation: `mvn jooq-codegen:generate -pl infrastructure-persistence` |
+| `No JDBC Connection configured` during generation | Start PostgreSQL: `docker-compose up -d postgres` |
+| Build fails after `mvn clean` | Regenerate jOOQ code (see above) |
 
 ## Development Workflow
 
-### Using mise tasks
+### Run from IDE
 
-```bash
-# Start infrastructure
-mise run dev
-
-# Run migrations and generate jOOQ
-cd services/stash-service/infrastructure
-mise exec java -- mvn flyway:migrate jooq-codegen:generate
-
-# Build and run
-cd ..
-mise exec java -- mvn spring-boot:run -pl infrastructure
-```
+1. Start infrastructure: `docker-compose up -d postgres redis`
+2. Apply migrations: `atlas migrate apply --env local`
+3. Generate jOOQ: `mise exec java -- mvn jooq-codegen:generate -pl infrastructure-persistence`
+4. Import Maven project in IntelliJ/Eclipse
+5. Run `boot/src/main/java/com/linkpouch/stash/StashServiceApplication.java`
 
 ### Full Clean Build
 
 ```bash
-# If you run mvn clean, you MUST regenerate jOOQ code:
 cd services/stash-service
 
-# 1. Clean
+# 1. Clean everything
 mise exec java -- mvn clean
 
 # 2. Regenerate jOOQ
-cd infrastructure
-mise exec java -- mvn jooq-codegen:generate
-cd ..
+mise exec java -- mvn jooq-codegen:generate -pl infrastructure-persistence
 
 # 3. Build
 mise exec java -- mvn compile
 ```
 
-## Testing
-
-```bash
-# Run all tests
-mise exec java -- mvn test
-
-# Run only unit tests
-mise exec java -- mvn test -pl domain,application
-
-# Run integration tests (requires database)
-mise exec java -- mvn test -pl infrastructure
-```
-
 ## API Endpoints
 
+All endpoints require `X-Stash-Signature` header (HMAC-SHA256).
+
 ### Stash Management
-- `POST /api/stashes` - Create stash
-- `GET /api/stashes/{id}` - Get stash
+- `POST /api/stashes` - Create stash (returns signed URL)
+- `GET /api/stashes/{id}` - Get stash details
+- `PATCH /api/stashes/{id}` - Rename stash
+- `DELETE /api/stashes/{id}` - Delete stash
 
 ### Link Management
 - `POST /api/stashes/{id}/links` - Add link
-- `GET /api/stashes/{id}/links` - List links
-- `GET /api/stashes/{id}/links/search?q={query}` - Search links
+- `GET /api/stashes/{id}/links` - List links (paginated, `?search=` for FTS)
+- `PATCH /api/stashes/{id}/links` - Reorder links (drag-and-drop)
 - `DELETE /api/stashes/{id}/links/{linkId}` - Delete link
-- `POST /api/stashes/{id}/links/{linkId}/refresh` - Refresh screenshot
+- `POST /api/stashes/{id}/links/{linkId}/refresh-screenshot` - Request new screenshot
+
+### Utility Endpoints
+- `GET /api/embeddable-check?url=` - Check if URL can be iframed
+- `GET /api/wayback/cdx` - Proxied Wayback Machine CDX API
+
+### Internal Endpoints (blocked at Gateway)
+- `PATCH /api/links/{id}/metadata` - Indexer callback for metadata
+- `PATCH /api/links/{id}/screenshot` - Indexer callback for screenshots
 
 ## Health Checks
 
-- `/actuator/health` - Health status
-- `/actuator/health/liveness` - Kubernetes liveness probe
-- `/actuator/health/readiness` - Kubernetes readiness probe
-- `/actuator/metrics` - Application metrics
-- `/actuator/prometheus` - Prometheus metrics
-
-## Architecture
-
-See [docs/ARCHITECTURE.md](../../docs/ARCHITECTURE.md)
+- `GET /actuator/health` - Health status
+- `GET /actuator/health/liveness` - Kubernetes liveness probe
+- `GET /actuator/health/readiness` - Kubernetes readiness probe
+- `GET /actuator/metrics` - Application metrics
+- `GET /actuator/prometheus` - Prometheus metrics
 
 ## Technology Stack
 
-- **Java**: 21 (LTS)
-- **Spring Boot**: 3.4.3
-- **Architecture**: DDD + Hexagonal
-- **Database**: PostgreSQL 16 with Full-Text Search
-- **Persistence**: JPA (simple CRUD) + jOOQ (complex queries)
-- **Migrations**: Flyway 11
-- **Mapping**: MapStruct 1.6.3
-- **Build**: Maven 3.9
+| Component | Technology |
+|-----------|------------|
+| **Language** | Java 21 (LTS) |
+| **Framework** | Spring Boot 3.4.3 |
+| **Architecture** | DDD + Hexagonal |
+| **Database** | PostgreSQL 16 |
+| **Migrations** | Atlas |
+| **Persistence** | JPA (writes) + jOOQ 3.19 (reads/FTS) |
+| **Events** | Redis 7.4 Streams |
+| **API Spec** | OpenAPI 3.0 (code-generated) |
+| **Mapping** | MapStruct 1.6.3 |
+| **Build** | Maven 3.9 |
+| **Format** | Spotless + palantir-java-format |
+
+## Testing
+
+```bash
+# Run all tests (requires running PostgreSQL)
+mise exec java -- mvn test
+
+# Run only unit tests (domain + application)
+mise exec java -- mvn test -pl domain,application
+
+# Run integration tests only
+mise exec java -- mvn test -pl infrastructure-persistence,infrastructure-web,boot
+
+# Run with coverage
+mise exec java -- mvn verify -P coverage
+```
+
+### Test Naming Convention
+
+- Test class: `*Test` (e.g., `StashTest`)
+- Test method: `shouldDoSomethingWhenCondition()`
+- Use Given-When-Then comments in test bodies
+
+## Code Style
+
+Enforced by **Spotless** with `palantir-java-format`:
+
+- 4 spaces indentation (no tabs)
+- Opening brace on same line
+- 100 character line length
+- No wildcard imports (except `lombok.*`)
+- Import order: `java.*, javax.*, jakarta.*, org.*, com.*, com.linkpouch.*`
+- Use `var` for local variables when type is obvious
+- Records for DTOs
+- `Optional<T>` for nullable returns
+
+**Always run before committing:**
+```bash
+mise exec java -- mvn spotless:apply
+```
 
 ## Troubleshooting
 
-### Build fails with "package com.linkpouch.stash.infrastructure.jooq.generated does not exist"
+### Build fails with missing jOOQ classes
 
-You need to generate jOOQ code:
 ```bash
-cd services/stash-service/infrastructure
-mise exec java -- mvn jooq-codegen:generate
+# Regenerate jOOQ code
+mise exec java -- mvn jooq-codegen:generate -pl infrastructure-persistence
 ```
 
-### "Cannot execute query. No JDBC Connection configured" during jOOQ generation
+### Lombok errors
 
-Make sure PostgreSQL is running:
+Ensure you're using Java 21 via mise:
+```bash
+mise exec java -- java -version  # Should show Java 21
+```
+
+### Atlas migration errors
+
+Make sure PostgreSQL is running and accessible:
 ```bash
 docker-compose up -d postgres
 docker-compose exec postgres pg_isready -U linkpouch
 ```
 
-### Lombok errors
+### Circular dependency errors
 
-Make sure you're using Java 21 via mise:
-```bash
-mise exec java -- java -version
-```
+Check that infrastructure modules don't depend on each other. The only valid dependencies are:
+- `infrastructure-*` → `application`
+- `application` → `domain`
+- `boot` → all infrastructure modules
+
+## Architecture Guidelines
+
+See [AGENTS.md](../../AGENTS.md) for detailed coding standards.
+
+Key principles:
+1. **Transaction boundaries only in application layer** - Never in adapters/infrastructure
+2. **No circular dependencies** - Infrastructure modules are independent
+3. **Generated code not committed** - jOOQ and OpenAPI code is generated at build time
+4. **Use @Mapping annotations** - All MapStruct mappers must explicitly map every field
+5. **Never use fully qualified class names** - Always use imports
 
 ## License
 
