@@ -19,7 +19,7 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { restrictToVerticalAxis, restrictToParentElement } from '@dnd-kit/modifiers';
-import { stashApi, linkApi, utilsApi, isTokenValid, tokenStorageKey } from '../services/api';
+import { api, stashApi, linkApi, utilsApi, isTokenValid, tokenStorageKey } from '../services/api';
 import { Link as LinkType } from '../types';
 import { useStashSearch } from '../contexts/stashSearch';
 import { useStashToken } from '../hooks/useStashToken';
@@ -368,6 +368,8 @@ export default function StashAccessPage() {
   const { token: accessToken, setToken: setAccessToken } = useStashToken(stashId);
   type AuthState = 'acquiring' | 'password_required' | 'ready' | 'error';
   const [authState, setAuthState] = useState<AuthState>('acquiring');
+  const [authAttempt, setAuthAttempt] = useState(0);
+  const handleTokenExpiredRef = useRef<() => void>(() => {});
   const [passwordInput, setPasswordInput] = useState('');
   const [passwordError, setPasswordError] = useState<string | null>(null);
   const [passwordSubmitting, setPasswordSubmitting] = useState(false);
@@ -436,7 +438,37 @@ export default function StashAccessPage() {
         setAuthState('error');
       }
     });
-  }, [stashId, signature]);
+  // authAttempt is intentionally included: incrementing it triggers re-acquisition after expiry
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stashId, signature, authAttempt]);
+
+  // Keep the ref in sync with the latest stashId / setAccessToken so the interceptor
+  // always calls the most recent version without stale closures.
+  useEffect(() => {
+    handleTokenExpiredRef.current = () => {
+      if (stashId) sessionStorage.removeItem(tokenStorageKey(stashId));
+      setAccessToken(null);
+      setAuthAttempt((n) => n + 1);
+    };
+  }, [stashId, setAccessToken]);
+
+  // ─── 401 interceptor — re-acquire token when JWT expires ─────────────────────
+  useEffect(() => {
+    const id = api.interceptors.response.use(
+      undefined,
+      (error) => {
+        // Only react to 401s on authenticated endpoints, not on acquireAccessToken itself
+        if (
+          error?.response?.status === 401 &&
+          !error.config?.url?.includes('/access-token')
+        ) {
+          handleTokenExpiredRef.current();
+        }
+        return Promise.reject(error);
+      },
+    );
+    return () => api.interceptors.response.eject(id);
+  }, []);
 
   const handlePasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
