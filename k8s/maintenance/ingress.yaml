@@ -1,14 +1,12 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: linkpouch-ingress
+  name: linkpouch-maintenance-ingress
   namespace: linkpouch-dev
   annotations:
-    # Traefik Ingress Controller
     traefik.ingress.kubernetes.io/router.entrypoints: web,websecure
     traefik.ingress.kubernetes.io/router.tls: "true"
-    traefik.ingress.kubernetes.io/router.priority: "10"
-    # Middlewares (comma-separated)
+    traefik.ingress.kubernetes.io/router.priority: "100"
     traefik.ingress.kubernetes.io/router.middlewares: linkpouch-dev-redirect-https@kubernetescrd,linkpouch-dev-rate-limit@kubernetescrd
 spec:
   ingressClassName: traefik
@@ -16,32 +14,13 @@ spec:
     - host: linkpou.ch
       http:
         paths:
-          # Frontend - React app
           - path: /
             pathType: Prefix
             backend:
               service:
-                name: frontend
+                name: maintenance
                 port:
                   number: 80
-
-          # API Gateway - all API routes
-          - path: /api
-            pathType: Prefix
-            backend:
-              service:
-                name: api-gateway
-                port:
-                  number: 8080
-
-          # Actuator health checks
-          - path: /actuator
-            pathType: Prefix
-            backend:
-              service:
-                name: api-gateway
-                port:
-                  number: 8080
   tls:
     - hosts:
         - linkpou.ch
