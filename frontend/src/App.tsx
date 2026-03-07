@@ -8,6 +8,7 @@ import { StashSearchContext } from './contexts/stashSearch';
 import { ThemeProvider } from './contexts/theme';
 import { stashApi } from './services/api';
 import { useStashToken } from './hooks/useStashToken';
+import { useStashHistory } from './hooks/useStashHistory';
 
 const queryClient = new QueryClient();
 
@@ -36,6 +37,7 @@ function AppContent() {
   const queryClient = useQueryClient();
 
   const { token: accessToken } = useStashToken(stashId);
+  const { recordEntry } = useStashHistory();
 
   // Close mobile menu and reset pane whenever the route changes
   useEffect(() => {
@@ -56,6 +58,13 @@ function AppContent() {
   useEffect(() => {
     if (stash?.name) setEditedName(stash.name);
   }, [stash?.name]);
+
+  // Record stash in local history whenever we have a valid signed URL + loaded stash
+  useEffect(() => {
+    if (stashId && stash?.name && signature) {
+      recordEntry(stashId, stash.name, signature);
+    }
+  }, [stashId, stash?.name, signature, recordEntry]);
 
   const updateStashMutation = useMutation({
     mutationFn: async (name: string) => {
