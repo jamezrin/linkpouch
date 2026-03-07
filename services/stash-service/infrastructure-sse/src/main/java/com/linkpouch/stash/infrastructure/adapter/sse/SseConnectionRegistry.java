@@ -7,6 +7,7 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
@@ -60,6 +61,24 @@ public class SseConnectionRegistry {
             }
         }
         stashEmitters.removeAll(dead);
+    }
+
+    /** Send a keep-alive comment to all active emitters every 30 seconds to prevent proxy timeouts. */
+    @Scheduled(fixedDelay = 30_000)
+    public void sendHeartbeats() {
+        final SseEmitter.SseEventBuilder heartbeat = SseEmitter.event().comment("keep-alive");
+        emitters.forEach((stashId, stashEmitters) -> {
+            final List<SseEmitter> dead = new ArrayList<>();
+            for (final SseEmitter emitter : stashEmitters) {
+                try {
+                    emitter.send(heartbeat);
+                } catch (IOException e) {
+                    dead.add(emitter);
+                    emitter.completeWithError(e);
+                }
+            }
+            stashEmitters.removeAll(dead);
+        });
     }
 
     private void removeEmitter(final UUID stashId, final SseEmitter emitter) {
