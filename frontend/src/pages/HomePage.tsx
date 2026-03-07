@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { useMutation } from '@tanstack/react-query';
 import { stashApi } from '../services/api';
 import { useReveal } from '../hooks/useReveal';
+import { useStashHistory } from '../hooks/useStashHistory';
+import { StashHistoryEntry } from '../types';
 
 // ─── Typography helpers ────────────────────────────────────────────────────
 const DISPLAY: React.CSSProperties = { fontFamily: "'Syne', system-ui, sans-serif", fontWeight: 800 };
@@ -27,7 +29,7 @@ const FEATURES: Array<{ icon: React.ReactNode; title: string; desc: string }> = 
       </svg>
     ),
     title: 'Private by default',
-    desc: 'Access controlled by cryptographically signed URLs. Nobody can guess or brute-force your link — not even us.',
+    desc: 'Your pouch URL is a cryptographic signature — unguessable and unforgeable. Add an optional passphrase on top for a second layer of access control, no account required.',
   },
   {
     icon: (
@@ -37,7 +39,7 @@ const FEATURES: Array<{ icon: React.ReactNode; title: string; desc: string }> = 
       </svg>
     ),
     title: 'Auto screenshots',
-    desc: 'Every link gets a visual snapshot automatically. Browse your collection like a gallery, not a wall of text.',
+    desc: 'Every link gets a visual snapshot captured in the background. Color-coded status indicators show which links are still processing — updated live as they complete.',
   },
   {
     icon: (
@@ -55,7 +57,7 @@ const FEATURES: Array<{ icon: React.ReactNode; title: string; desc: string }> = 
       </svg>
     ),
     title: 'Drag to reorder',
-    desc: 'Organize links by drag-and-drop. Multi-select and move entire groups at once with a single gesture.',
+    desc: 'Organize links by drag-and-drop, with multi-select to move entire groups at once. Prefer the keyboard? Arrow-key navigation, range selection, and keyboard-driven reordering are built in.',
   },
   {
     icon: (
@@ -64,7 +66,7 @@ const FEATURES: Array<{ icon: React.ReactNode; title: string; desc: string }> = 
       </svg>
     ),
     title: 'Adaptive preview',
-    desc: 'Try the live page first, with automatic fallback to archive.org when a site blocks embedding — plus a one-click toggle.',
+    desc: 'Try the live page first, with automatic fallback to archive.org when a site blocks embedding — plus a one-click toggle between sources.',
   },
   {
     icon: (
@@ -73,34 +75,7 @@ const FEATURES: Array<{ icon: React.ReactNode; title: string; desc: string }> = 
       </svg>
     ),
     title: 'Instant saving',
-    desc: "Paste a URL and it's saved. Metadata and screenshots are captured in the background without blocking you.",
-  },
-  {
-    icon: (
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-      </svg>
-    ),
-    title: 'Bulk import',
-    desc: 'Paste a list of URLs or drop a .txt file to add up to 100 links at once — duplicates and invalid entries are skipped automatically.',
-  },
-  {
-    icon: (
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-      </svg>
-    ),
-    title: 'Real-time status',
-    desc: 'Color-coded indicators show which links are still gathering screenshots or metadata — updated live.',
-  },
-  {
-    icon: (
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5" />
-      </svg>
-    ),
-    title: 'Keyboard first',
-    desc: 'Full keyboard controls for selecting and managing links — arrow key navigation, range selection, keyboard-driven reordering.',
+    desc: "Paste a URL and it's saved. Need to add more at once? Drop a list of up to 100 — duplicates and invalid entries are skipped automatically, everything else queues in the background.",
   },
   {
     icon: (
@@ -108,17 +83,8 @@ const FEATURES: Array<{ icon: React.ReactNode; title: string; desc: string }> = 
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
       </svg>
     ),
-    title: 'Mobile-ready interface',
-    desc: 'A fully responsive layout that works on phones and tablets — switch between your link list and preview with a tap.',
-  },
-  {
-    icon: (
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-      </svg>
-    ),
-    title: 'Password-protected pouches',
-    desc: 'Add an optional passphrase on top of the signed URL — share your pouch with a specific audience while keeping it locked for everyone else.',
+    title: 'Mobile-ready',
+    desc: 'A fully responsive layout that works on phones and tablets — switch between your link list and preview pane with a tap.',
   },
   {
     icon: (
@@ -127,16 +93,7 @@ const FEATURES: Array<{ icon: React.ReactNode; title: string; desc: string }> = 
       </svg>
     ),
     title: 'Zero tracking',
-    desc: "No analytics, no behavioral tracking, no third-party scripts watching your activity. We don't know who you are — and we intend to keep it that way.",
-  },
-  {
-    icon: (
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7" />
-      </svg>
-    ),
-    title: 'Free, no strings',
-    desc: "Linkpouch is completely free with no limits on links or pouches. It's not open source yet — but transparency is part of the plan.",
+    desc: "No analytics, no behavioral tracking, no third-party scripts. Completely free with no limits on links or pouches. We don't know who you are — and we intend to keep it that way.",
   },
 ];
 
@@ -302,6 +259,142 @@ const ROADMAP: Array<{ icon: React.ReactNode; title: string; desc: string }> = [
     desc: 'Our indexer periodically re-visits your saved links and compares them to the previous snapshot. When a page changes significantly — updated content, a broken URL, or a site going offline — you get notified so you always know what\'s still current.',
   },
 ];
+
+// ─── Relative time helper ──────────────────────────────────────────────────
+
+function formatRelativeTime(isoString: string): string {
+  const diff = Date.now() - new Date(isoString).getTime();
+  const minutes = Math.floor(diff / 60_000);
+  if (minutes < 1) return 'just now';
+  if (minutes < 60) return `${minutes} min ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours} hour${hours === 1 ? '' : 's'} ago`;
+  const days = Math.floor(hours / 24);
+  return `${days} day${days === 1 ? '' : 's'} ago`;
+}
+
+// ─── Recent Pouches Panel ──────────────────────────────────────────────────
+// Replaces AppMockup in the hero when history entries exist.
+
+function RecentPouchesPanel({
+  history,
+  removeEntry,
+  clearHistory,
+}: {
+  history: StashHistoryEntry[];
+  removeEntry: (id: string) => void;
+  clearHistory: () => void;
+}) {
+  return (
+    <div
+      className="rounded-2xl overflow-hidden mx-auto max-w-3xl"
+      style={{
+        background: 'linear-gradient(145deg, rgba(99,102,241,0.35) 0%, rgba(15,23,42,0) 35%, rgba(139,92,246,0.18) 100%)',
+        padding: 1,
+        boxShadow: '0 50px 100px -20px rgba(0,0,0,0.85), 0 0 0 1px rgba(99,102,241,0.15), 0 0 60px -20px rgba(99,102,241,0.3)',
+      }}
+    >
+      {/* Inner height matches AppMockup (h-10 header + 290px body = 330px) */}
+      <div className="rounded-[calc(1rem-1px)] overflow-hidden bg-slate-950" style={{ height: 330 }}>
+        <div style={{ background: 'rgb(4,8,22)', height: '100%', display: 'flex', flexDirection: 'column' }}>
+
+          {/* Sub-header */}
+          <div
+            className="flex items-center justify-between px-5 py-3 flex-shrink-0"
+            style={{ borderBottom: '1px solid rgba(30,41,59,0.5)' }}
+          >
+            <div className="flex items-center gap-2">
+              <span
+                className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse flex-shrink-0"
+                style={{ boxShadow: '0 0 5px rgba(129,140,248,0.7)' }}
+              />
+              <span className="text-[10px] font-medium tracking-[0.12em] uppercase text-slate-500" style={MONO}>
+                recent pouches
+              </span>
+            </div>
+            <button
+              onClick={clearHistory}
+              className="text-[10px] text-slate-700 hover:text-slate-400 transition-colors duration-150"
+              style={MONO}
+            >
+              clear all
+            </button>
+          </div>
+
+          {/* Entry list — scrollable, styled scrollbar */}
+          <div className="overflow-y-auto flex-1 sidebar-scroll">
+            {history.map((entry) => (
+              <div
+                key={entry.stashId}
+                className="group relative flex items-center gap-3 py-3 transition-colors duration-100"
+                style={{
+                  borderBottom: '1px solid rgba(20,30,50,0.6)',
+                  paddingLeft: 20,
+                  paddingRight: 20,
+                }}
+              >
+                {/* Hover: indigo wash */}
+                <div
+                  className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-150 pointer-events-none"
+                  style={{ background: 'rgba(99,102,241,0.07)' }}
+                />
+                {/* Hover: left accent line */}
+                <div
+                  className="absolute left-0 inset-y-0 w-[2px] opacity-0 group-hover:opacity-100 transition-opacity duration-150"
+                  style={{ background: 'rgba(129,140,248,0.55)' }}
+                />
+
+                {/* Icon */}
+                <div className="flex-shrink-0 w-5 h-5 rounded flex items-center justify-center bg-slate-800/50 group-hover:bg-indigo-500/25 transition-colors duration-150">
+                  <svg className="w-2.5 h-2.5 fill-current text-slate-600 group-hover:text-indigo-300 transition-colors duration-150" viewBox="0 0 24 24">
+                    <path d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+                  </svg>
+                </div>
+
+                {/* Name */}
+                <a
+                  href={`/s/${entry.stashId}/${entry.signature}`}
+                  className="flex-1 text-[12px] truncate min-w-0 text-slate-500 group-hover:text-slate-200 transition-colors duration-150"
+                >
+                  {entry.name}
+                </a>
+
+                {/* Timestamp */}
+                <span
+                  className="text-[10px] flex-shrink-0 tabular-nums"
+                  style={{ color: 'rgb(51,65,85)', fontFamily: "'IBM Plex Mono', monospace" }}
+                >
+                  {formatRelativeTime(entry.lastOpenedAt)}
+                </span>
+
+                {/* Remove */}
+                <button
+                  onClick={() => removeEntry(entry.stashId)}
+                  className="flex-shrink-0 opacity-0 group-hover:opacity-100 w-4 h-4 flex items-center justify-center rounded text-slate-700 hover:text-slate-400 transition-all duration-100"
+                  title="Remove"
+                >
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            ))}
+          </div>
+
+          {/* Footer count */}
+          <div
+            className="flex items-center justify-center py-2.5 flex-shrink-0"
+            style={{ borderTop: '1px solid rgba(20,30,50,0.6)' }}
+          >
+            <span className="text-[9.5px] text-slate-700" style={MONO}>
+              {history.length} pouch{history.length !== 1 ? 'es' : ''} saved locally
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 // ─── App UI Mockup ─────────────────────────────────────────────────────────
 // Shows the stash page: sidebar with links + a detail/preview pane.
@@ -535,6 +628,7 @@ function CreateForm({
 export default function HomePage() {
   const [newStashName, setNewStashName] = useState('');
   const navigate = useNavigate();
+  const { history, removeEntry, clearHistory } = useStashHistory();
   const featuresRef = useReveal();
   const stepsRef    = useReveal();
   const faqRef      = useReveal();
@@ -663,11 +757,19 @@ export default function HomePage() {
               </div>
             </div>
 
-            {/* Right: floating mockup */}
+            {/* Right: history panel (when entries exist) or floating skeleton mockup */}
             <div className="animate-slide-up" style={{ animationDelay: '200ms' }}>
-              <div className="animate-float">
-                <AppMockup />
-              </div>
+              {history.length > 0 ? (
+                <RecentPouchesPanel
+                  history={history}
+                  removeEntry={removeEntry}
+                  clearHistory={clearHistory}
+                />
+              ) : (
+                <div className="animate-float">
+                  <AppMockup />
+                </div>
+              )}
             </div>
           </div>
         </div>

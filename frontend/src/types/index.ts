@@ -79,3 +79,10 @@ export interface BulkImportResponse {
   errors: BulkImportError[];
   links: Link[];
 }
+
+export interface StashHistoryEntry {
+  stashId: string;
+  name: string;
+  signature: string;    // HMAC signature — used to reconstruct /s/:stashId/:signature
+  lastOpenedAt: string; // ISO 8601 timestamp
+}
