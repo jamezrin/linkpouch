@@ -45,7 +45,7 @@ class StashServiceClient:
             }
             
             response = await self.client.patch(
-                f"/api/links/{link_id}/metadata",
+                f"/links/{link_id}/metadata",
                 json=payload,
             )
             response.raise_for_status()
@@ -72,7 +72,7 @@ class StashServiceClient:
         """Notify Stash Service of a terminal link status (e.g. FAILED)."""
         try:
             response = await self.client.patch(
-                f"/api/links/{link_id}/status",
+                f"/links/{link_id}/status",
                 json={"status": status},
             )
             response.raise_for_status()
@@ -100,7 +100,7 @@ class StashServiceClient:
         """Notify Stash Service that screenshot is ready."""
         try:
             response = await self.client.patch(
-                f"/api/links/{link_id}/screenshot",
+                f"/links/{link_id}/screenshot",
                 json={"screenshotKey": screenshot_key},
             )
             response.raise_for_status()
