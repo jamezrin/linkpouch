@@ -27,19 +27,17 @@ data:
           padding: 2rem;
           max-width: 480px;
         }
-        .brand {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          gap: 0.75rem;
-          margin-bottom: 2.5rem;
-        }
         .brand-name {
-          font-size: 0.9375rem;
+          font-size: 0.875rem;
           font-weight: 600;
           letter-spacing: -0.01em;
           color: #fff;
-          opacity: 0.5;
+          opacity: 0.35;
+          margin-bottom: 2.5rem;
+        }
+        .icon {
+          margin-bottom: 1.75rem;
+          animation: float 3s ease-in-out infinite;
         }
         h1 {
           font-size: 1.125rem;
@@ -52,24 +50,16 @@ data:
           color: #888;
           line-height: 1.6;
         }
-        .dot {
-          display: inline-block;
-          width: 6px;
-          height: 6px;
-          border-radius: 50%;
-          background: #f97316;
-          margin-bottom: 2rem;
-          animation: pulse 2s ease-in-out infinite;
-        }
-        @keyframes pulse {
-          0%, 100% { opacity: 1; transform: scale(1); }
-          50% { opacity: 0.4; transform: scale(0.8); }
+        @keyframes float {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-6px); }
         }
       </style>
     </head>
     <body>
       <div class="container">
-        <div class="brand">
+        <div class="brand-name">linkpou.ch</div>
+        <div class="icon">
           <svg width="52" height="52" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
             <defs>
               <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
@@ -84,9 +74,7 @@ data:
             <line x1="14.2" y1="8.8" x2="11.5" y2="6.5" stroke="white" stroke-width="1.6" stroke-linecap="round"/>
             <line x1="17.8" y1="8.8" x2="20.5" y2="6.5" stroke="white" stroke-width="1.6" stroke-linecap="round"/>
           </svg>
-          <span class="brand-name">linkpou.ch</span>
         </div>
-        <div class="dot"></div>
         <h1>Back shortly</h1>
         <p>We're performing scheduled maintenance.<br/>Your stashes are safe — we'll be back soon.</p>
       </div>
