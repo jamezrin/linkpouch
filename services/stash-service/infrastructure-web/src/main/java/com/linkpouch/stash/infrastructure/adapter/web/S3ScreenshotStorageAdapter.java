@@ -27,10 +27,8 @@ public class S3ScreenshotStorageAdapter implements ScreenshotStorage {
             return;
         }
         try {
-            s3Client.deleteObject(DeleteObjectRequest.builder()
-                    .bucket(s3Bucket)
-                    .key(key)
-                    .build());
+            s3Client.deleteObject(
+                    DeleteObjectRequest.builder().bucket(s3Bucket).key(key).build());
             log.debug("Deleted screenshot from storage: {}", key);
         } catch (NoSuchKeyException e) {
             log.debug("Screenshot key not found in storage (already deleted?): {}", key);
