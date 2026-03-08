@@ -5,6 +5,7 @@ import { stashApi } from '../services/api';
 import { useReveal } from '../hooks/useReveal';
 import { useStashHistory } from '../hooks/useStashHistory';
 import { StashHistoryEntry } from '../types';
+import { PouchIcon } from '../components/PouchIcon';
 
 // ─── Typography helpers ────────────────────────────────────────────────────
 const DISPLAY: React.CSSProperties = { fontFamily: "'Syne', system-ui, sans-serif", fontWeight: 800 };
@@ -346,9 +347,7 @@ function RecentPouchesPanel({
 
                 {/* Icon */}
                 <div className="flex-shrink-0 w-5 h-5 rounded flex items-center justify-center bg-slate-800/50 group-hover:bg-indigo-500/25 transition-colors duration-150">
-                  <svg className="w-2.5 h-2.5 fill-current text-slate-600 group-hover:text-indigo-300 transition-colors duration-150" viewBox="0 0 24 24">
-                    <path d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
-                  </svg>
+                  <PouchIcon className="w-2.5 h-2.5 text-slate-600 group-hover:text-indigo-300 transition-colors duration-150" strokeWidth={2.5} />
                 </div>
 
                 {/* Name */}
@@ -418,9 +417,7 @@ function AppMockup() {
         >
           <div className="flex items-center gap-2 flex-shrink-0">
             <div className="w-5 h-5 bg-indigo-600 rounded-md flex items-center justify-center">
-              <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
-              </svg>
+              <PouchIcon className="w-3 h-3 text-white" strokeWidth={2.5} />
             </div>
             <span className="text-[11px] font-semibold text-white tracking-tight">linkpouch</span>
           </div>
@@ -981,9 +978,7 @@ export default function HomePage() {
         <div className="relative mt-20 border-t border-slate-800/60 pt-8">
           <div className="flex items-center justify-center gap-2 mb-2">
             <div className="w-5 h-5 bg-indigo-600 rounded-md flex items-center justify-center">
-              <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
-              </svg>
+              <PouchIcon className="w-3 h-3 text-white" strokeWidth={2.5} />
             </div>
             <span className="text-sm font-semibold text-slate-500" style={DISPLAY}>linkpouch</span>
           </div>

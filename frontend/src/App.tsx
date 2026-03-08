@@ -11,6 +11,7 @@ import { useStashToken } from './hooks/useStashToken';
 import { useStashHistory } from './hooks/useStashHistory';
 import { useChangelog } from './hooks/useChangelog';
 import WhatsNewModal from './components/WhatsNewModal';
+import { PouchIcon } from './components/PouchIcon';
 
 const queryClient = new QueryClient();
 
@@ -131,9 +132,7 @@ function AppContent() {
           {/* Logo / home link */}
           <a href="/" className="flex items-center gap-2.5 group flex-shrink-0">
             <div className="w-7 h-7 bg-indigo-600 rounded-lg flex items-center justify-center flex-shrink-0 group-hover:bg-indigo-500 transition-colors">
-              <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
-              </svg>
+              <PouchIcon className="w-4 h-4 text-white" strokeWidth={2} />
             </div>
             <span className="text-[15px] font-semibold text-slate-900 dark:text-white tracking-tight">linkpouch</span>
           </a>
