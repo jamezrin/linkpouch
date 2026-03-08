@@ -12,6 +12,7 @@ A modern link bookmarking application with anonymous stashes, full-text search, 
 - **Archive.org integration** — Snapshot picker, CDX proxy to avoid CORS, and a live/archive toggle.
 - **Stash rename** — Click the stash name inline to rename it.
 - **Screenshot refresh** — Request a new screenshot on demand, individually or in bulk.
+- **What's New** — In-app changelog modal with an unseen-indicator badge. Seen state is persisted in `localStorage`.
 
 ## Quick Start
 
@@ -218,6 +219,12 @@ ruff check src/ tests/
 mypy src/
 pytest
 ```
+
+## Changelog
+
+User-visible changes are documented in `frontend/src/changelog.ts`. When shipping a feature or notable fix, add a new entry at the top of the `changelog` array and increment `LATEST_VERSION`. The modal in the app header will show an unseen-indicator badge to users who haven't read it yet.
+
+See `AGENTS.md` → "Releasing User-Visible Changes" for the exact steps.
 
 ## CI/CD & Container Registry
 

@@ -209,6 +209,37 @@ StashResponseDTO mapOut(StashResponse response);
 - Configuration in `mise.toml` at repository root
 - Run `mise install` to install all tools
 
+## Releasing User-Visible Changes
+
+When a change is user-visible (new feature, behaviour change, or notable fix), update the in-app changelog **in the same commit** as the code change:
+
+**File:** `frontend/src/changelog.ts`
+
+1. Add a new entry object at the **top** of the `changelog` array.
+2. Increment `LATEST_VERSION` by 1.
+3. Set `version` to the new `LATEST_VERSION` value.
+4. Set `date` to today's date in `'Month D, YYYY'` format (e.g. `'March 8, 2026'`).
+5. Write concise, user-friendly `items` bullet points (what changed and why it matters).
+
+```ts
+export const LATEST_VERSION = 2; // was 1
+
+export const changelog: ChangelogEntry[] = [
+  {
+    version: 2,
+    date: 'March 15, 2026',
+    items: [
+      'Your new feature or fix described for the user',
+    ],
+  },
+  // ... previous entries unchanged
+];
+```
+
+**What counts as user-visible:** new UI features, bug fixes the user would notice, performance improvements, new settings or controls.
+
+**What does NOT need a changelog entry:** refactors, internal infrastructure changes, CI/CD updates, dependency upgrades with no UX impact.
+
 ## Important Rules
 
 1. NEVER use fully qualified class names - use imports
@@ -217,3 +248,4 @@ StashResponseDTO mapOut(StashResponse response);
 4. ALWAYS run `mvn spotless:apply` then `mvn clean compile` before committing Java changes
 5. NEVER skip transaction boundaries at application layer
 6. NEVER use manual field assignment in mapper default methods
+7. ALWAYS update `frontend/src/changelog.ts` when making user-visible changes (see "Releasing User-Visible Changes" above)
