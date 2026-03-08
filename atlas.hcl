@@ -5,7 +5,7 @@ variable "db_url" {
 
 env "local" {
   url = var.db_url
-  dev = "docker://postgres/16/dev?search_path=public"
+  dev = "docker://postgres/18/dev?search_path=public"
   migration {
     dir = "file://services/stash-service/infrastructure-persistence/src/main/resources/db/migrations"
   }
@@ -13,7 +13,7 @@ env "local" {
 
 env "ci" {
   url = var.db_url
-  dev = "docker://postgres/16/dev?search_path=public"
+  dev = "docker://postgres/18/dev?search_path=public"
   migration {
     dir = "file://services/stash-service/infrastructure-persistence/src/main/resources/db/migrations"
   }

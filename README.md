@@ -22,7 +22,7 @@ mise install
 # Start all infrastructure and services
 docker-compose up -d
 
-# Run Flyway migrations and generate jOOQ code (first run only)
+# Apply Atlas migrations and generate jOOQ code (first run only)
 mise run migrate
 
 # Build the stash service
@@ -76,8 +76,8 @@ The frontend is served by Vite on `http://localhost:5173` and the API Gateway is
 | Backend language | Java 21, Python 3.13 |
 | Web frameworks | Spring Boot 3.4.3, FastAPI |
 | Frontend | React 19, Vite 6, TypeScript 5.6, Tailwind CSS v4 |
-| Database | PostgreSQL 16 (FTS + trigram indexes) |
-| Migrations | Flyway 11 |
+| Database | PostgreSQL 18 (FTS + trigram indexes) |
+| Migrations | Atlas |
 | ORM / query | JPA (writes), jOOQ 3.19 (reads / FTS) |
 | Events | Redis 7.4 Streams |
 | Object storage | SeaweedFS (S3-compatible) |
@@ -101,8 +101,7 @@ stash-service/
 ├── application/                # Use cases, @Transactional boundaries
 ├── infrastructure-web/         # REST controllers (implements generated API)
 ├── infrastructure-redis/       # Redis Streams event publisher
-├── infrastructure-persistence-jpa/   # JPA entities, Flyway migrations
-├── infrastructure-persistence-jooq/  # jOOQ queries (FTS, pagination, reorder)
+├── infrastructure-persistence/       # JPA entities, jOOQ queries, Atlas migrations
 ├── infrastructure-http/        # Outbound HTTP (embeddability check, SSRF protection)
 ├── infrastructure-sse/         # Server-Sent Events (real-time link status broadcasts)
 └── boot/                       # Spring Boot entry point
