@@ -28,6 +28,7 @@ import { BulkImportModal } from '../components/BulkImportModal';
 import DemoButton from '../components/DemoButton';
 import { features } from '../features';
 import { useStashEvents } from '../hooks/useStashEvents';
+import { PouchIcon } from '../components/PouchIcon';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -1239,19 +1240,7 @@ export default function StashAccessPage() {
           ) : links.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-center px-6 pb-8">
               <div className="w-12 h-12 bg-slate-200 dark:bg-slate-800 rounded-xl flex items-center justify-center mb-3">
-                <svg
-                  className="w-6 h-6 text-slate-400 dark:text-slate-600"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"
-                  />
-                </svg>
+                <PouchIcon className="w-6 h-6 text-slate-400 dark:text-slate-600" strokeWidth={1.5} />
               </div>
               <p className="text-slate-400 dark:text-slate-500 text-sm">
                 {isSearching ? 'No links match your search' : 'No links yet — paste one below'}
