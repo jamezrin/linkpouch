@@ -1,11 +1,9 @@
-version: '3.8'
-
 services:
 
   # ── Infrastructure ─────────────────────────────────────────────────────────
 
   postgres:
-    image: postgres:16-alpine
+    image: postgres:18-alpine
     environment:
       POSTGRES_DB: linkpouch
       POSTGRES_USER: linkpouch
@@ -56,6 +54,23 @@ services:
 
   # ── Application Services ────────────────────────────────────────────────────
 
+  atlas-migrate:
+    build:
+      context: ./services/stash-service
+      dockerfile: Dockerfile
+    entrypoint:
+      - atlas
+      - migrate
+      - apply
+      - --dir
+      - file:///migrations
+      - --url
+      - "postgres://linkpouch:linkpouch_secret@postgres:5432/linkpouch?search_path=public&sslmode=disable"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+
   stash-service:
     build:
       context: ./services/stash-service
@@ -82,6 +97,8 @@ services:
         condition: service_healthy
       seaweedfs:
         condition: service_healthy
+      atlas-migrate:
+        condition: service_completed_successfully
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/actuator/health"]
       interval: 15s

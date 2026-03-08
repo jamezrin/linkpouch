@@ -9,6 +9,8 @@ import { ThemeProvider } from './contexts/theme';
 import { stashApi } from './services/api';
 import { useStashToken } from './hooks/useStashToken';
 import { useStashHistory } from './hooks/useStashHistory';
+import { useChangelog } from './hooks/useChangelog';
+import WhatsNewModal from './components/WhatsNewModal';
 
 const queryClient = new QueryClient();
 
@@ -34,7 +36,14 @@ function AppContent() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [mobilePane, setMobilePane] = useState<'list' | 'preview'>('list');
   const [stashSettingsOpen, setStashSettingsOpen] = useState(false);
+  const [whatsNewOpen, setWhatsNewOpen] = useState(false);
+  const { hasUnseen, markSeen } = useChangelog();
   const queryClient = useQueryClient();
+
+  function handleOpenWhatsNew() {
+    setWhatsNewOpen(true);
+    markSeen();
+  }
 
   const { token: accessToken } = useStashToken(stashId);
   const { recordEntry } = useStashHistory();
@@ -208,6 +217,23 @@ function AppContent() {
             </button>
           )}
 
+          {/* What's New button — desktop only */}
+          <div className="hidden md:block relative">
+            <button
+              onClick={handleOpenWhatsNew}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[13px] font-medium transition-colors text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white"
+              title="What's new"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3l1.5 1.5M12 2v2m6.5.5L17 6M3 12H1m22 0h-2M5.636 18.364l-1.414 1.414M19.778 4.222l-1.414 1.414M12 6a6 6 0 100 12A6 6 0 0012 6z" />
+              </svg>
+              <span>What's New</span>
+            </button>
+            {hasUnseen && (
+              <span className="absolute top-1 right-1 w-2 h-2 bg-indigo-500 rounded-full pointer-events-none" />
+            )}
+          </div>
+
           {/* Theme toggle — desktop only */}
           <div className="hidden md:block">
             <ThemeToggle />
@@ -284,6 +310,19 @@ function AppContent() {
                   <div className="border-t border-slate-100 dark:border-slate-800 -mx-3" />
                 )}
 
+                {/* What's New — mobile */}
+                <button
+                  onClick={() => { handleOpenWhatsNew(); setMobileMenuOpen(false); }}
+                  className="flex items-center gap-2.5 px-2 py-1.5 rounded-lg text-[13px] font-medium transition-colors text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white w-full text-left"
+                >
+                  <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3l1.5 1.5M12 2v2m6.5.5L17 6M3 12H1m22 0h-2M5.636 18.364l-1.414 1.414M19.778 4.222l-1.414 1.414M12 6a6 6 0 100 12A6 6 0 0012 6z" />
+                  </svg>
+                  <span>What's New</span>
+                  {hasUnseen && <span className="ml-auto w-2 h-2 bg-indigo-500 rounded-full" />}
+                </button>
+                <div className="border-t border-slate-100 dark:border-slate-800 -mx-3" />
+
                 {/* Theme */}
                 <div>
                   <p className="text-[11px] font-medium text-slate-400 dark:text-slate-500 uppercase tracking-wide px-2 mb-2">Theme</p>
@@ -315,6 +354,7 @@ function AppContent() {
           )}
         </main>
       </div>
+      {whatsNewOpen && <WhatsNewModal onClose={() => setWhatsNewOpen(false)} />}
     </StashSearchContext.Provider>
   );
 }
