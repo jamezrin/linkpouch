@@ -33,6 +33,7 @@ import com.linkpouch.stash.domain.port.in.UpdateLinkStatusUseCase;
 import com.linkpouch.stash.domain.port.outbound.EventPublisher;
 import com.linkpouch.stash.domain.port.outbound.LinkRepository;
 import com.linkpouch.stash.domain.port.outbound.LinkStatusBroadcaster;
+import com.linkpouch.stash.domain.port.outbound.ScreenshotStorage;
 import com.linkpouch.stash.domain.port.outbound.StashRepository;
 
 import lombok.RequiredArgsConstructor;
@@ -63,6 +64,7 @@ public class LinkManagementService
     private final StashRepository stashRepository;
     private final EventPublisher eventPublisher;
     private final LinkStatusBroadcaster linkStatusBroadcaster;
+    private final ScreenshotStorage screenshotStorage;
 
     // ==================== AddLinkUseCase ====================
 
@@ -173,6 +175,10 @@ public class LinkManagementService
 
         stash.removeLink(link);
         stashRepository.save(stash);
+
+        if (link.getScreenshotKey() != null) {
+            screenshotStorage.delete(link.getScreenshotKey().getValue());
+        }
     }
 
     // ==================== UpdateLinkMetadataUseCase ====================
