@@ -1,6 +1,7 @@
 package com.linkpouch.stash.infrastructure.adapter.web;
 
 import java.net.URI;
+import java.util.List;
 import java.util.UUID;
 
 import jakarta.servlet.http.HttpServletRequest;
@@ -22,9 +23,12 @@ import com.linkpouch.stash.domain.port.in.AddLinkUseCase;
 import com.linkpouch.stash.domain.port.in.AddLinksBatchCommand;
 import com.linkpouch.stash.domain.port.in.AddLinksBatchUseCase;
 import com.linkpouch.stash.domain.port.in.DeleteLinkUseCase;
+import com.linkpouch.stash.domain.port.in.DeleteLinksBatchCommand;
+import com.linkpouch.stash.domain.port.in.DeleteLinksBatchUseCase;
 import com.linkpouch.stash.domain.port.in.FindLinkByIdQuery;
 import com.linkpouch.stash.domain.port.in.FindStashByIdQuery;
 import com.linkpouch.stash.domain.port.in.ListLinksQuery;
+import com.linkpouch.stash.domain.port.in.PutBatchLinkScreenshotUseCase;
 import com.linkpouch.stash.domain.port.in.ReorderLinksCommand;
 import com.linkpouch.stash.domain.port.in.ReorderLinksUseCase;
 import com.linkpouch.stash.domain.port.in.RequestScreenshotRefreshUseCase;
@@ -45,6 +49,8 @@ public class LinkController implements LinksApi {
     private final AddLinkUseCase addLinkUseCase;
     private final AddLinksBatchUseCase addLinksBatchUseCase;
     private final DeleteLinkUseCase deleteLinkUseCase;
+    private final DeleteLinksBatchUseCase deleteLinksBatchUseCase;
+    private final PutBatchLinkScreenshotUseCase putBatchLinkScreenshotUseCase;
     private final UpdateLinkMetadataUseCase updateLinkMetadataUseCase;
     private final UpdateLinkScreenshotUseCase updateLinkScreenshotUseCase;
     private final UpdateLinkStatusUseCase updateLinkStatusUseCase;
@@ -146,7 +152,7 @@ public class LinkController implements LinksApi {
     }
 
     @Override
-    public ResponseEntity<Void> refreshScreenshot(final UUID stashId, final UUID linkId) {
+    public ResponseEntity<Void> putLinkScreenshot(final UUID stashId, final UUID linkId) {
         final var stash = findStashByIdQuery
                 .execute(stashId)
                 .orElseThrow(() -> new NotFoundException("Stash not found: " + stashId));
@@ -161,6 +167,33 @@ public class LinkController implements LinksApi {
         }
 
         requestScreenshotRefreshUseCase.execute(linkId);
+        return ResponseEntity.accepted().build();
+    }
+
+    @Override
+    public ResponseEntity<Void> deleteLinksBatch(
+            final UUID stashId, final DeleteLinksBatchRequestDTO deleteLinksBatchRequestDTO) {
+        final var stash = findStashByIdQuery
+                .execute(stashId)
+                .orElseThrow(() -> new NotFoundException("Stash not found: " + stashId));
+
+        validatePwdKeyIfProtected(stashId, stash.getPasswordHash(), stash.isPasswordProtected());
+
+        deleteLinksBatchUseCase.execute(
+                new DeleteLinksBatchCommand(stashId, List.copyOf(deleteLinksBatchRequestDTO.getLinkIds())));
+        return ResponseEntity.noContent().build();
+    }
+
+    @Override
+    public ResponseEntity<Void> putBatchLinkScreenshot(
+            final UUID stashId, final PutBatchLinkScreenshotRequestDTO putBatchLinkScreenshotRequestDTO) {
+        final var stash = findStashByIdQuery
+                .execute(stashId)
+                .orElseThrow(() -> new NotFoundException("Stash not found: " + stashId));
+
+        validatePwdKeyIfProtected(stashId, stash.getPasswordHash(), stash.isPasswordProtected());
+
+        putBatchLinkScreenshotUseCase.execute(stashId, List.copyOf(putBatchLinkScreenshotRequestDTO.getLinkIds()));
         return ResponseEntity.accepted().build();
     }
 

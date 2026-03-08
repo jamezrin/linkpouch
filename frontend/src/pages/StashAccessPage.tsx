@@ -787,9 +787,7 @@ export default function StashAccessPage() {
   });
 
   const batchDeleteMutation = useMutation({
-    mutationFn: async (ids: string[]) => {
-      await Promise.all(ids.map((id) => linkApi.deleteLink(stashId!, accessToken!, id)));
-    },
+    mutationFn: (ids: string[]) => linkApi.batchDeleteLinks(stashId!, accessToken!, ids),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['links', stashId] });
       setSelectedLinkIds(new Set());
@@ -798,7 +796,14 @@ export default function StashAccessPage() {
   });
 
   const refreshScreenshotMutation = useMutation({
-    mutationFn: (linkId: string) => linkApi.refreshScreenshot(stashId!, accessToken!, linkId),
+    mutationFn: (linkId: string) => linkApi.putLinkScreenshot(stashId!, accessToken!, linkId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['links', stashId] });
+    },
+  });
+
+  const batchRefreshScreenshotMutation = useMutation({
+    mutationFn: (ids: string[]) => linkApi.putBatchLinkScreenshot(stashId!, accessToken!, ids),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['links', stashId] });
     },
@@ -873,7 +878,7 @@ export default function StashAccessPage() {
   }, [selectedLinkIds, batchDeleteMutation]);
 
   const handleBatchRefresh = () => {
-    selectedLinkIds.forEach((id) => refreshScreenshotMutation.mutate(id));
+    batchRefreshScreenshotMutation.mutate(Array.from(selectedLinkIds));
   };
 
   const handleLiveLoad = useCallback(() => {
@@ -1138,7 +1143,7 @@ export default function StashAccessPage() {
           {/* Refresh screenshots */}
           <button
             onClick={handleBatchRefresh}
-            disabled={selectedLinkIds.size === 0 || refreshScreenshotMutation.isPending}
+            disabled={selectedLinkIds.size === 0 || batchRefreshScreenshotMutation.isPending}
             title="Refresh screenshots"
             className="p-1.5 text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700 rounded transition-colors disabled:opacity-30"
           >

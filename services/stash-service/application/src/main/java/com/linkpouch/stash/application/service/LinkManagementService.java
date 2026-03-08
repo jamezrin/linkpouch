@@ -22,8 +22,11 @@ import com.linkpouch.stash.domain.port.in.AddLinkUseCase;
 import com.linkpouch.stash.domain.port.in.AddLinksBatchCommand;
 import com.linkpouch.stash.domain.port.in.AddLinksBatchUseCase;
 import com.linkpouch.stash.domain.port.in.DeleteLinkUseCase;
+import com.linkpouch.stash.domain.port.in.DeleteLinksBatchCommand;
+import com.linkpouch.stash.domain.port.in.DeleteLinksBatchUseCase;
 import com.linkpouch.stash.domain.port.in.ListLinksQuery;
 import com.linkpouch.stash.domain.port.in.PagedResult;
+import com.linkpouch.stash.domain.port.in.PutBatchLinkScreenshotUseCase;
 import com.linkpouch.stash.domain.port.in.ReorderLinksCommand;
 import com.linkpouch.stash.domain.port.in.ReorderLinksUseCase;
 import com.linkpouch.stash.domain.port.in.UpdateLinkMetadataCommand;
@@ -54,6 +57,8 @@ public class LinkManagementService
         implements AddLinkUseCase,
                 AddLinksBatchUseCase,
                 DeleteLinkUseCase,
+                DeleteLinksBatchUseCase,
+                PutBatchLinkScreenshotUseCase,
                 UpdateLinkMetadataUseCase,
                 UpdateLinkScreenshotUseCase,
                 UpdateLinkStatusUseCase,
@@ -178,6 +183,68 @@ public class LinkManagementService
 
         if (link.getScreenshotKey() != null) {
             screenshotStorage.delete(link.getScreenshotKey().getValue());
+        }
+    }
+
+    // ==================== DeleteLinksBatchUseCase ====================
+
+    @Override
+    @Transactional
+    public void execute(final DeleteLinksBatchCommand command) {
+        final Stash stash = stashRepository
+                .findByIdWithLinks(command.stashId())
+                .orElseThrow(() -> new NotFoundException("Stash not found: " + command.stashId()));
+
+        final List<String> screenshotKeys = new ArrayList<>();
+        for (final UUID linkId : command.linkIds()) {
+            final Link link = stash.getLinks().stream()
+                    .filter(l -> l.getId().equals(linkId))
+                    .findFirst()
+                    .orElseThrow(() -> new NotFoundException("Link not found in stash: " + linkId));
+            if (link.getScreenshotKey() != null) {
+                screenshotKeys.add(link.getScreenshotKey().getValue());
+            }
+            stash.removeLink(link);
+        }
+
+        stashRepository.save(stash);
+
+        for (final String key : screenshotKeys) {
+            screenshotStorage.delete(key);
+        }
+    }
+
+    // ==================== PutBatchLinkScreenshotUseCase ====================
+
+    @Override
+    @Transactional
+    public void execute(final UUID stashId, final List<UUID> linkIds) {
+        final Stash stash = stashRepository
+                .findByIdWithLinks(stashId)
+                .orElseThrow(() -> new NotFoundException("Stash not found: " + stashId));
+
+        final List<Link> targetLinks = new ArrayList<>();
+        for (final UUID linkId : linkIds) {
+            final Link domainLink = stash.getLinks().stream()
+                    .filter(l -> l.getId().equals(linkId))
+                    .findFirst()
+                    .orElseThrow(() -> new NotFoundException("Link not found in stash: " + linkId));
+            domainLink.markScreenshotRefreshPending();
+            targetLinks.add(domainLink);
+        }
+
+        final Stash saved = stashRepository.save(stash);
+
+        for (final Link targetLink : targetLinks) {
+            final Link savedLink = saved.getLinks().stream()
+                    .filter(l -> l.getId().equals(targetLink.getId()))
+                    .findFirst()
+                    .orElse(targetLink);
+            linkStatusBroadcaster.broadcastLinkUpdated(savedLink.getStashId(), savedLink);
+            eventPublisher.publishScreenshotRefreshRequested(new ScreenshotRefreshRequestedEvent(
+                    savedLink.getId(),
+                    savedLink.getStashId(),
+                    savedLink.getUrl().getValue()));
         }
     }
 

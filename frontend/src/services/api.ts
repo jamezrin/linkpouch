@@ -110,8 +110,18 @@ export const linkApi = {
       headers: bearerHeader(accessToken),
     }),
 
-  refreshScreenshot: (stashId: string, accessToken: string, linkId: string) =>
-    api.post(`/stashes/${stashId}/links/${linkId}/refresh-screenshot`, null, {
+  putLinkScreenshot: (stashId: string, accessToken: string, linkId: string) =>
+    api.put(`/stashes/${stashId}/links/${linkId}/screenshot`, null, {
+      headers: bearerHeader(accessToken),
+    }),
+
+  batchDeleteLinks: (stashId: string, accessToken: string, linkIds: string[]) =>
+    api.post(`/stashes/${stashId}/links/batch-delete`, { linkIds }, {
+      headers: bearerHeader(accessToken),
+    }),
+
+  putBatchLinkScreenshot: (stashId: string, accessToken: string, linkIds: string[]) =>
+    api.put(`/stashes/${stashId}/links/batch-screenshot`, { linkIds }, {
       headers: bearerHeader(accessToken),
     }),
 
