@@ -72,10 +72,15 @@ services:
     restart: "no"
 
   stash-service:
+    profiles:
+      - stash
     build:
       context: ./services/stash-service
       dockerfile: Dockerfile
+    ports:
+      - "8081:8081"
     environment:
+      SERVER_PORT: 8081
       POSTGRES_HOST: postgres
       POSTGRES_PORT: 5432
       POSTGRES_DB: linkpouch
@@ -113,29 +118,31 @@ services:
     environment:
       REDIS_HOST: redis
       REDIS_PORT: 6379
-      STASH_SERVICE_URL: http://stash-service:8080
+      STASH_SERVICE_URL: http://host.docker.internal:8081
       S3_ENDPOINT: http://seaweedfs:8333
       S3_ACCESS_KEY: minioadmin
       S3_SECRET_KEY: minioadmin
       S3_BUCKET: linkpouch-screenshots
       INDEXER_CALLBACK_SECRET: local-dev-indexer-secret
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     depends_on:
       redis:
         condition: service_healthy
       seaweedfs:
-        condition: service_healthy
-      stash-service:
         condition: service_healthy
 
   api-gateway:
     build:
       context: ./services/api-gateway
       dockerfile: Dockerfile
+    environment:
+      STASH_SERVICE_URL: http://host.docker.internal:8081
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     ports:
       - "8080:8080"
-    depends_on:
-      stash-service:
-        condition: service_healthy
+    depends_on: {}
 
   frontend:
     build:
