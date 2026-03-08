@@ -256,6 +256,26 @@ components:
           maxLength: 255
           description: New name for the stash
 
+    DeleteLinksBatchRequest:
+      type: object
+      required: [linkIds]
+      properties:
+        linkIds:
+          type: array
+          items: { type: string, format: uuid }
+          minItems: 1
+          maxItems: 100
+
+    PutBatchLinkScreenshotRequest:
+      type: object
+      required: [linkIds]
+      properties:
+        linkIds:
+          type: array
+          items: { type: string, format: uuid }
+          minItems: 1
+          maxItems: 100
+
     EmbeddabilityCheckResponse:
       type: object
       properties:
@@ -738,7 +758,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
-  /stashes/{stashId}/links/{linkId}/refresh-screenshot:
+  /stashes/{stashId}/links/{linkId}/screenshot:
     parameters:
       - name: stashId
         in: path
@@ -752,9 +772,9 @@ paths:
         schema:
           type: string
           format: uuid
-    post:
+    put:
       summary: Request screenshot refresh for link
-      operationId: refreshScreenshot
+      operationId: putLinkScreenshot
       tags:
         - Links
       security:
@@ -776,6 +796,92 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
         '404':
           description: Link not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /stashes/{stashId}/links/batch-delete:
+    parameters:
+      - name: stashId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    post:
+      summary: Delete multiple links in batch
+      operationId: deleteLinksBatch
+      tags:
+        - Links
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DeleteLinksBatchRequest'
+      responses:
+        '204':
+          description: Links deleted successfully
+        '401':
+          description: Invalid or expired access token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Link does not belong to this stash
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Stash not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /stashes/{stashId}/links/batch-screenshot:
+    parameters:
+      - name: stashId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    put:
+      summary: Request screenshot refresh for multiple links in batch
+      operationId: putBatchLinkScreenshot
+      tags:
+        - Links
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PutBatchLinkScreenshotRequest'
+      responses:
+        '202':
+          description: Screenshot refresh requested
+        '401':
+          description: Invalid or expired access token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Link does not belong to this stash
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Stash not found
           content:
             application/json:
               schema:
