@@ -4,9 +4,19 @@ export interface ChangelogEntry {
   items: string[];
 }
 
-export const LATEST_VERSION = 1;
+export const LATEST_VERSION = 2;
 
 export const changelog: ChangelogEntry[] = [
+  {
+    version: 2,
+    date: 'March 10, 2026',
+    items: [
+      'Paste a URL anywhere on the page to instantly add it — no need to click the input first',
+      'Add link input and button are now a single combined control for a cleaner look',
+      'Bulk import button updated to a more descriptive file icon',
+      'Refreshing screenshots now asks for confirmation before proceeding',
+    ],
+  },
   {
     version: 1,
     date: 'March 8, 2026',
