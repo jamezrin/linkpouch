@@ -11,7 +11,7 @@ import org.springframework.stereotype.Component;
 
 import com.linkpouch.stash.domain.model.Link;
 import com.linkpouch.stash.domain.model.Stash;
-import com.linkpouch.stash.domain.model.StashInfo;
+import com.linkpouch.stash.domain.model.StashLinksAggregate;
 import com.linkpouch.stash.domain.port.outbound.StashRepository;
 import com.linkpouch.stash.infrastructure.adapter.persistence.jpa.entity.LinkJpaEntity;
 import com.linkpouch.stash.infrastructure.adapter.persistence.jpa.entity.StashJpaEntity;
@@ -21,7 +21,7 @@ import com.linkpouch.stash.infrastructure.adapter.persistence.mapper.StashEntity
 import lombok.RequiredArgsConstructor;
 
 /**
- * JPA Adapter for Stash Repository. Uses aggregate-root save with cascade to maintain link
+ * JPA Adapter for StashLinksAggregate Repository. Uses aggregate-root save with cascade to maintain link
  * collection integrity. NOTE: Transaction boundaries are managed in the application layer.
  */
 @Component
@@ -33,7 +33,7 @@ public class StashPersistenceAdapter implements StashRepository {
     private final LinkEntityMapper linkMapper;
 
     @Override
-    public Stash save(final Stash stash) {
+    public StashLinksAggregate save(final StashLinksAggregate stash) {
         final Optional<StashJpaEntity> existingOpt = jpaRepository.findByIdWithLinks(stash.getId());
 
         final StashJpaEntity entity;
@@ -51,12 +51,12 @@ public class StashPersistenceAdapter implements StashRepository {
     }
 
     @Override
-    public Optional<StashInfo> findById(final UUID id) {
+    public Optional<Stash> findById(final UUID id) {
         return jpaRepository.findById(id).map(stashMapper::mapInInfo);
     }
 
     @Override
-    public Optional<Stash> findByIdWithLinks(final UUID id) {
+    public Optional<StashLinksAggregate> findByIdWithLinks(final UUID id) {
         return jpaRepository.findByIdWithLinks(id).map(stashMapper::mapIn);
     }
 
@@ -69,7 +69,7 @@ public class StashPersistenceAdapter implements StashRepository {
      * Synchronises the JPA entity's link collection with the domain model. Adds new links, updates
      * existing ones, and lets orphanRemoval delete removed ones.
      */
-    private void syncLinks(final Stash stash, final StashJpaEntity entity) {
+    private void syncLinks(final StashLinksAggregate stash, final StashJpaEntity entity) {
         final Map<UUID, LinkJpaEntity> existingById = new HashMap<>();
         for (final LinkJpaEntity le : entity.getLinks()) {
             existingById.put(le.getId(), le);

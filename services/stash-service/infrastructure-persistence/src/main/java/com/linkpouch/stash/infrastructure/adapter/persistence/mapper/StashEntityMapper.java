@@ -5,7 +5,7 @@ import org.mapstruct.Mapping;
 import org.mapstruct.MappingTarget;
 
 import com.linkpouch.stash.domain.model.Stash;
-import com.linkpouch.stash.domain.model.StashInfo;
+import com.linkpouch.stash.domain.model.StashLinksAggregate;
 import com.linkpouch.stash.infrastructure.adapter.persistence.jpa.entity.StashJpaEntity;
 
 @Mapper(
@@ -21,7 +21,7 @@ public interface StashEntityMapper {
     @Mapping(target = "createdAt", source = "createdAt")
     @Mapping(target = "updatedAt", source = "updatedAt")
     @Mapping(target = "links", source = "links")
-    Stash mapIn(StashJpaEntity entity);
+    StashLinksAggregate mapIn(StashJpaEntity entity);
 
     @Mapping(target = "id", source = "id")
     @Mapping(target = "name", source = "name")
@@ -29,7 +29,7 @@ public interface StashEntityMapper {
     @Mapping(target = "passwordHash", source = "passwordHash")
     @Mapping(target = "createdAt", source = "createdAt")
     @Mapping(target = "updatedAt", source = "updatedAt")
-    StashInfo mapInInfo(StashJpaEntity entity);
+    Stash mapInInfo(StashJpaEntity entity);
 
     @Mapping(target = "id", source = "id")
     @Mapping(target = "name", source = "name")
@@ -38,7 +38,7 @@ public interface StashEntityMapper {
     @Mapping(target = "createdAt", source = "createdAt")
     @Mapping(target = "updatedAt", source = "updatedAt")
     @Mapping(target = "links", ignore = true)
-    StashJpaEntity mapOut(Stash stash);
+    StashJpaEntity mapOut(StashLinksAggregate stash);
 
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "name", source = "name")
@@ -47,5 +47,5 @@ public interface StashEntityMapper {
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", source = "updatedAt")
     @Mapping(target = "links", ignore = true)
-    void updateEntity(Stash stash, @MappingTarget StashJpaEntity entity);
+    void updateEntity(StashLinksAggregate stash, @MappingTarget StashJpaEntity entity);
 }

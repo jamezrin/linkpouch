@@ -17,7 +17,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import com.linkpouch.stash.domain.exception.UnauthorizedException;
-import com.linkpouch.stash.domain.model.StashInfo;
+import com.linkpouch.stash.domain.model.Stash;
 import com.linkpouch.stash.domain.service.StashAccessClaims;
 
 import io.jsonwebtoken.Claims;
@@ -27,7 +27,7 @@ import io.jsonwebtoken.security.Keys;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * Application Service: Stash Access Token
+ * Application Service: StashLinksAggregate Access Token
  *
  * <p>Issues and validates short-lived JWTs (HS256) that grant access to a stash.
  *
@@ -70,7 +70,7 @@ public class StashTokenService implements com.linkpouch.stash.domain.service.Sta
      * the token is automatically invalidated when the password changes.
      */
     @Override
-    public String issueToken(final StashInfo stash) {
+    public String issueToken(final Stash stash) {
         final Instant now = Instant.now();
         final var builder = Jwts.builder()
                 .issuer(ISSUER)

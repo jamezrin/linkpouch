@@ -1,9 +1,9 @@
 package com.linkpouch.stash.domain.port.in;
 
-import com.linkpouch.stash.domain.model.Stash;
+import com.linkpouch.stash.domain.model.StashLinksAggregate;
 
 @FunctionalInterface
 public interface CreateStashUseCase {
 
-    Stash execute(CreateStashCommand command);
+    StashLinksAggregate execute(CreateStashCommand command);
 }

@@ -5,7 +5,7 @@ import java.util.UUID;
 
 import org.springframework.stereotype.Component;
 
-import com.linkpouch.stash.domain.model.StashInfo;
+import com.linkpouch.stash.domain.model.Stash;
 import com.linkpouch.stash.domain.port.in.FindStashByIdQuery;
 
 import lombok.RequiredArgsConstructor;
@@ -22,7 +22,7 @@ public class FindStashByIdAdapter implements FindStashByIdQuery {
     private final StashManagementService stashManagementService;
 
     @Override
-    public Optional<StashInfo> execute(final UUID stashId) {
+    public Optional<Stash> execute(final UUID stashId) {
         return stashManagementService.findStashById(stashId);
     }
 }

@@ -14,7 +14,7 @@ import com.linkpouch.stash.api.controller.StashesApi;
 import com.linkpouch.stash.api.model.*;
 import com.linkpouch.stash.domain.exception.NotFoundException;
 import com.linkpouch.stash.domain.exception.UnauthorizedException;
-import com.linkpouch.stash.domain.model.StashInfo;
+import com.linkpouch.stash.domain.model.Stash;
 import com.linkpouch.stash.domain.port.in.*;
 import com.linkpouch.stash.domain.service.StashAccessClaims;
 import com.linkpouch.stash.domain.service.StashSignatureService;
@@ -61,9 +61,9 @@ public class StashController implements StashesApi {
             final String xStashSignature,
             final @Nullable AcquireAccessRequestDTO acquireAccessRequestDTO) {
 
-        final StashInfo stash = findStashByIdQuery
+        final Stash stash = findStashByIdQuery
                 .execute(stashId)
-                .orElseThrow(() -> new NotFoundException("Stash not found: " + stashId));
+                .orElseThrow(() -> new NotFoundException("StashLinksAggregate not found: " + stashId));
 
         if (!signatureService.validateSignature(stashId, stash.getSecretKey().getValue(), xStashSignature)) {
             throw new UnauthorizedException("Invalid signature");
@@ -72,7 +72,7 @@ public class StashController implements StashesApi {
         final String rawPassword = acquireAccessRequestDTO != null ? acquireAccessRequestDTO.getPassword() : null;
 
         // Throws PasswordRequiredException (401 PASSWORD_REQUIRED) or UnauthorizedException
-        final StashInfo authenticatedStash =
+        final Stash authenticatedStash =
                 acquireStashAccessUseCase.execute(new AcquireStashAccessCommand(stashId, rawPassword));
 
         final String token = tokenService.issueToken(authenticatedStash);
@@ -81,9 +81,9 @@ public class StashController implements StashesApi {
 
     @Override
     public ResponseEntity<StashResponseDTO> getStash(final UUID stashId) {
-        final StashInfo stash = findStashByIdQuery
+        final Stash stash = findStashByIdQuery
                 .execute(stashId)
-                .orElseThrow(() -> new NotFoundException("Stash not found: " + stashId));
+                .orElseThrow(() -> new NotFoundException("StashLinksAggregate not found: " + stashId));
 
         if (stash.isPasswordProtected()) {
             final StashAccessClaims claims = getRequiredClaims();
@@ -96,9 +96,9 @@ public class StashController implements StashesApi {
     @Override
     public ResponseEntity<StashResponseDTO> updateStash(
             final UUID stashId, final UpdateStashRequestDTO updateStashRequestDTO) {
-        final StashInfo stash = findStashByIdQuery
+        final Stash stash = findStashByIdQuery
                 .execute(stashId)
-                .orElseThrow(() -> new NotFoundException("Stash not found: " + stashId));
+                .orElseThrow(() -> new NotFoundException("StashLinksAggregate not found: " + stashId));
 
         if (stash.isPasswordProtected()) {
             final StashAccessClaims claims = getRequiredClaims();
@@ -111,9 +111,9 @@ public class StashController implements StashesApi {
 
     @Override
     public ResponseEntity<Void> deleteStash(final UUID stashId) {
-        final StashInfo stash = findStashByIdQuery
+        final Stash stash = findStashByIdQuery
                 .execute(stashId)
-                .orElseThrow(() -> new NotFoundException("Stash not found: " + stashId));
+                .orElseThrow(() -> new NotFoundException("StashLinksAggregate not found: " + stashId));
 
         if (stash.isPasswordProtected()) {
             final StashAccessClaims claims = getRequiredClaims();
@@ -128,9 +128,9 @@ public class StashController implements StashesApi {
     public ResponseEntity<StashResponseDTO> setStashPassword(
             final UUID stashId, final String xStashSignature, final SetPasswordRequestDTO setPasswordRequestDTO) {
 
-        final StashInfo stash = findStashByIdQuery
+        final Stash stash = findStashByIdQuery
                 .execute(stashId)
-                .orElseThrow(() -> new NotFoundException("Stash not found: " + stashId));
+                .orElseThrow(() -> new NotFoundException("StashLinksAggregate not found: " + stashId));
 
         if (!signatureService.validateSignature(stashId, stash.getSecretKey().getValue(), xStashSignature)) {
             throw new UnauthorizedException("Invalid signature");
@@ -151,9 +151,9 @@ public class StashController implements StashesApi {
     @Override
     public ResponseEntity<Void> removeStashPassword(final UUID stashId, final String xStashSignature) {
 
-        final StashInfo stash = findStashByIdQuery
+        final Stash stash = findStashByIdQuery
                 .execute(stashId)
-                .orElseThrow(() -> new NotFoundException("Stash not found: " + stashId));
+                .orElseThrow(() -> new NotFoundException("StashLinksAggregate not found: " + stashId));
 
         if (!signatureService.validateSignature(stashId, stash.getSecretKey().getValue(), xStashSignature)) {
             throw new UnauthorizedException("Invalid signature");

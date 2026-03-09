@@ -11,7 +11,7 @@ import com.linkpouch.stash.domain.exception.NotFoundException;
 import com.linkpouch.stash.domain.exception.PasswordRequiredException;
 import com.linkpouch.stash.domain.exception.UnauthorizedException;
 import com.linkpouch.stash.domain.model.Stash;
-import com.linkpouch.stash.domain.model.StashInfo;
+import com.linkpouch.stash.domain.model.StashLinksAggregate;
 import com.linkpouch.stash.domain.port.in.AcquireStashAccessCommand;
 import com.linkpouch.stash.domain.port.in.AcquireStashAccessUseCase;
 import com.linkpouch.stash.domain.port.in.CreateStashCommand;
@@ -27,7 +27,7 @@ import com.linkpouch.stash.domain.port.outbound.StashRepository;
 import lombok.RequiredArgsConstructor;
 
 /**
- * Application Service: Stash Management Implements use cases with transaction boundaries at the
+ * Application Service: StashLinksAggregate Management Implements use cases with transaction boundaries at the
  * application layer.
  *
  * <p>Note: FindStashByIdQuery is not implemented directly here because it conflicts with
@@ -49,8 +49,8 @@ public class StashManagementService
 
     @Override
     @Transactional
-    public Stash execute(final CreateStashCommand command) {
-        final Stash stash = Stash.create(command.name());
+    public StashLinksAggregate execute(final CreateStashCommand command) {
+        final StashLinksAggregate stash = StashLinksAggregate.create(command.name());
         if (command.password() != null && !command.password().isBlank()) {
             stash.setPasswordHash(passwordEncoder.encode(command.password()));
         }
@@ -59,14 +59,14 @@ public class StashManagementService
 
     /** Exposed for FindStashByIdAdapter. */
     @Transactional(readOnly = true)
-    public Optional<StashInfo> findStashById(final UUID stashId) {
+    public Optional<Stash> findStashById(final UUID stashId) {
         return stashRepository.findById(stashId);
     }
 
     @Override
     @Transactional
-    public Stash execute(final UUID stashId, final String newName) {
-        final Stash stash = stashRepository
+    public StashLinksAggregate execute(final UUID stashId, final String newName) {
+        final StashLinksAggregate stash = stashRepository
                 .findByIdWithLinks(stashId)
                 .orElseThrow(() -> new NotFoundException("Stash not found: " + stashId));
         stash.updateName(newName);
@@ -88,8 +88,8 @@ public class StashManagementService
      */
     @Override
     @Transactional(readOnly = true)
-    public StashInfo execute(final AcquireStashAccessCommand command) {
-        final StashInfo stash = stashRepository
+    public Stash execute(final AcquireStashAccessCommand command) {
+        final Stash stash = stashRepository
                 .findById(command.stashId())
                 .orElseThrow(() -> new NotFoundException("Stash not found: " + command.stashId()));
 
@@ -107,8 +107,8 @@ public class StashManagementService
 
     @Override
     @Transactional
-    public Stash execute(final SetStashPasswordCommand command) {
-        final Stash stash = stashRepository
+    public StashLinksAggregate execute(final SetStashPasswordCommand command) {
+        final StashLinksAggregate stash = stashRepository
                 .findByIdWithLinks(command.stashId())
                 .orElseThrow(() -> new NotFoundException("Stash not found: " + command.stashId()));
         stash.setPasswordHash(passwordEncoder.encode(command.rawPassword()));
@@ -118,7 +118,7 @@ public class StashManagementService
     @Override
     @Transactional
     public void execute(final RemoveStashPasswordCommand command) {
-        final Stash stash = stashRepository
+        final StashLinksAggregate stash = stashRepository
                 .findByIdWithLinks(command.stashId())
                 .orElseThrow(() -> new NotFoundException("Stash not found: " + command.stashId()));
         stash.removePassword();

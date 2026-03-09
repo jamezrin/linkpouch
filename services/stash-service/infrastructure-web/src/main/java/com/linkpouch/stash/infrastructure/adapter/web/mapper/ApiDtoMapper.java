@@ -36,17 +36,17 @@ public interface ApiDtoMapper {
     @Mapping(target = "createdAt", source = "createdAt")
     @Mapping(target = "updatedAt", source = "updatedAt")
     @Mapping(target = "signedUrl", ignore = true)
-    StashResponseDTO mapOut(Stash stash);
+    StashResponseDTO mapOut(StashLinksAggregate stash);
 
     @Mapping(target = "name", source = "name")
-    @Mapping(target = "passwordProtected", expression = "java(stashInfo.isPasswordProtected())")
+    @Mapping(target = "passwordProtected", expression = "java(stash.isPasswordProtected())")
     @Mapping(target = "linkCount", constant = "0")
     @Mapping(target = "createdAt", source = "createdAt")
     @Mapping(target = "updatedAt", source = "updatedAt")
     @Mapping(target = "signedUrl", ignore = true)
-    StashResponseDTO mapOut(StashInfo stashInfo);
+    StashResponseDTO mapOut(Stash stash);
 
-    List<StashResponseDTO> mapOutStashes(List<Stash> stashes);
+    List<StashResponseDTO> mapOutStashes(List<StashLinksAggregate> stashes);
 
     // ==================== LINK RESPONSE MAPPERS ====================
 
