@@ -14,6 +14,7 @@ import com.linkpouch.stash.api.controller.StashesApi;
 import com.linkpouch.stash.api.model.*;
 import com.linkpouch.stash.domain.exception.NotFoundException;
 import com.linkpouch.stash.domain.exception.UnauthorizedException;
+import com.linkpouch.stash.domain.model.StashInfo;
 import com.linkpouch.stash.domain.port.in.*;
 import com.linkpouch.stash.domain.service.StashAccessClaims;
 import com.linkpouch.stash.domain.service.StashSignatureService;
@@ -60,7 +61,7 @@ public class StashController implements StashesApi {
             final String xStashSignature,
             final @Nullable AcquireAccessRequestDTO acquireAccessRequestDTO) {
 
-        final var stash = findStashByIdQuery
+        final StashInfo stash = findStashByIdQuery
                 .execute(stashId)
                 .orElseThrow(() -> new NotFoundException("Stash not found: " + stashId));
 
@@ -71,7 +72,7 @@ public class StashController implements StashesApi {
         final String rawPassword = acquireAccessRequestDTO != null ? acquireAccessRequestDTO.getPassword() : null;
 
         // Throws PasswordRequiredException (401 PASSWORD_REQUIRED) or UnauthorizedException
-        final var authenticatedStash =
+        final StashInfo authenticatedStash =
                 acquireStashAccessUseCase.execute(new AcquireStashAccessCommand(stashId, rawPassword));
 
         final String token = tokenService.issueToken(authenticatedStash);
@@ -80,7 +81,7 @@ public class StashController implements StashesApi {
 
     @Override
     public ResponseEntity<StashResponseDTO> getStash(final UUID stashId) {
-        final var stash = findStashByIdQuery
+        final StashInfo stash = findStashByIdQuery
                 .execute(stashId)
                 .orElseThrow(() -> new NotFoundException("Stash not found: " + stashId));
 
@@ -95,7 +96,7 @@ public class StashController implements StashesApi {
     @Override
     public ResponseEntity<StashResponseDTO> updateStash(
             final UUID stashId, final UpdateStashRequestDTO updateStashRequestDTO) {
-        final var stash = findStashByIdQuery
+        final StashInfo stash = findStashByIdQuery
                 .execute(stashId)
                 .orElseThrow(() -> new NotFoundException("Stash not found: " + stashId));
 
@@ -110,7 +111,7 @@ public class StashController implements StashesApi {
 
     @Override
     public ResponseEntity<Void> deleteStash(final UUID stashId) {
-        final var stash = findStashByIdQuery
+        final StashInfo stash = findStashByIdQuery
                 .execute(stashId)
                 .orElseThrow(() -> new NotFoundException("Stash not found: " + stashId));
 
@@ -127,7 +128,7 @@ public class StashController implements StashesApi {
     public ResponseEntity<StashResponseDTO> setStashPassword(
             final UUID stashId, final String xStashSignature, final SetPasswordRequestDTO setPasswordRequestDTO) {
 
-        final var stash = findStashByIdQuery
+        final StashInfo stash = findStashByIdQuery
                 .execute(stashId)
                 .orElseThrow(() -> new NotFoundException("Stash not found: " + stashId));
 
@@ -150,7 +151,7 @@ public class StashController implements StashesApi {
     @Override
     public ResponseEntity<Void> removeStashPassword(final UUID stashId, final String xStashSignature) {
 
-        final var stash = findStashByIdQuery
+        final StashInfo stash = findStashByIdQuery
                 .execute(stashId)
                 .orElseThrow(() -> new NotFoundException("Stash not found: " + stashId));
 

@@ -11,6 +11,7 @@ import com.linkpouch.stash.domain.exception.NotFoundException;
 import com.linkpouch.stash.domain.exception.PasswordRequiredException;
 import com.linkpouch.stash.domain.exception.UnauthorizedException;
 import com.linkpouch.stash.domain.model.Stash;
+import com.linkpouch.stash.domain.model.StashInfo;
 import com.linkpouch.stash.domain.port.in.AcquireStashAccessCommand;
 import com.linkpouch.stash.domain.port.in.AcquireStashAccessUseCase;
 import com.linkpouch.stash.domain.port.in.CreateStashCommand;
@@ -58,7 +59,7 @@ public class StashManagementService
 
     /** Exposed for FindStashByIdAdapter. */
     @Transactional(readOnly = true)
-    public Optional<Stash> findStashById(final UUID stashId) {
+    public Optional<StashInfo> findStashById(final UUID stashId) {
         return stashRepository.findById(stashId);
     }
 
@@ -66,7 +67,7 @@ public class StashManagementService
     @Transactional
     public Stash execute(final UUID stashId, final String newName) {
         final Stash stash = stashRepository
-                .findById(stashId)
+                .findByIdWithLinks(stashId)
                 .orElseThrow(() -> new NotFoundException("Stash not found: " + stashId));
         stash.updateName(newName);
         return stashRepository.save(stash);
@@ -87,8 +88,8 @@ public class StashManagementService
      */
     @Override
     @Transactional(readOnly = true)
-    public Stash execute(final AcquireStashAccessCommand command) {
-        final Stash stash = stashRepository
+    public StashInfo execute(final AcquireStashAccessCommand command) {
+        final StashInfo stash = stashRepository
                 .findById(command.stashId())
                 .orElseThrow(() -> new NotFoundException("Stash not found: " + command.stashId()));
 
@@ -108,7 +109,7 @@ public class StashManagementService
     @Transactional
     public Stash execute(final SetStashPasswordCommand command) {
         final Stash stash = stashRepository
-                .findById(command.stashId())
+                .findByIdWithLinks(command.stashId())
                 .orElseThrow(() -> new NotFoundException("Stash not found: " + command.stashId()));
         stash.setPasswordHash(passwordEncoder.encode(command.rawPassword()));
         return stashRepository.save(stash);
@@ -118,7 +119,7 @@ public class StashManagementService
     @Transactional
     public void execute(final RemoveStashPasswordCommand command) {
         final Stash stash = stashRepository
-                .findById(command.stashId())
+                .findByIdWithLinks(command.stashId())
                 .orElseThrow(() -> new NotFoundException("Stash not found: " + command.stashId()));
         stash.removePassword();
         stashRepository.save(stash);

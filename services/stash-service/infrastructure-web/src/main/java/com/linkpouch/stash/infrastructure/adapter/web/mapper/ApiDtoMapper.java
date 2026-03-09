@@ -38,6 +38,14 @@ public interface ApiDtoMapper {
     @Mapping(target = "signedUrl", ignore = true)
     StashResponseDTO mapOut(Stash stash);
 
+    @Mapping(target = "name", source = "name")
+    @Mapping(target = "passwordProtected", expression = "java(stashInfo.isPasswordProtected())")
+    @Mapping(target = "linkCount", constant = "0")
+    @Mapping(target = "createdAt", source = "createdAt")
+    @Mapping(target = "updatedAt", source = "updatedAt")
+    @Mapping(target = "signedUrl", ignore = true)
+    StashResponseDTO mapOut(StashInfo stashInfo);
+
     List<StashResponseDTO> mapOutStashes(List<Stash> stashes);
 
     // ==================== LINK RESPONSE MAPPERS ====================

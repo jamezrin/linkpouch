@@ -5,6 +5,7 @@ import org.mapstruct.Mapping;
 import org.mapstruct.MappingTarget;
 
 import com.linkpouch.stash.domain.model.Stash;
+import com.linkpouch.stash.domain.model.StashInfo;
 import com.linkpouch.stash.infrastructure.adapter.persistence.jpa.entity.StashJpaEntity;
 
 @Mapper(
@@ -21,6 +22,14 @@ public interface StashEntityMapper {
     @Mapping(target = "updatedAt", source = "updatedAt")
     @Mapping(target = "links", source = "links")
     Stash mapIn(StashJpaEntity entity);
+
+    @Mapping(target = "id", source = "id")
+    @Mapping(target = "name", source = "name")
+    @Mapping(target = "secretKey", source = "secretKey")
+    @Mapping(target = "passwordHash", source = "passwordHash")
+    @Mapping(target = "createdAt", source = "createdAt")
+    @Mapping(target = "updatedAt", source = "updatedAt")
+    StashInfo mapInInfo(StashJpaEntity entity);
 
     @Mapping(target = "id", source = "id")
     @Mapping(target = "name", source = "name")

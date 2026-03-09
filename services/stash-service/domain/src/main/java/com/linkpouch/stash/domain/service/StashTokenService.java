@@ -2,7 +2,7 @@ package com.linkpouch.stash.domain.service;
 
 import java.util.UUID;
 
-import com.linkpouch.stash.domain.model.Stash;
+import com.linkpouch.stash.domain.model.StashInfo;
 
 /** Domain Service: Stash Access Token issuance and validation */
 public interface StashTokenService {
@@ -12,7 +12,7 @@ public interface StashTokenService {
      * If the stash is password-protected, a {@code pwdKey} claim is included so that
      * the token is automatically invalidated when the password changes.
      */
-    String issueToken(Stash stash);
+    String issueToken(StashInfo stash);
 
     /**
      * Parses and validates the JWT. Throws {@link com.linkpouch.stash.domain.exception.UnauthorizedException}

@@ -11,6 +11,7 @@ import org.springframework.stereotype.Component;
 
 import com.linkpouch.stash.domain.model.Link;
 import com.linkpouch.stash.domain.model.Stash;
+import com.linkpouch.stash.domain.model.StashInfo;
 import com.linkpouch.stash.domain.port.outbound.StashRepository;
 import com.linkpouch.stash.infrastructure.adapter.persistence.jpa.entity.LinkJpaEntity;
 import com.linkpouch.stash.infrastructure.adapter.persistence.jpa.entity.StashJpaEntity;
@@ -50,8 +51,8 @@ public class StashPersistenceAdapter implements StashRepository {
     }
 
     @Override
-    public Optional<Stash> findById(final UUID id) {
-        return jpaRepository.findById(id).map(stashMapper::mapIn);
+    public Optional<StashInfo> findById(final UUID id) {
+        return jpaRepository.findById(id).map(stashMapper::mapInInfo);
     }
 
     @Override
