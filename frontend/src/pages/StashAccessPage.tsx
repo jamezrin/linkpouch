@@ -30,6 +30,7 @@ import DemoButton from '../components/DemoButton';
 import { features } from '../features';
 import { useStashEvents } from '../hooks/useStashEvents';
 import { PouchIcon } from '../components/PouchIcon';
+import { useOnboardingWalkthrough, usePreviewWalkthrough } from '../hooks/useWalkthroughs';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -1019,6 +1020,18 @@ export default function StashAccessPage() {
     return () => document.removeEventListener('keydown', onKeyDown);
   }, [links, allVisibleSelected]);
 
+  // ─── Walkthrough ─────────────────────────────────────────────────────────────
+
+  const { startWalkthrough } = useOnboardingWalkthrough(stashId);
+
+  useEffect(() => {
+    if (authState === 'ready') {
+      startWalkthrough();
+    }
+  }, [authState, startWalkthrough]);
+
+  usePreviewWalkthrough(activeLinkId);
+
   // ─── Error / Loading states ───────────────────────────────────────────────────
 
   // Password required — show unlock modal
@@ -1130,7 +1143,7 @@ export default function StashAccessPage() {
         mobilePane === 'preview' ? 'hidden md:flex' : 'flex',
       ].join(' ')}>
         {/* Selection actions bar — always visible */}
-        <div className="px-3 py-2 border-b border-slate-200/70 dark:border-slate-800/70 bg-slate-100/60 dark:bg-slate-900/60 flex items-center gap-1.5">
+        <div id="lp-bulk-actions" className="px-3 py-2 border-b border-slate-200/70 dark:border-slate-800/70 bg-slate-100/60 dark:bg-slate-900/60 flex items-center gap-1.5">
           {/* Master checkbox */}
           <button
             onClick={handleMasterCheckboxClick}
@@ -1229,7 +1242,7 @@ export default function StashAccessPage() {
         </div>
 
         {/* Search */}
-        <div className="flex items-center gap-2 px-3 py-2 border-b border-slate-200/70 dark:border-slate-800/70">
+        <div id="lp-search-bar" className="flex items-center gap-2 px-3 py-2 border-b border-slate-200/70 dark:border-slate-800/70">
           <svg
             className="w-3.5 h-3.5 text-slate-400 flex-shrink-0"
             fill="none"
@@ -1272,7 +1285,7 @@ export default function StashAccessPage() {
               <div className="w-6 h-6 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
             </div>
           ) : links.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-full text-center px-6 pb-8">
+            <div id="lp-empty-state" className="flex flex-col items-center justify-center h-full text-center px-6 pb-8">
               <div className="w-12 h-12 bg-slate-200 dark:bg-slate-800 rounded-xl flex items-center justify-center mb-3">
                 <PouchIcon className="w-6 h-6 text-slate-400 dark:text-slate-600" strokeWidth={1.5} />
               </div>
@@ -1345,6 +1358,7 @@ export default function StashAccessPage() {
                 : 'border-slate-300/70 dark:border-slate-700/70 focus-within:border-indigo-500/70 focus-within:ring-indigo-500/20'
             }`}>
               <input
+                id="lp-add-link-input"
                 type="text"
                 value={newLinkUrl}
                 onChange={(e) => {
@@ -1420,6 +1434,7 @@ export default function StashAccessPage() {
                   <>
                     <span className="hidden md:inline text-slate-300 dark:text-slate-600 text-[11px] flex-shrink-0">·</span>
                     <a
+                      id="lp-preview-url-link"
                       href={activeLink.url}
                       target="_blank"
                       rel="noopener noreferrer"
@@ -1457,7 +1472,7 @@ export default function StashAccessPage() {
               )}
 
               {/* Live / Archive toggle — desktop only (shown in row 2 on mobile) */}
-              <div className="hidden md:flex text-[11px] font-medium flex-shrink-0">
+              <div id="lp-live-archive-toggle" className="hidden md:flex text-[11px] font-medium flex-shrink-0">
                 <button
                   onClick={switchToLive}
                   disabled={liveFailed}
@@ -1490,7 +1505,7 @@ export default function StashAccessPage() {
               </div>
 
               {/* Screenshot thumbnail — desktop only (shown in row 2 on mobile) */}
-              <div className="hidden md:block flex-shrink-0">
+              <div id="lp-screenshot-thumb" className="hidden md:block flex-shrink-0">
                 {activeLink.screenshotUrl && accessToken ? (
                   <button
                     onClick={() => setScreenshotModalOpen(true)}
@@ -1557,7 +1572,7 @@ export default function StashAccessPage() {
               </div>{/* end Row 1 */}
 
               {/* Row 2: mobile only — Live/Archive controls + screenshot */}
-              <div className="md:hidden flex items-center gap-2 px-4 py-1.5 border-t border-slate-100 dark:border-slate-700/50">
+              <div id="lp-preview-controls-mobile" className="md:hidden flex items-center gap-2 px-4 py-1.5 border-t border-slate-100 dark:border-slate-700/50">
                 {/* Slow-load warning */}
                 {showArchiveSuggestion && previewMode === 'live' && (
                   <div className="flex items-center gap-1 flex-shrink-0 mr-1">
@@ -1633,7 +1648,7 @@ export default function StashAccessPage() {
             </div>{/* end header outer wrapper */}
 
             {/* iframe area */}
-            <div className="flex-1 overflow-hidden relative">
+            <div id="lp-preview-iframe" className="flex-1 overflow-hidden relative">
               {previewMode === 'live' ? (
                 <>
                   {liveLoading && (
