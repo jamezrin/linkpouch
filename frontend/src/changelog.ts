@@ -1,15 +1,23 @@
 export interface ChangelogEntry {
   version: number;
-  date: string;
+  date: Date;
   items: string[];
 }
 
-export const LATEST_VERSION = 2;
+export const LATEST_VERSION = 3;
 
 export const changelog: ChangelogEntry[] = [
   {
+    version: 3,
+    date: new Date('2026-03-10'),
+    items: [
+      'Interactive walkthrough for new pouches — guides you through adding links, searching, bulk actions, and more',
+      'A second walkthrough appears the first time you open a link preview, explaining live vs archive mode and screenshots',
+    ],
+  },
+  {
     version: 2,
-    date: 'March 10, 2026',
+    date: new Date('2026-03-09'),
     items: [
       'Paste a URL anywhere on the page to instantly add it — no need to click the input first',
       'Add link input and button are now a single combined control for a cleaner look',
@@ -19,7 +27,7 @@ export const changelog: ChangelogEntry[] = [
   },
   {
     version: 1,
-    date: 'March 8, 2026',
+    date: new Date('2026-03-08'),
     items: [
       'First stable release of Linkpouch',
       'Create anonymous link pouches — no account needed, access via a signed URL',

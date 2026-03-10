@@ -635,7 +635,11 @@ export default function HomePage() {
     mutationFn: (name: string) => stashApi.createStash({ name }),
     onSuccess: (response) => {
       const signedUrl = response.data.signedUrl;
-      if (signedUrl) navigate(new URL(signedUrl).pathname);
+      if (signedUrl) {
+        const stashId = new URL(signedUrl).pathname.split('/')[2];
+        sessionStorage.setItem(`lp:walkthrough:new:${stashId}`, '1');
+        navigate(new URL(signedUrl).pathname);
+      }
     },
     onError: (error: unknown) => {
       const message = error instanceof Error ? error.message : 'Failed to create pouch';

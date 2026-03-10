@@ -78,7 +78,9 @@ export default function WhatsNewModal({ onClose }: Props) {
                   <span className="text-[11px] font-semibold px-1.5 py-0.5 rounded bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400">
                     v{entry.version}
                   </span>
-                  <span className="text-[12px] text-slate-400 dark:text-slate-500">{entry.date}</span>
+                  <span className="text-[12px] text-slate-400 dark:text-slate-500">
+                    {entry.date.toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })}
+                  </span>
                 </div>
                 <ul className="flex flex-col gap-1.5">
                   {entry.items.map((item, i) => (

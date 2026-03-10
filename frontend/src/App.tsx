@@ -154,6 +154,7 @@ function AppContent() {
                 />
               ) : (
                 <span
+                  id="lp-stash-name"
                   onClick={handleNameClick}
                   className="text-[14px] font-medium text-slate-600 dark:text-slate-300 truncate max-w-[180px] flex-shrink-0 cursor-pointer hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
                   title="Click to rename"
@@ -175,6 +176,7 @@ function AppContent() {
                   setTimeout(() => setShareCopied(false), 2000);
                 });
               }}
+              id="lp-share-button"
               className="hidden md:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[13px] font-medium transition-colors text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white"
               title="Copy shareable link"
             >
@@ -199,6 +201,7 @@ function AppContent() {
           {/* Settings button — desktop only, stash pages only */}
           {isStashPage && signature && (
             <button
+              id="lp-settings-button"
               onClick={() => setStashSettingsOpen((o) => !o)}
               title="Stash settings"
               className={[
