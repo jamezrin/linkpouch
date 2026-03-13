@@ -18,10 +18,7 @@ public interface AccountEntityMapper {
     default Account mapIn(AccountJpaEntity entity) {
         if (entity == null) return null;
         final Set<AccountProvider> providers = entity.getProviders().stream()
-                .map(p -> new AccountProvider(
-                        p.getId(),
-                        OAuthProvider.valueOf(p.getProvider()),
-                        p.getProviderUserId()))
+                .map(p -> new AccountProvider(p.getId(), OAuthProvider.valueOf(p.getProvider()), p.getProviderUserId()))
                 .collect(Collectors.toSet());
         return new Account(
                 entity.getId(),

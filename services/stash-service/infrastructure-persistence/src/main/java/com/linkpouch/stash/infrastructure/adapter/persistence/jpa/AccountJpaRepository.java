@@ -13,10 +13,10 @@ import com.linkpouch.stash.infrastructure.adapter.persistence.jpa.entity.Account
 @Repository
 public interface AccountJpaRepository extends JpaRepository<AccountJpaEntity, UUID> {
 
-    @Query("SELECT a FROM AccountJpaEntity a JOIN FETCH a.providers p WHERE p.provider = :provider AND p.providerUserId = :providerUserId")
+    @Query(
+            "SELECT a FROM AccountJpaEntity a JOIN FETCH a.providers p WHERE p.provider = :provider AND p.providerUserId = :providerUserId")
     Optional<AccountJpaEntity> findByProviders_ProviderAndProviderUserId(
-            @Param("provider") String provider,
-            @Param("providerUserId") String providerUserId);
+            @Param("provider") String provider, @Param("providerUserId") String providerUserId);
 
     @Query("SELECT a FROM AccountJpaEntity a JOIN FETCH a.providers WHERE a.id = :id")
     Optional<AccountJpaEntity> findByIdWithProviders(@Param("id") UUID id);

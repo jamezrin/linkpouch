@@ -67,9 +67,8 @@ public class AccountPersistenceAdapter implements AccountRepository {
     public void claimStash(final UUID accountId, final UUID stashId) {
         final AccountStashId id = new AccountStashId(accountId, stashId);
         if (!accountStashJpaRepository.existsById(id)) {
-            final AccountStashJpaEntity entity = AccountStashJpaEntity.builder()
-                    .id(id)
-                    .build();
+            final AccountStashJpaEntity entity =
+                    AccountStashJpaEntity.builder().id(id).build();
             accountStashJpaRepository.save(entity);
         }
     }
@@ -87,8 +86,9 @@ public class AccountPersistenceAdapter implements AccountRepository {
     private void syncProviders(final Account account, final AccountJpaEntity entity) {
         account.getProviders().forEach(domainProvider -> {
             final boolean alreadyPresent = entity.getProviders().stream()
-                    .anyMatch(p -> p.getProvider().equals(domainProvider.provider().name())
-                            && p.getProviderUserId().equals(domainProvider.providerUserId()));
+                    .anyMatch(p ->
+                            p.getProvider().equals(domainProvider.provider().name())
+                                    && p.getProviderUserId().equals(domainProvider.providerUserId()));
             if (!alreadyPresent) {
                 final AccountProviderJpaEntity providerEntity = AccountProviderJpaEntity.builder()
                         .id(domainProvider.id())
