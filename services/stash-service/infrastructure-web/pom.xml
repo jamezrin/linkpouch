@@ -64,6 +64,12 @@
             <optional>true</optional>
         </dependency>
 
+        <!-- Spring Security OAuth2 (OAuth handlers, security callbacks) -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-oauth2-client</artifactId>
+        </dependency>
+
         <!-- AWS SDK v2 S3 (screenshot proxy) -->
         <dependency>
             <groupId>software.amazon.awssdk</groupId>
