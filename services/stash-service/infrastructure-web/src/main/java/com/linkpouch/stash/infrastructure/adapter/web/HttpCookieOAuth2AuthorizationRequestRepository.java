@@ -54,8 +54,7 @@ public class HttpCookieOAuth2AuthorizationRequestRepository
 
     @Override
     public OAuth2AuthorizationRequest removeAuthorizationRequest(
-            final HttpServletRequest request,
-            final HttpServletResponse response) {
+            final HttpServletRequest request, final HttpServletResponse response) {
         final OAuth2AuthorizationRequest authRequest = loadAuthorizationRequest(request);
         deleteCookie(request, response, COOKIE_NAME);
         return authRequest;
@@ -70,10 +69,7 @@ public class HttpCookieOAuth2AuthorizationRequestRepository
         return null;
     }
 
-    private void deleteCookie(
-            final HttpServletRequest request,
-            final HttpServletResponse response,
-            final String name) {
+    private void deleteCookie(final HttpServletRequest request, final HttpServletResponse response, final String name) {
         final Cookie cookie = findCookie(request, name);
         if (cookie != null) {
             cookie.setValue("");
