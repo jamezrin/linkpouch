@@ -35,7 +35,7 @@ export default function AccountPage() {
   });
 
   return (
-    <div className="min-h-full bg-white dark:bg-slate-950">
+    <div className="min-h-[calc(100dvh-3.5rem)] bg-white dark:bg-slate-950">
     <div className="max-w-xl mx-auto px-4 py-12 flex flex-col gap-8">
       {oauthError && (
         <div className="px-4 py-3 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-xl text-[13px] text-red-700 dark:text-red-400">
