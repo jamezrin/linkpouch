@@ -32,11 +32,21 @@ const PROVIDERS = [
     ),
     className: 'bg-[#5865F2] hover:bg-[#4752C4] text-white',
   },
+  {
+    id: 'twitter',
+    label: 'Continue with X',
+    icon: (
+      <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.737-8.835L1.254 2.25H8.08l4.253 5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+      </svg>
+    ),
+    className: 'bg-black hover:bg-neutral-900 text-white dark:bg-neutral-900 dark:hover:bg-neutral-800',
+  },
 ];
 
 export default function OAuthSignInButtons() {
   return (
-    <div className="flex flex-col gap-3 w-full max-w-xs">
+    <div className="flex flex-col gap-3 w-full">
       {PROVIDERS.map((provider) => (
         <a
           key={provider.id}
