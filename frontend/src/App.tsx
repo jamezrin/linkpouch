@@ -42,7 +42,7 @@ function AppContent() {
   const [whatsNewOpen, setWhatsNewOpen] = useState(false);
   const { hasUnseen, markSeen } = useChangelog();
   const queryClient = useQueryClient();
-  const { isSignedIn, accountToken } = useAccount();
+  const { isSignedIn } = useAccount();
   const navigate = useNavigate();
 
   function handleOpenWhatsNew() {
