@@ -12,10 +12,13 @@ import lombok.RequiredArgsConstructor;
 public class WebMvcConfig implements WebMvcConfigurer {
 
     private final StashJwtInterceptor stashJwtInterceptor;
+    private final AccountJwtInterceptor accountJwtInterceptor;
 
     @Override
     public void addInterceptors(@NonNull final InterceptorRegistry registry) {
         registry.addInterceptor(stashJwtInterceptor)
                 .addPathPatterns("/api/stashes/**", "/api/links/**", "/stashes/**", "/links/**");
+        registry.addInterceptor(accountJwtInterceptor)
+                .addPathPatterns("/account/**");
     }
 }
