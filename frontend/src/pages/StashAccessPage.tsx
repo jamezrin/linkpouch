@@ -33,7 +33,6 @@ import { PouchIcon } from '../components/PouchIcon';
 import { useOnboardingWalkthrough, usePreviewWalkthrough } from '../hooks/useWalkthroughs';
 import { useAccount } from '../contexts/account';
 import { accountApi } from '../services/accountApi';
-import ClaimStashModal from '../components/ClaimStashModal';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -384,7 +383,6 @@ export default function StashAccessPage() {
   const [settingsPasswordError, setSettingsPasswordError] = useState<string | null>(null);
   const [settingsPasswordPending, setSettingsPasswordPending] = useState(false);
   const [removePasswordConfirm, setRemovePasswordConfirm] = useState(false);
-  const [claimModalOpen, setClaimModalOpen] = useState(false);
   const sentinelRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const liveIframeRef = useRef<HTMLIFrameElement>(null);
@@ -549,6 +547,16 @@ export default function StashAccessPage() {
 
   const disownMutation = useMutation({
     mutationFn: () => accountApi.disownStash(accountToken!, stashId!),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['account'] }),
+  });
+
+  const claimMutation = useMutation({
+    mutationFn: () =>
+      accountApi.claimStash(accountToken!, {
+        stashId: stashId!,
+        signature: signature ?? '',
+        ...(passwordInput.trim() ? { password: passwordInput } : {}),
+      }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['account'] }),
   });
 
@@ -1978,11 +1986,15 @@ export default function StashAccessPage() {
                     Link this pouch to your account to recover it across devices.
                   </p>
                   <button
-                    onClick={() => setClaimModalOpen(true)}
-                    className="w-full py-2 text-[13px] font-medium bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg transition-colors"
+                    onClick={() => claimMutation.mutate()}
+                    disabled={claimMutation.isPending}
+                    className="w-full py-2 text-[13px] font-medium bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg transition-colors disabled:opacity-40"
                   >
-                    Claim this pouch
+                    {claimMutation.isPending ? 'Claiming…' : 'Claim this pouch'}
                   </button>
+                  {claimMutation.isError && (
+                    <p className="text-[12px] text-red-500">Failed to claim. Please try again.</p>
+                  )}
                 </div>
               )}
             </section>
@@ -1991,13 +2003,6 @@ export default function StashAccessPage() {
         </div>
       </>
     )}
-    {claimModalOpen && (
-      <ClaimStashModal
-        onClose={() => setClaimModalOpen(false)}
-        prefillStashId={stashId}
-        prefillSignature={signature ?? ''}
-      />
-    )}
-    </>
+</>
   );
 }
