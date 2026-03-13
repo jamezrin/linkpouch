@@ -27,17 +27,15 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain filterChain(final HttpSecurity http) throws Exception {
-        http
-            .csrf(csrf -> csrf.disable())
-            .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-            // MVC interceptors (StashJwtInterceptor, AccountJwtInterceptor) handle auth —
-            // Spring Security is only used here for the OAuth2 login flow.
-            .authorizeHttpRequests(auth -> auth.anyRequest().permitAll())
-            .oauth2Login(oauth2 -> oauth2
-                .authorizationEndpoint(ep -> ep
-                    .authorizationRequestRepository(new HttpCookieOAuth2AuthorizationRequestRepository()))
-                .successHandler(oAuth2AuthenticationSuccessHandler)
-                .failureHandler(oAuth2AuthenticationFailureHandler));
+        http.csrf(csrf -> csrf.disable())
+                .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                // MVC interceptors (StashJwtInterceptor, AccountJwtInterceptor) handle auth —
+                // Spring Security is only used here for the OAuth2 login flow.
+                .authorizeHttpRequests(auth -> auth.anyRequest().permitAll())
+                .oauth2Login(oauth2 -> oauth2.authorizationEndpoint(ep ->
+                                ep.authorizationRequestRepository(new HttpCookieOAuth2AuthorizationRequestRepository()))
+                        .successHandler(oAuth2AuthenticationSuccessHandler)
+                        .failureHandler(oAuth2AuthenticationFailureHandler));
         return http.build();
     }
 }
