@@ -36,9 +36,8 @@ public class OAuth2AuthenticationSuccessHandler implements AuthenticationSuccess
 
     @Override
     public void onAuthenticationSuccess(
-            final HttpServletRequest request,
-            final HttpServletResponse response,
-            final Authentication authentication) throws IOException {
+            final HttpServletRequest request, final HttpServletResponse response, final Authentication authentication)
+            throws IOException {
 
         final OAuth2AuthenticationToken oauthToken = (OAuth2AuthenticationToken) authentication;
         final OAuth2User oauthUser = oauthToken.getPrincipal();
@@ -58,18 +57,20 @@ public class OAuth2AuthenticationSuccessHandler implements AuthenticationSuccess
 
     private UpsertAccountCommand buildCommand(final String registrationId, final Map<String, Object> attrs) {
         return switch (registrationId) {
-            case "github" -> new UpsertAccountCommand(
-                    OAuthProvider.GITHUB,
-                    String.valueOf(attrs.get("id")),
-                    (String) attrs.get("email"),
-                    (String) attrs.getOrDefault("name", attrs.get("login")),
-                    (String) attrs.get("avatar_url"));
-            case "google" -> new UpsertAccountCommand(
-                    OAuthProvider.GOOGLE,
-                    (String) attrs.get("sub"),
-                    (String) attrs.get("email"),
-                    (String) attrs.get("name"),
-                    (String) attrs.get("picture"));
+            case "github" ->
+                new UpsertAccountCommand(
+                        OAuthProvider.GITHUB,
+                        String.valueOf(attrs.get("id")),
+                        (String) attrs.get("email"),
+                        (String) attrs.getOrDefault("name", attrs.get("login")),
+                        (String) attrs.get("avatar_url"));
+            case "google" ->
+                new UpsertAccountCommand(
+                        OAuthProvider.GOOGLE,
+                        (String) attrs.get("sub"),
+                        (String) attrs.get("email"),
+                        (String) attrs.get("name"),
+                        (String) attrs.get("picture"));
             case "twitter" -> {
                 @SuppressWarnings("unchecked")
                 final Map<String, Object> data = (Map<String, Object>) attrs.get("data");

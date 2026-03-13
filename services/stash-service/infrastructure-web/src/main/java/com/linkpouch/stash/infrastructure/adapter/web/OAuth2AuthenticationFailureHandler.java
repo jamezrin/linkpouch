@@ -23,7 +23,8 @@ public class OAuth2AuthenticationFailureHandler implements AuthenticationFailure
     public void onAuthenticationFailure(
             final HttpServletRequest request,
             final HttpServletResponse response,
-            final AuthenticationException exception) throws IOException {
+            final AuthenticationException exception)
+            throws IOException {
         log.warn("OAuth2 authentication failed: {}", exception.getMessage());
         response.sendRedirect(frontendUrl + "/account?error=oauth_failed");
     }
