@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, useLocation, useNavigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider, useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import HomePage from './pages/HomePage';
 import StashAccessPage from './pages/StashAccessPage';
+import AccountPage from './pages/AccountPage';
 import ThemeToggle from './components/ThemeToggle';
 import { StashSearchContext } from './contexts/stashSearch';
 import { ThemeProvider } from './contexts/theme';
+import { AccountProvider, useAccount } from './contexts/account';
 import { stashApi } from './services/api';
 import { useStashToken } from './hooks/useStashToken';
 import { useStashHistory } from './hooks/useStashHistory';
@@ -40,6 +42,8 @@ function AppContent() {
   const [whatsNewOpen, setWhatsNewOpen] = useState(false);
   const { hasUnseen, markSeen } = useChangelog();
   const queryClient = useQueryClient();
+  const { isSignedIn, accountToken } = useAccount();
+  const navigate = useNavigate();
 
   function handleOpenWhatsNew() {
     setWhatsNewOpen(true);
@@ -219,6 +223,18 @@ function AppContent() {
             </button>
           )}
 
+          {/* Account button — desktop only */}
+          <button
+            onClick={() => navigate('/account')}
+            className="hidden md:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[13px] font-medium transition-colors text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white"
+            title="Account"
+          >
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+            </svg>
+            <span>{isSignedIn ? 'Account' : 'Sign in'}</span>
+          </button>
+
           {/* What's New button — desktop only */}
           <div className="hidden md:block relative">
             <button
@@ -312,6 +328,17 @@ function AppContent() {
                   <div className="border-t border-slate-100 dark:border-slate-800 -mx-3" />
                 )}
 
+                {/* Account — mobile */}
+                <button
+                  onClick={() => { navigate('/account'); setMobileMenuOpen(false); }}
+                  className="flex items-center gap-2.5 px-2 py-1.5 rounded-lg text-[13px] font-medium transition-colors text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white w-full text-left"
+                >
+                  <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  </svg>
+                  <span>{isSignedIn ? 'Account' : 'Sign in'}</span>
+                </button>
+
                 {/* What's New — mobile */}
                 <button
                   onClick={() => { handleOpenWhatsNew(); setMobileMenuOpen(false); }}
@@ -350,6 +377,7 @@ function AppContent() {
           ) : (
             <Routes>
               <Route path="/" element={<HomePage />} />
+              <Route path="/account" element={<AccountPage />} />
               <Route path="/s/:stashId/:signature" element={<StashAccessPage />} />
               <Route path="/s/:stashId" element={<StashAccessPage />} />
             </Routes>
@@ -366,7 +394,9 @@ function App() {
     <ThemeProvider>
       <QueryClientProvider client={queryClient}>
         <Router>
-          <AppContent />
+          <AccountProvider>
+            <AppContent />
+          </AccountProvider>
         </Router>
       </QueryClientProvider>
     </ThemeProvider>

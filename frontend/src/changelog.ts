@@ -4,9 +4,18 @@ export interface ChangelogEntry {
   items: string[];
 }
 
-export const LATEST_VERSION = 3;
+export const LATEST_VERSION = 4;
 
 export const changelog: ChangelogEntry[] = [
+  {
+    version: 4,
+    date: new Date('2026-03-12'),
+    items: [
+      'Optional account linking — sign in with GitHub, Google, Discord, or X to attach pouches to an account',
+      'Claim any pouch you have the signed URL for and keep it linked across devices',
+      'Manage your linked pouches at /account — open, disown, or add more at any time',
+    ],
+  },
   {
     version: 3,
     date: new Date('2026-03-10'),

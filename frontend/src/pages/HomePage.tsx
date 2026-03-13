@@ -96,6 +96,15 @@ const FEATURES: Array<{ icon: React.ReactNode; title: string; desc: string }> = 
     title: 'Zero tracking',
     desc: "No analytics, no behavioral tracking, no third-party scripts. Completely free with no limits on links or pouches. We don't know who you are — and we intend to keep it that way.",
   },
+  {
+    icon: (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+      </svg>
+    ),
+    title: 'Optional account linking',
+    desc: 'Sign in with GitHub, Google, Discord, or X to attach pouches to an account — making them recoverable across devices without giving up anonymity.',
+  },
 ];
 
 const STEPS = [
@@ -186,15 +195,6 @@ const ROADMAP: Array<{ icon: React.ReactNode; title: string; desc: string }> = [
     ),
     title: 'Improved full-text search',
     desc: 'Better relevance ranking, smarter metadata indexing, and faster suggestions across your collection.',
-  },
-  {
-    icon: (
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-      </svg>
-    ),
-    title: 'Optional account linking',
-    desc: 'Sign in with GitHub, Google, and more to attach pouches to an account — making them recoverable across devices.',
   },
   {
     icon: (
