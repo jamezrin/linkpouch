@@ -42,7 +42,8 @@ public class AccountController {
 
         final List<UUID> claimedStashIds = accountRepository.findClaimedStashIds(claims.accountId());
         final List<Map<String, Object>> claimedStashes = claimedStashIds.stream()
-                .map(stashId -> stashRepository.findById(stashId)
+                .map(stashId -> stashRepository
+                        .findById(stashId)
                         .map(stash -> Map.<String, Object>of(
                                 "stashId", stash.getId().toString(),
                                 "stashName", stash.getName().getValue()))
@@ -55,31 +56,32 @@ public class AccountController {
                 .toList();
 
         return ResponseEntity.ok(Map.of(
-                "id", account.getId().toString(),
-                "email", account.getEmail() != null ? account.getEmail() : "",
-                "displayName", account.getDisplayName(),
-                "avatarUrl", account.getAvatarUrl() != null ? account.getAvatarUrl() : "",
-                "providers", providers,
-                "claimedStashes", claimedStashes));
+                "id",
+                account.getId().toString(),
+                "email",
+                account.getEmail() != null ? account.getEmail() : "",
+                "displayName",
+                account.getDisplayName(),
+                "avatarUrl",
+                account.getAvatarUrl() != null ? account.getAvatarUrl() : "",
+                "providers",
+                providers,
+                "claimedStashes",
+                claimedStashes));
     }
 
     @PostMapping("/stashes/claim")
     public ResponseEntity<Void> claimStash(
-            @RequestBody final ClaimStashRequest body,
-            final HttpServletRequest request) {
+            @RequestBody final ClaimStashRequest body, final HttpServletRequest request) {
         final AccountClaims claims = (AccountClaims) request.getAttribute(AccountJwtInterceptor.CLAIMS_ATTR);
         claimStashUseCase.execute(new ClaimStashCommand(
-                claims.accountId(),
-                UUID.fromString(body.stashId()),
-                body.signature(),
-                body.password()));
+                claims.accountId(), UUID.fromString(body.stashId()), body.signature(), body.password()));
         return ResponseEntity.noContent().build();
     }
 
     @DeleteMapping("/stashes/{stashId}")
     public ResponseEntity<Void> disownStash(
-            @PathVariable final String stashId,
-            final HttpServletRequest request) {
+            @PathVariable final String stashId, final HttpServletRequest request) {
         final AccountClaims claims = (AccountClaims) request.getAttribute(AccountJwtInterceptor.CLAIMS_ATTR);
         disownStashUseCase.execute(new DisownStashCommand(claims.accountId(), UUID.fromString(stashId)));
         return ResponseEntity.noContent().build();
