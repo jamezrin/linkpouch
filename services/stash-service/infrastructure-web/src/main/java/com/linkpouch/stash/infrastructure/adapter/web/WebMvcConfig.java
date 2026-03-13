@@ -18,7 +18,6 @@ public class WebMvcConfig implements WebMvcConfigurer {
     public void addInterceptors(@NonNull final InterceptorRegistry registry) {
         registry.addInterceptor(stashJwtInterceptor)
                 .addPathPatterns("/api/stashes/**", "/api/links/**", "/stashes/**", "/links/**");
-        registry.addInterceptor(accountJwtInterceptor)
-                .addPathPatterns("/account/**");
+        registry.addInterceptor(accountJwtInterceptor).addPathPatterns("/account/**");
     }
 }

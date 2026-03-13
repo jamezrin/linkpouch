@@ -11,7 +11,6 @@ import org.springframework.web.bind.annotation.*;
 
 import com.linkpouch.stash.domain.exception.NotFoundException;
 import com.linkpouch.stash.domain.model.Account;
-import com.linkpouch.stash.domain.model.Stash;
 import com.linkpouch.stash.domain.port.in.ClaimStashCommand;
 import com.linkpouch.stash.domain.port.in.ClaimStashUseCase;
 import com.linkpouch.stash.domain.port.in.DisownStashCommand;
@@ -37,7 +36,8 @@ public class AccountController {
     @GetMapping("/me")
     public ResponseEntity<Map<String, Object>> getAccount(final HttpServletRequest request) {
         final AccountClaims claims = (AccountClaims) request.getAttribute(AccountJwtInterceptor.CLAIMS_ATTR);
-        final Account account = getAccountQuery.execute(claims.accountId())
+        final Account account = getAccountQuery
+                .execute(claims.accountId())
                 .orElseThrow(() -> new NotFoundException("Account not found"));
 
         final List<UUID> claimedStashIds = accountRepository.findClaimedStashIds(claims.accountId());
