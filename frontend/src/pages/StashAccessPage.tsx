@@ -31,6 +31,9 @@ import { features } from '../features';
 import { useStashEvents } from '../hooks/useStashEvents';
 import { PouchIcon } from '../components/PouchIcon';
 import { useOnboardingWalkthrough, usePreviewWalkthrough } from '../hooks/useWalkthroughs';
+import { useAccount } from '../contexts/account';
+import { accountApi } from '../services/accountApi';
+import ClaimStashModal from '../components/ClaimStashModal';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -381,6 +384,7 @@ export default function StashAccessPage() {
   const [settingsPasswordError, setSettingsPasswordError] = useState<string | null>(null);
   const [settingsPasswordPending, setSettingsPasswordPending] = useState(false);
   const [removePasswordConfirm, setRemovePasswordConfirm] = useState(false);
+  const [claimModalOpen, setClaimModalOpen] = useState(false);
   const sentinelRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const liveIframeRef = useRef<HTMLIFrameElement>(null);
@@ -532,6 +536,21 @@ export default function StashAccessPage() {
     setSettingsPasswordError(null);
     setRemovePasswordConfirm(false);
   };
+
+  const { accountToken, isSignedIn } = useAccount();
+
+  const { data: accountData } = useQuery({
+    queryKey: ['account'],
+    queryFn: () => accountApi.getAccount(accountToken!).then((r) => r.data),
+    enabled: isSignedIn && !!accountToken,
+  });
+
+  const isStashClaimed = accountData?.claimedStashes.some((s) => s.stashId === stashId) ?? false;
+
+  const disownMutation = useMutation({
+    mutationFn: () => accountApi.disownStash(accountToken!, stashId!),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['account'] }),
+  });
 
   const { data: stash, isLoading: stashLoading, error: stashError } = useQuery({
     queryKey: ['stash', stashId],
@@ -1921,9 +1940,63 @@ export default function StashAccessPage() {
               )}
             </section>
 
+            {/* ── Account ──────────────────────────────────────────────── */}
+            <section className="p-4">
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-3">Account</h3>
+
+              {!isSignedIn ? (
+                <div className="flex flex-col gap-2">
+                  <p className="text-[13px] text-slate-500 dark:text-slate-400 leading-snug">
+                    Sign in to link this pouch to your account and recover it across devices.
+                  </p>
+                  <a
+                    href="/account"
+                    className="block w-full py-2 text-center text-[13px] font-medium bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg transition-colors"
+                  >
+                    Sign in
+                  </a>
+                </div>
+              ) : isStashClaimed ? (
+                <div className="flex flex-col gap-2">
+                  <div className="flex items-center gap-2 text-[13px] text-slate-500 dark:text-slate-400">
+                    <svg className="w-4 h-4 text-green-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    This pouch is linked to your account.
+                  </div>
+                  <button
+                    onClick={() => disownMutation.mutate()}
+                    disabled={disownMutation.isPending}
+                    className="w-full py-2 text-[13px] text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-lg border border-red-100 dark:border-red-900/40 transition-colors disabled:opacity-40"
+                  >
+                    {disownMutation.isPending ? 'Removing…' : 'Unlink pouch'}
+                  </button>
+                </div>
+              ) : (
+                <div className="flex flex-col gap-2">
+                  <p className="text-[13px] text-slate-500 dark:text-slate-400 leading-snug">
+                    Link this pouch to your account to recover it across devices.
+                  </p>
+                  <button
+                    onClick={() => setClaimModalOpen(true)}
+                    className="w-full py-2 text-[13px] font-medium bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg transition-colors"
+                  >
+                    Claim this pouch
+                  </button>
+                </div>
+              )}
+            </section>
+
           </div>
         </div>
       </>
+    )}
+    {claimModalOpen && (
+      <ClaimStashModal
+        onClose={() => setClaimModalOpen(false)}
+        prefillStashId={stashId}
+        prefillSignature={signature ?? ''}
+      />
     )}
     </>
   );
