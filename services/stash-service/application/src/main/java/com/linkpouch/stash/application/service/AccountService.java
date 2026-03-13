@@ -58,8 +58,8 @@ public class AccountService implements UpsertAccountUseCase, ClaimStashUseCase, 
     @Override
     @Transactional
     public void execute(final ClaimStashCommand command) {
-        final Stash stash = stashRepository.findById(command.stashId())
-                .orElseThrow(() -> new NotFoundException("Stash not found"));
+        final Stash stash =
+                stashRepository.findById(command.stashId()).orElseThrow(() -> new NotFoundException("Stash not found"));
 
         final boolean validSig = stashSignatureService.validateSignature(
                 stash.getId(), stash.getSecretKey().getValue(), command.signature());

@@ -14,11 +14,11 @@ import org.springframework.security.web.authentication.AuthenticationSuccessHand
 import org.springframework.stereotype.Component;
 import org.springframework.web.util.UriComponentsBuilder;
 
+import com.linkpouch.stash.domain.model.Account;
 import com.linkpouch.stash.domain.model.OAuthProvider;
 import com.linkpouch.stash.domain.port.in.UpsertAccountCommand;
 import com.linkpouch.stash.domain.port.in.UpsertAccountUseCase;
 import com.linkpouch.stash.domain.service.AccountTokenService;
-import com.linkpouch.stash.domain.model.Account;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
