@@ -28,7 +28,7 @@ export default function AccountPage() {
   // Redirect signed-in users away from this page
   useEffect(() => {
     if (isSignedIn) {
-      navigate('/stashes', { replace: true });
+      navigate('/', { replace: true });
     }
   }, [isSignedIn, navigate]);
 
