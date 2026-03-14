@@ -1,10 +1,10 @@
 import { useState, useRef, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useAccount } from '../contexts/account';
 import { accountApi } from '../services/accountApi';
 import { OAuthProviderName } from '../types/account';
 import StashesModal from './StashesModal';
+import SignInModal from './SignInModal';
 
 const PROVIDER_LABELS: Record<OAuthProviderName, string> = {
   github: 'GitHub',
@@ -22,9 +22,9 @@ const PROVIDER_COLORS: Record<OAuthProviderName, string> = {
 
 export default function AccountDropdown() {
   const { accountToken, isSignedIn, clearAccountToken } = useAccount();
-  const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [stashesOpen, setStashesOpen] = useState(false);
+  const [signInOpen, setSignInOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const { data: account } = useQuery({
@@ -46,15 +46,18 @@ export default function AccountDropdown() {
 
   if (!isSignedIn) {
     return (
-      <button
-        onClick={() => navigate('/account')}
-        className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[13px] font-medium transition-colors text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white"
-      >
-        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-        </svg>
-        <span className="hidden sm:inline">Sign in</span>
-      </button>
+      <>
+        <button
+          onClick={() => setSignInOpen(true)}
+          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[13px] font-medium transition-colors text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white"
+        >
+          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+          </svg>
+          <span className="hidden sm:inline">Sign in</span>
+        </button>
+        {signInOpen && <SignInModal onClose={() => setSignInOpen(false)} />}
+      </>
     );
   }
 
