@@ -49,12 +49,12 @@ export default function AccountDropdown() {
       <>
         <button
           onClick={() => setSignInOpen(true)}
-          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[13px] font-medium transition-colors text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white"
+          className="flex items-center justify-center w-8 h-8 rounded-full transition-all ring-2 ring-offset-2 ring-offset-white dark:ring-offset-slate-950 ring-transparent hover:ring-indigo-400/50 bg-slate-100 dark:bg-slate-800"
+          title="Sign in"
         >
-          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-4 h-4 text-slate-400 dark:text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
           </svg>
-          <span className="hidden sm:inline">Sign in</span>
         </button>
         {signInOpen && <SignInModal onClose={() => setSignInOpen(false)} />}
       </>
