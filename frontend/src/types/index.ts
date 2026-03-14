@@ -2,6 +2,7 @@ export interface Stash {
   id: string;
   name: string;
   passwordProtected: boolean;
+  visibility: 'SHARED' | 'PRIVATE';
   linkCount: number;
   createdAt: string;
   updatedAt: string;

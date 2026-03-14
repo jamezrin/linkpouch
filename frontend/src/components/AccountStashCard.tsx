@@ -23,9 +23,21 @@ export default function AccountStashCard({ stash }: Props) {
   return (
     <div className="flex items-center gap-3 px-4 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl">
       <div className="flex-1 min-w-0">
-        <p className="text-[14px] font-medium text-slate-900 dark:text-slate-100 truncate">
-          {stash.stashName}
-        </p>
+        <div className="flex items-center gap-2">
+          <p className="text-[14px] font-medium text-slate-900 dark:text-slate-100 truncate">
+            {stash.stashName}
+          </p>
+          <span
+            className={[
+              'flex-shrink-0 text-[10px] font-medium px-1.5 py-0.5 rounded',
+              stash.visibility === 'PRIVATE'
+                ? 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400'
+                : 'bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400',
+            ].join(' ')}
+          >
+            {stash.visibility === 'PRIVATE' ? 'Private' : 'Shared'}
+          </span>
+        </div>
         <p className="text-[12px] text-slate-400 font-mono truncate mt-0.5">{stash.stashId}</p>
       </div>
 

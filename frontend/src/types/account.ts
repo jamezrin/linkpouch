@@ -4,9 +4,12 @@ export interface AccountProvider {
   provider: OAuthProviderName;
 }
 
+export type StashVisibility = 'SHARED' | 'PRIVATE';
+
 export interface ClaimedStash {
   stashId: string;
   stashName: string;
+  visibility: StashVisibility;
 }
 
 export interface AccountResponse {
