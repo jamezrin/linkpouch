@@ -383,6 +383,7 @@ export default function StashAccessPage() {
   const [settingsPasswordError, setSettingsPasswordError] = useState<string | null>(null);
   const [settingsPasswordPending, setSettingsPasswordPending] = useState(false);
   const [removePasswordConfirm, setRemovePasswordConfirm] = useState(false);
+  const [showSettingsPassword, setShowSettingsPassword] = useState(false);
   const [visibilityPending, setVisibilityPending] = useState(false);
   const sentinelRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -1926,13 +1927,27 @@ export default function StashAccessPage() {
                     This pouch is password-protected. Change or remove the password below.
                   </p>
                   <form onSubmit={handleSetPassword} className="flex flex-col gap-2">
-                    <input
-                      type="password"
-                      value={settingsPassword}
-                      onChange={(e) => setSettingsPassword(e.target.value)}
-                      placeholder="New password…"
-                      className="w-full px-3 py-2 text-[13px] bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-800 dark:text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500/60"
-                    />
+                    <div className="relative">
+                      <input
+                        type={showSettingsPassword ? 'text' : 'password'}
+                        value={settingsPassword}
+                        onChange={(e) => setSettingsPassword(e.target.value)}
+                        placeholder="New password…"
+                        className="w-full px-3 py-2 pr-9 text-[13px] bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-800 dark:text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500/60"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowSettingsPassword((v) => !v)}
+                        className="absolute inset-y-0 right-0 flex items-center px-2.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+                        tabIndex={-1}
+                      >
+                        {showSettingsPassword ? (
+                          <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                        ) : (
+                          <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                        )}
+                      </button>
+                    </div>
                     <button
                       type="submit"
                       disabled={settingsPasswordPending || !settingsPassword.trim()}
@@ -1978,13 +1993,27 @@ export default function StashAccessPage() {
                     Add a passphrase on top of the signed URL to restrict who can access this pouch.
                   </p>
                   <form onSubmit={handleSetPassword} className="flex flex-col gap-2">
-                    <input
-                      type="password"
-                      value={settingsPassword}
-                      onChange={(e) => setSettingsPassword(e.target.value)}
-                      placeholder="Choose a password…"
-                      className="w-full px-3 py-2 text-[13px] bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-800 dark:text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500/60"
-                    />
+                    <div className="relative">
+                      <input
+                        type={showSettingsPassword ? 'text' : 'password'}
+                        value={settingsPassword}
+                        onChange={(e) => setSettingsPassword(e.target.value)}
+                        placeholder="Choose a password…"
+                        className="w-full px-3 py-2 pr-9 text-[13px] bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-800 dark:text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500/60"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowSettingsPassword((v) => !v)}
+                        className="absolute inset-y-0 right-0 flex items-center px-2.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+                        tabIndex={-1}
+                      >
+                        {showSettingsPassword ? (
+                          <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                        ) : (
+                          <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                        )}
+                      </button>
+                    </div>
                     <button
                       type="submit"
                       disabled={settingsPasswordPending || !settingsPassword.trim()}
