@@ -80,7 +80,8 @@ public class AccountController {
     }
 
     @DeleteMapping("/stashes/{stashId}")
-    public ResponseEntity<Void> disownStash(@PathVariable("stashId") final String stashId, final HttpServletRequest request) {
+    public ResponseEntity<Void> disownStash(
+            @PathVariable("stashId") final String stashId, final HttpServletRequest request) {
         final AccountClaims claims = (AccountClaims) request.getAttribute(AccountJwtInterceptor.CLAIMS_ATTR);
         disownStashUseCase.execute(new DisownStashCommand(claims.accountId(), UUID.fromString(stashId)));
         return ResponseEntity.noContent().build();
