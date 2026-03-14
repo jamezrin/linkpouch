@@ -16,7 +16,7 @@ export default function StashesPage() {
 
   if (!isSignedIn) {
     return (
-      <div className="min-h-[calc(100dvh-3.5rem)] flex flex-col items-center justify-center gap-4 px-4 text-center">
+      <div className="min-h-[calc(100dvh-3.5rem)] bg-white dark:bg-slate-950 flex flex-col items-center justify-center gap-4 px-4 text-center">
         <svg className="w-10 h-10 text-slate-300 dark:text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
         </svg>
@@ -32,7 +32,7 @@ export default function StashesPage() {
   }
 
   return (
-    <div className="min-h-[calc(100dvh-3.5rem)]">
+    <div className="min-h-[calc(100dvh-3.5rem)] bg-white dark:bg-slate-950">
       <div className="max-w-xl mx-auto px-4 py-12 flex flex-col gap-6">
         <h1 className="text-[18px] font-bold text-slate-900 dark:text-white">Your pouches</h1>
 
