@@ -4,10 +4,12 @@ import { QueryClient, QueryClientProvider, useQuery, useMutation, useQueryClient
 import HomePage from './pages/HomePage';
 import StashAccessPage from './pages/StashAccessPage';
 import AccountPage from './pages/AccountPage';
+import StashesPage from './pages/StashesPage';
 import ThemeToggle from './components/ThemeToggle';
+import AccountDropdown from './components/AccountDropdown';
 import { StashSearchContext } from './contexts/stashSearch';
 import { ThemeProvider } from './contexts/theme';
-import { AccountProvider, useAccount } from './contexts/account';
+import { AccountProvider } from './contexts/account';
 import { stashApi } from './services/api';
 import { useStashToken } from './hooks/useStashToken';
 import { useStashHistory } from './hooks/useStashHistory';
@@ -42,7 +44,6 @@ function AppContent() {
   const [whatsNewOpen, setWhatsNewOpen] = useState(false);
   const { hasUnseen, markSeen } = useChangelog();
   const queryClient = useQueryClient();
-  const { isSignedIn } = useAccount();
   const navigate = useNavigate();
 
   function handleOpenWhatsNew() {
@@ -223,17 +224,10 @@ function AppContent() {
             </button>
           )}
 
-          {/* Account button — desktop only */}
-          <button
-            onClick={() => navigate('/account')}
-            className="hidden md:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[13px] font-medium transition-colors text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white"
-            title="Account"
-          >
-            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-            </svg>
-            <span>{isSignedIn ? 'Account' : 'Sign in'}</span>
-          </button>
+          {/* Account dropdown — desktop only */}
+          <div className="hidden md:block">
+            <AccountDropdown />
+          </div>
 
           {/* What's New button — desktop only */}
           <div className="hidden md:block relative">
@@ -255,6 +249,11 @@ function AppContent() {
           {/* Theme toggle — desktop only */}
           <div className="hidden md:block">
             <ThemeToggle />
+          </div>
+
+          {/* Account dropdown — mobile only */}
+          <div className="md:hidden">
+            <AccountDropdown />
           </div>
 
           {/* Hamburger — mobile only */}
@@ -328,17 +327,6 @@ function AppContent() {
                   <div className="border-t border-slate-100 dark:border-slate-800 -mx-3" />
                 )}
 
-                {/* Account — mobile */}
-                <button
-                  onClick={() => { navigate('/account'); setMobileMenuOpen(false); }}
-                  className="flex items-center gap-2.5 px-2 py-1.5 rounded-lg text-[13px] font-medium transition-colors text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white w-full text-left"
-                >
-                  <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                  </svg>
-                  <span>{isSignedIn ? 'Account' : 'Sign in'}</span>
-                </button>
-
                 {/* What's New — mobile */}
                 <button
                   onClick={() => { handleOpenWhatsNew(); setMobileMenuOpen(false); }}
@@ -378,6 +366,7 @@ function AppContent() {
             <Routes>
               <Route path="/" element={<HomePage />} />
               <Route path="/account" element={<AccountPage />} />
+              <Route path="/stashes" element={<StashesPage />} />
               <Route path="/s/:stashId/:signature" element={<StashAccessPage />} />
               <Route path="/s/:stashId" element={<StashAccessPage />} />
             </Routes>
