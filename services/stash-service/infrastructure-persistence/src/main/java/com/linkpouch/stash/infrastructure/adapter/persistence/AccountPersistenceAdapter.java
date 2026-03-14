@@ -11,6 +11,7 @@ import com.linkpouch.stash.domain.model.OAuthProvider;
 import com.linkpouch.stash.domain.port.outbound.AccountRepository;
 import com.linkpouch.stash.infrastructure.adapter.persistence.jpa.AccountJpaRepository;
 import com.linkpouch.stash.infrastructure.adapter.persistence.jpa.AccountStashJpaRepository;
+import com.linkpouch.stash.infrastructure.adapter.persistence.jpa.StashJpaRepository;
 import com.linkpouch.stash.infrastructure.adapter.persistence.jpa.entity.AccountJpaEntity;
 import com.linkpouch.stash.infrastructure.adapter.persistence.jpa.entity.AccountProviderJpaEntity;
 import com.linkpouch.stash.infrastructure.adapter.persistence.jpa.entity.AccountStashId;
@@ -25,6 +26,7 @@ public class AccountPersistenceAdapter implements AccountRepository {
 
     private final AccountJpaRepository accountJpaRepository;
     private final AccountStashJpaRepository accountStashJpaRepository;
+    private final StashJpaRepository stashJpaRepository;
     private final AccountEntityMapper accountMapper;
 
     @Override
@@ -67,8 +69,11 @@ public class AccountPersistenceAdapter implements AccountRepository {
     public void claimStash(final UUID accountId, final UUID stashId) {
         final AccountStashId id = new AccountStashId(accountId, stashId);
         if (!accountStashJpaRepository.existsById(id)) {
-            final AccountStashJpaEntity entity =
-                    AccountStashJpaEntity.builder().id(id).build();
+            final AccountStashJpaEntity entity = AccountStashJpaEntity.builder()
+                    .id(id)
+                    .account(accountJpaRepository.getReferenceById(accountId))
+                    .stash(stashJpaRepository.getReferenceById(stashId))
+                    .build();
             accountStashJpaRepository.save(entity);
         }
     }
