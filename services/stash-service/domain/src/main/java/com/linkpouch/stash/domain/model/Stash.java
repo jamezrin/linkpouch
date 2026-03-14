@@ -23,6 +23,7 @@ public class Stash {
     private StashName name;
     private SecretKey secretKey;
     private String passwordHash;
+    private StashVisibility visibility;
     private final Set<Link> links;
 
     public Stash(
@@ -32,6 +33,7 @@ public class Stash {
             final StashName name,
             final SecretKey secretKey,
             final String passwordHash,
+            final StashVisibility visibility,
             final Set<Link> links) {
         this.id = id != null ? id : UUID.randomUUID();
         this.createdAt = createdAt != null ? createdAt : LocalDateTime.now(ZoneOffset.UTC);
@@ -39,15 +41,20 @@ public class Stash {
         this.name = name != null ? name : StashName.of("Untitled Stash");
         this.secretKey = secretKey != null ? secretKey : SecretKey.generate();
         this.passwordHash = passwordHash;
+        this.visibility = visibility != null ? visibility : StashVisibility.SHARED;
         this.links = links != null ? new HashSet<>(links) : new HashSet<>();
     }
 
     public static Stash create(final String name) {
-        return new Stash(null, null, null, StashName.of(name), null, null, null);
+        return new Stash(null, null, null, StashName.of(name), null, null, StashVisibility.SHARED, null);
     }
 
     public boolean isPasswordProtected() {
         return passwordHash != null;
+    }
+
+    public boolean isPrivate() {
+        return visibility == StashVisibility.PRIVATE;
     }
 
     public void setPasswordHash(final String hash) {
@@ -62,6 +69,11 @@ public class Stash {
 
     public void updateName(final String newName) {
         this.name = StashName.of(newName);
+        this.updatedAt = LocalDateTime.now(ZoneOffset.UTC);
+    }
+
+    public void setVisibility(final StashVisibility visibility) {
+        this.visibility = visibility != null ? visibility : StashVisibility.SHARED;
         this.updatedAt = LocalDateTime.now(ZoneOffset.UTC);
     }
 

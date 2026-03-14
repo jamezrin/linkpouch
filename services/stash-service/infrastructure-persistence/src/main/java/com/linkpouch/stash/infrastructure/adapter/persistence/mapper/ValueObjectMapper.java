@@ -67,4 +67,17 @@ public interface ValueObjectMapper {
     default String linkStatusToString(LinkStatus status) {
         return status != null ? status.name() : LinkStatus.PENDING.name();
     }
+
+    default StashVisibility stringToStashVisibility(String value) {
+        if (value == null) return StashVisibility.SHARED;
+        try {
+            return StashVisibility.valueOf(value);
+        } catch (IllegalArgumentException e) {
+            return StashVisibility.SHARED;
+        }
+    }
+
+    default String stashVisibilityToString(StashVisibility visibility) {
+        return visibility != null ? visibility.name() : StashVisibility.SHARED.name();
+    }
 }

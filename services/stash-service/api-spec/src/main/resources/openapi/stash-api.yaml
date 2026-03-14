@@ -81,6 +81,12 @@ components:
         passwordProtected:
           type: boolean
           description: Whether this stash requires a password to access
+        visibility:
+          type: string
+          enum:
+            - SHARED
+            - PRIVATE
+          description: Who can access this stash (SHARED = anyone with URL, PRIVATE = claimer only)
         linkCount:
           type: integer
         createdAt:

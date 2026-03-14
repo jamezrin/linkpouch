@@ -32,6 +32,7 @@ public interface ApiDtoMapper {
 
     @Mapping(target = "name", source = "name")
     @Mapping(target = "passwordProtected", expression = "java(stash.isPasswordProtected())")
+    @Mapping(target = "visibility", source = "visibility")
     @Mapping(target = "linkCount", constant = "0")
     @Mapping(target = "createdAt", source = "createdAt")
     @Mapping(target = "updatedAt", source = "updatedAt")

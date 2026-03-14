@@ -7,15 +7,21 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.linkpouch.stash.application.annotation.UseCase;
+import com.linkpouch.stash.domain.exception.ForbiddenException;
 import com.linkpouch.stash.domain.exception.NotFoundException;
 import com.linkpouch.stash.domain.exception.UnauthorizedException;
 import com.linkpouch.stash.domain.model.Account;
 import com.linkpouch.stash.domain.model.AccountProvider;
 import com.linkpouch.stash.domain.model.Stash;
+import com.linkpouch.stash.domain.model.StashVisibility;
+import com.linkpouch.stash.domain.port.in.AcquireClaimedStashAccessCommand;
+import com.linkpouch.stash.domain.port.in.AcquireClaimedStashAccessUseCase;
 import com.linkpouch.stash.domain.port.in.ClaimStashCommand;
 import com.linkpouch.stash.domain.port.in.ClaimStashUseCase;
 import com.linkpouch.stash.domain.port.in.DisownStashCommand;
 import com.linkpouch.stash.domain.port.in.DisownStashUseCase;
+import com.linkpouch.stash.domain.port.in.UpdateStashVisibilityCommand;
+import com.linkpouch.stash.domain.port.in.UpdateStashVisibilityUseCase;
 import com.linkpouch.stash.domain.port.in.UpsertAccountCommand;
 import com.linkpouch.stash.domain.port.in.UpsertAccountUseCase;
 import com.linkpouch.stash.domain.port.outbound.AccountRepository;
@@ -27,11 +33,16 @@ import lombok.RequiredArgsConstructor;
 /**
  * Application Service: Account Management
  *
- * <p>Handles OAuth account upsert, stash claiming, and disowning.
+ * <p>Handles OAuth account upsert, stash claiming, disowning, visibility, and account-based access.
  */
 @UseCase
 @RequiredArgsConstructor
-public class AccountService implements UpsertAccountUseCase, ClaimStashUseCase, DisownStashUseCase {
+public class AccountService
+        implements UpsertAccountUseCase,
+                ClaimStashUseCase,
+                DisownStashUseCase,
+                UpdateStashVisibilityUseCase,
+                AcquireClaimedStashAccessUseCase {
 
     private final AccountRepository accountRepository;
     private final StashRepository stashRepository;
@@ -77,7 +88,14 @@ public class AccountService implements UpsertAccountUseCase, ClaimStashUseCase, 
             }
         }
 
+        if (accountRepository.isStashClaimedByAnyone(command.stashId())) {
+            throw new ForbiddenException("This pouch has already been claimed by another account");
+        }
+
         accountRepository.claimStash(command.accountId(), command.stashId());
+
+        stash.setVisibility(StashVisibility.PRIVATE);
+        stashRepository.save(stash);
     }
 
     @Override
@@ -86,6 +104,39 @@ public class AccountService implements UpsertAccountUseCase, ClaimStashUseCase, 
         if (!accountRepository.isStashClaimed(command.accountId(), command.stashId())) {
             throw new NotFoundException("Stash is not claimed by this account");
         }
+
         accountRepository.disownStash(command.accountId(), command.stashId());
+
+        stashRepository.findById(command.stashId()).ifPresent(stash -> {
+            stash.setVisibility(StashVisibility.SHARED);
+            stashRepository.save(stash);
+        });
+    }
+
+    @Override
+    @Transactional
+    public void execute(final UpdateStashVisibilityCommand command) {
+        if (!accountRepository.isStashClaimed(command.accountId(), command.stashId())) {
+            throw new ForbiddenException("Only the claiming account can change stash visibility");
+        }
+
+        final Stash stash = stashRepository
+                .findById(command.stashId())
+                .orElseThrow(() -> new NotFoundException("Stash not found"));
+
+        stash.setVisibility(command.visibility());
+        stashRepository.save(stash);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Stash execute(final AcquireClaimedStashAccessCommand command) {
+        if (!accountRepository.isStashClaimed(command.accountId(), command.stashId())) {
+            throw new ForbiddenException("This pouch is not claimed by your account");
+        }
+
+        return stashRepository
+                .findById(command.stashId())
+                .orElseThrow(() -> new NotFoundException("Stash not found"));
     }
 }
