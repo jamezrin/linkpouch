@@ -103,7 +103,8 @@ public class AccountController {
             @RequestBody final UpdateVisibilityRequest body,
             final HttpServletRequest request) {
         final AccountClaims claims = (AccountClaims) request.getAttribute(AccountJwtInterceptor.CLAIMS_ATTR);
-        final StashVisibility visibility = StashVisibility.valueOf(body.visibility().toUpperCase());
+        final StashVisibility visibility =
+                StashVisibility.valueOf(body.visibility().toUpperCase());
         updateStashVisibilityUseCase.execute(
                 new UpdateStashVisibilityCommand(claims.accountId(), UUID.fromString(stashId), visibility));
         return ResponseEntity.noContent().build();
@@ -116,8 +117,7 @@ public class AccountController {
         final var stash = acquireClaimedStashAccessUseCase.execute(
                 new AcquireClaimedStashAccessCommand(claims.accountId(), UUID.fromString(stashId)));
         final String token = stashTokenService.issueToken(stash);
-        return ResponseEntity.ok(
-                Map.of("accessToken", token, "expiresIn", stashTokenService.getExpirySeconds()));
+        return ResponseEntity.ok(Map.of("accessToken", token, "expiresIn", stashTokenService.getExpirySeconds()));
     }
 
     public record ClaimStashRequest(String stashId, String signature, String password) {}
