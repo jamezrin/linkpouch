@@ -223,11 +223,6 @@ function AppContent() {
             </button>
           )}
 
-          {/* Account dropdown — desktop only */}
-          <div className="hidden md:block">
-            <AccountDropdown />
-          </div>
-
           {/* What's New button — desktop only */}
           <div className="hidden md:block relative">
             <button
@@ -250,10 +245,8 @@ function AppContent() {
             <ThemeToggle />
           </div>
 
-          {/* Account dropdown — mobile only */}
-          <div className="md:hidden">
-            <AccountDropdown />
-          </div>
+          {/* Account dropdown — always visible, rightmost */}
+          <AccountDropdown />
 
           {/* Hamburger — mobile only */}
           <button
