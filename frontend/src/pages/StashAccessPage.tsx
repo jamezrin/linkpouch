@@ -371,7 +371,7 @@ export default function StashAccessPage() {
   const [selectedArchiveTimestamp, setSelectedArchiveTimestamp] = useState<string | null>(null);
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const { token: accessToken, setToken: setAccessToken } = useStashToken(stashId);
-  type AuthState = 'acquiring' | 'password_required' | 'ready' | 'error';
+  type AuthState = 'acquiring' | 'password_required' | 'ready' | 'error' | 'private';
   const [authState, setAuthState] = useState<AuthState>('acquiring');
   const [authAttempt, setAuthAttempt] = useState(0);
   const handleTokenExpiredRef = useRef<() => void>(() => {});
@@ -383,13 +383,15 @@ export default function StashAccessPage() {
   const [settingsPasswordError, setSettingsPasswordError] = useState<string | null>(null);
   const [settingsPasswordPending, setSettingsPasswordPending] = useState(false);
   const [removePasswordConfirm, setRemovePasswordConfirm] = useState(false);
+  const [visibilityPending, setVisibilityPending] = useState(false);
   const sentinelRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const liveIframeRef = useRef<HTMLIFrameElement>(null);
   const blockTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const queryClient = useQueryClient();
+  const { accountToken, isSignedIn } = useAccount();
 
-  if (!stashId || !signature) {
+  if (!stashId || (!signature && !isSignedIn)) {
     return <Navigate to="/" replace />;
   }
 
@@ -422,7 +424,7 @@ export default function StashAccessPage() {
 
   // ─── Token acquisition ────────────────────────────────────────────────────────
   useEffect(() => {
-    if (!stashId || !signature) return;
+    if (!stashId) return;
 
     // Try cached token first (read directly from sessionStorage to avoid stale closure)
     const cached = sessionStorage.getItem(tokenStorageKey(stashId));
@@ -431,21 +433,41 @@ export default function StashAccessPage() {
       return;
     }
 
-    // Acquire new token
     setAuthState('acquiring');
-    stashApi.acquireAccessToken(stashId, signature).then((res) => {
-      setAccessToken(res.data.accessToken);
-      setAuthState('ready');
-    }).catch((err) => {
-      if (err?.response?.data?.errorCode === 'PASSWORD_REQUIRED') {
-        setAuthState('password_required');
+
+    const tryAccountAccess = () => {
+      if (isSignedIn && accountToken) {
+        accountApi.acquireStashAccess(accountToken, stashId).then((res) => {
+          setAccessToken(res.data.accessToken);
+          setAuthState('ready');
+        }).catch(() => {
+          setAuthState('private');
+        });
       } else {
-        setAuthState('error');
+        setAuthState('private');
       }
-    });
+    };
+
+    if (signature) {
+      stashApi.acquireAccessToken(stashId, signature).then((res) => {
+        setAccessToken(res.data.accessToken);
+        setAuthState('ready');
+      }).catch((err) => {
+        if (err?.response?.data?.errorCode === 'PASSWORD_REQUIRED') {
+          setAuthState('password_required');
+        } else if (err?.response?.data?.errorCode === 'STASH_PRIVATE') {
+          tryAccountAccess();
+        } else {
+          setAuthState('error');
+        }
+      });
+    } else {
+      // No signature — try account-based access (claimer visiting their private stash)
+      tryAccountAccess();
+    }
   // authAttempt is intentionally included: incrementing it triggers re-acquisition after expiry
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [stashId, signature, authAttempt]);
+  }, [stashId, signature, authAttempt, isSignedIn, accountToken]);
 
   // Keep the ref in sync with the latest stashId / setAccessToken so the interceptor
   // always calls the most recent version without stale closures.
@@ -535,7 +557,18 @@ export default function StashAccessPage() {
     setRemovePasswordConfirm(false);
   };
 
-  const { accountToken, isSignedIn } = useAccount();
+  const handleVisibilityToggle = async () => {
+    if (!stashId || !accountToken || !stash) return;
+    const newVisibility = stash.visibility === 'PRIVATE' ? 'SHARED' : 'PRIVATE';
+    setVisibilityPending(true);
+    try {
+      await accountApi.updateVisibility(accountToken, stashId, newVisibility);
+      await queryClient.invalidateQueries({ queryKey: ['stash', stashId] });
+      await queryClient.invalidateQueries({ queryKey: ['account'] });
+    } finally {
+      setVisibilityPending(false);
+    }
+  };
 
   const { data: accountData } = useQuery({
     queryKey: ['account'],
@@ -1110,6 +1143,27 @@ export default function StashAccessPage() {
         <div className="flex flex-col items-center gap-4">
           <div className="w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
           <p className="text-slate-500 text-sm">Loading pouch…</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (authState === 'private') {
+    return (
+      <div className="h-full w-full flex items-center justify-center bg-white dark:bg-slate-950">
+        <div className="text-center max-w-sm w-full mx-4">
+          <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-2xl flex items-center justify-center mx-auto mb-5">
+            <svg className="w-8 h-8 text-slate-400 dark:text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+            </svg>
+          </div>
+          <h2 className="text-xl font-bold text-slate-800 dark:text-slate-100 mb-2">Private pouch</h2>
+          <p className="text-slate-500 dark:text-slate-400 text-sm mb-6">
+            This pouch is private. Only the account that claimed it can access it.
+          </p>
+          <a href="/" className="inline-block text-slate-400 hover:text-indigo-400 text-sm transition-colors">
+            ← Go back home
+          </a>
         </div>
       </div>
     );
@@ -1998,6 +2052,44 @@ export default function StashAccessPage() {
                 </div>
               )}
             </section>
+
+            {/* ── Visibility ────────────────────────────────────────────── */}
+            {isStashClaimed && stash && (
+              <section className="p-4">
+                <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-3">Visibility</h3>
+                <button
+                  onClick={handleVisibilityToggle}
+                  disabled={visibilityPending}
+                  className="flex items-center justify-between w-full text-left disabled:opacity-50"
+                >
+                  <div>
+                    <p className="text-[13px] font-medium text-slate-700 dark:text-slate-300">
+                      {stash.visibility === 'PRIVATE' ? 'Private' : 'Shared'}
+                    </p>
+                    <p className="text-[12px] text-slate-400 dark:text-slate-500 leading-snug mt-0.5">
+                      {stash.visibility === 'PRIVATE'
+                        ? 'Only you can access this pouch.'
+                        : 'Anyone with the URL can access this pouch.'}
+                    </p>
+                  </div>
+                  <div
+                    className={[
+                      'relative flex-shrink-0 w-10 h-6 rounded-full transition-colors ml-3',
+                      stash.visibility === 'PRIVATE'
+                        ? 'bg-indigo-600'
+                        : 'bg-slate-200 dark:bg-slate-700',
+                    ].join(' ')}
+                  >
+                    <div
+                      className={[
+                        'absolute top-0.5 w-5 h-5 bg-white rounded-full shadow-sm transition-transform',
+                        stash.visibility === 'PRIVATE' ? 'translate-x-4' : 'translate-x-0.5',
+                      ].join(' ')}
+                    />
+                  </div>
+                </button>
+              </section>
+            )}
 
           </div>
         </div>

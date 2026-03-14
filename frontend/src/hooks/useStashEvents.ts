@@ -4,7 +4,7 @@ import { stashApi } from '../services/api';
 
 interface UseStashEventsOptions {
   stashId: string;
-  signature: string;
+  signature: string | null;
   onLinkUpdated: (link: Link) => void;
 }
 
@@ -33,6 +33,8 @@ export function useStashEvents({ stashId, signature, onLinkUpdated }: UseStashEv
   });
 
   useEffect(() => {
+    if (!signature) return; // SSE requires a signature for ticket issuance
+
     let es: EventSource | null = null;
     let cancelled = false;
 
