@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, useLocation, useNavigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import { QueryClient, QueryClientProvider, useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import HomePage from './pages/HomePage';
 import StashAccessPage from './pages/StashAccessPage';
@@ -44,7 +44,7 @@ function AppContent() {
   const [whatsNewOpen, setWhatsNewOpen] = useState(false);
   const { hasUnseen, markSeen } = useChangelog();
   const queryClient = useQueryClient();
-  const navigate = useNavigate();
+
 
   function handleOpenWhatsNew() {
     setWhatsNewOpen(true);
