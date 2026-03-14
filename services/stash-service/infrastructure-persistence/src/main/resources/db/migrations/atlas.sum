@@ -1,4 +1,4 @@
-h1:WKzwyxL048wUgIHLHrFd961+u3VCqTYwYI9gyRRW8Zk=
+h1:/1e1Tcky/6xVEiCz9o/l+4/mJAlpJhatGCKAj+PzADs=
 1_create_stashes_table.sql h1:FnqKvUfR9C02MUZINXrh02hwzN/wSLzWnuWqO6dxt64=
 2_create_links_table.sql h1:e1nSMwKhwbnEv5Tt8XEnxOCECptkSmx/+MU56ZFAbmQ=
 3_create_search_indexes.sql h1:NzdsWysdUo/BIc0qYzyz7gwpENTZsyLUHdUrhiY5smw=
@@ -6,3 +6,4 @@ h1:WKzwyxL048wUgIHLHrFd961+u3VCqTYwYI9gyRRW8Zk=
 5_add_link_status.sql h1:bUzRV8AhYMsQBJOFXaS7sMjvY2B/Ft8adyOTlTYUfDY=
 6_add_password_to_stashes.sql h1:agCPcsgM3OUHjWea3PGmF4VKIzei+Mae5xl5pzJYjM0=
 7_create_accounts_tables.sql h1:8vcTwqtoN7dJ+13EMTyu/mBxd8eC9wxbNDsrNe03Cwo=
+8_add_stash_visibility.sql h1:iWkak2rENenNlLeD8bJ2jYBNytOKS4eIVOhvcQgqjg8=
