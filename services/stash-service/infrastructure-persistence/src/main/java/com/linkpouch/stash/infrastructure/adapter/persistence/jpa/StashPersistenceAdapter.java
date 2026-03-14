@@ -51,7 +51,7 @@ public class StashPersistenceAdapter implements StashRepository {
 
     @Override
     public Optional<Stash> findById(final UUID id) {
-        return jpaRepository.findById(id).map(stashMapper::mapIn);
+        return jpaRepository.findByIdWithLinks(id).map(stashMapper::mapIn);
     }
 
     @Override
