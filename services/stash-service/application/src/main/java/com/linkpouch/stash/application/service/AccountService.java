@@ -120,9 +120,8 @@ public class AccountService
             throw new ForbiddenException("Only the claiming account can change stash visibility");
         }
 
-        final Stash stash = stashRepository
-                .findById(command.stashId())
-                .orElseThrow(() -> new NotFoundException("Stash not found"));
+        final Stash stash =
+                stashRepository.findById(command.stashId()).orElseThrow(() -> new NotFoundException("Stash not found"));
 
         stash.setVisibility(command.visibility());
         stashRepository.save(stash);
@@ -135,8 +134,6 @@ public class AccountService
             throw new ForbiddenException("This pouch is not claimed by your account");
         }
 
-        return stashRepository
-                .findById(command.stashId())
-                .orElseThrow(() -> new NotFoundException("Stash not found"));
+        return stashRepository.findById(command.stashId()).orElseThrow(() -> new NotFoundException("Stash not found"));
     }
 }
