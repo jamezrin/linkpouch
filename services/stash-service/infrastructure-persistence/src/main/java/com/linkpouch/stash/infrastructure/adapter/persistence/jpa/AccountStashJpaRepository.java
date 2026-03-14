@@ -1,6 +1,7 @@
 package com.linkpouch.stash.infrastructure.adapter.persistence.jpa;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -18,4 +19,9 @@ public interface AccountStashJpaRepository extends JpaRepository<AccountStashJpa
     List<UUID> findStashIdsByAccountId(@Param("accountId") UUID accountId);
 
     boolean existsById(AccountStashId id);
+
+    boolean existsByIdStashId(UUID stashId);
+
+    @Query("SELECT a.id.accountId FROM AccountStashJpaEntity a WHERE a.id.stashId = :stashId")
+    Optional<UUID> findClaimerAccountId(@Param("stashId") UUID stashId);
 }

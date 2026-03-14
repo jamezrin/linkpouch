@@ -88,6 +88,16 @@ public class AccountPersistenceAdapter implements AccountRepository {
         return accountStashJpaRepository.existsById(new AccountStashId(accountId, stashId));
     }
 
+    @Override
+    public boolean isStashClaimedByAnyone(final UUID stashId) {
+        return accountStashJpaRepository.existsByIdStashId(stashId);
+    }
+
+    @Override
+    public Optional<UUID> findClaimerAccountId(final UUID stashId) {
+        return accountStashJpaRepository.findClaimerAccountId(stashId);
+    }
+
     private void syncProviders(final Account account, final AccountJpaEntity entity) {
         account.getProviders().forEach(domainProvider -> {
             final boolean alreadyPresent = entity.getProviders().stream()

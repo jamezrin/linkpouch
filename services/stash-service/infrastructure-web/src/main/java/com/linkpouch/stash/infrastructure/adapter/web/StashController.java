@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.linkpouch.stash.api.controller.StashesApi;
 import com.linkpouch.stash.api.model.*;
 import com.linkpouch.stash.domain.exception.NotFoundException;
+import com.linkpouch.stash.domain.exception.StashPrivateException;
 import com.linkpouch.stash.domain.exception.UnauthorizedException;
 import com.linkpouch.stash.domain.port.in.*;
 import com.linkpouch.stash.domain.service.StashAccessClaims;
@@ -66,6 +67,10 @@ public class StashController implements StashesApi {
 
         if (!signatureService.validateSignature(stashId, stash.getSecretKey().getValue(), xStashSignature)) {
             throw new UnauthorizedException("Invalid signature");
+        }
+
+        if (stash.isPrivate()) {
+            throw new StashPrivateException("This pouch is private. Sign in as the owner to access it.");
         }
 
         final String rawPassword = acquireAccessRequestDTO != null ? acquireAccessRequestDTO.getPassword() : null;

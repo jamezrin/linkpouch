@@ -13,6 +13,7 @@ import com.linkpouch.stash.api.model.ErrorResponseDTO;
 import com.linkpouch.stash.domain.exception.ForbiddenException;
 import com.linkpouch.stash.domain.exception.NotFoundException;
 import com.linkpouch.stash.domain.exception.PasswordRequiredException;
+import com.linkpouch.stash.domain.exception.StashPrivateException;
 import com.linkpouch.stash.domain.exception.UnauthorizedException;
 
 @RestControllerAdvice
@@ -42,6 +43,14 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponseDTO> handleUnauthorized(
             final UnauthorizedException ex, final HttpServletRequest request) {
         return buildResponse(HttpStatus.UNAUTHORIZED, ex.getMessage(), null, request.getRequestURI());
+    }
+
+    @ExceptionHandler(StashPrivateException.class)
+    public ResponseEntity<ErrorResponseDTO> handleStashPrivate(
+            final StashPrivateException ex, final HttpServletRequest request) {
+        return buildResponse(
+                HttpStatus.FORBIDDEN, ex.getMessage(),
+                StashPrivateException.ERROR_CODE, request.getRequestURI());
     }
 
     @ExceptionHandler(ForbiddenException.class)
