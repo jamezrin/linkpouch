@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useAccount } from '../contexts/account';
 import { accountApi } from '../services/accountApi';
 import { OAuthProviderName } from '../types/account';
+import StashesModal from './StashesModal';
 
 const PROVIDER_LABELS: Record<OAuthProviderName, string> = {
   github: 'GitHub',
@@ -23,6 +24,7 @@ export default function AccountDropdown() {
   const { accountToken, isSignedIn, clearAccountToken } = useAccount();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
+  const [stashesOpen, setStashesOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const { data: account } = useQuery({
@@ -68,6 +70,7 @@ export default function AccountDropdown() {
     .toUpperCase() || '?';
 
   return (
+    <>
     <div ref={containerRef} className="relative">
       <button
         onClick={() => setOpen((o) => !o)}
@@ -126,7 +129,7 @@ export default function AccountDropdown() {
             {/* Actions */}
             <div className="py-1">
               <button
-                onClick={() => { navigate('/stashes'); setOpen(false); }}
+                onClick={() => { setStashesOpen(true); setOpen(false); }}
                 className="flex items-center gap-2.5 w-full px-4 py-2 text-[13px] text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
               >
                 <svg className="w-4 h-4 text-slate-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -151,5 +154,8 @@ export default function AccountDropdown() {
         </>
       )}
     </div>
+
+    {stashesOpen && <StashesModal onClose={() => setStashesOpen(false)} />}
+    </>
   );
 }

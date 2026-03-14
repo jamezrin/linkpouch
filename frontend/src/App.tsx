@@ -4,7 +4,6 @@ import { QueryClient, QueryClientProvider, useQuery, useMutation, useQueryClient
 import HomePage from './pages/HomePage';
 import StashAccessPage from './pages/StashAccessPage';
 import AccountPage from './pages/AccountPage';
-import StashesPage from './pages/StashesPage';
 import ThemeToggle from './components/ThemeToggle';
 import AccountDropdown from './components/AccountDropdown';
 import { StashSearchContext } from './contexts/stashSearch';
@@ -366,7 +365,6 @@ function AppContent() {
             <Routes>
               <Route path="/" element={<HomePage />} />
               <Route path="/account" element={<AccountPage />} />
-              <Route path="/stashes" element={<StashesPage />} />
               <Route path="/s/:stashId/:signature" element={<StashAccessPage />} />
               <Route path="/s/:stashId" element={<StashAccessPage />} />
             </Routes>
