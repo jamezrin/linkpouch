@@ -557,9 +557,8 @@ export default function StashAccessPage() {
     setRemovePasswordConfirm(false);
   };
 
-  const handleVisibilityToggle = async () => {
-    if (!stashId || !accountToken || !stash) return;
-    const newVisibility = stash.visibility === 'PRIVATE' ? 'SHARED' : 'PRIVATE';
+  const handleVisibilityChange = async (newVisibility: 'PRIVATE' | 'SHARED') => {
+    if (!stashId || !accountToken || !stash || newVisibility === stash.visibility) return;
     setVisibilityPending(true);
     try {
       await accountApi.updateVisibility(accountToken, stashId, newVisibility);
@@ -2057,37 +2056,29 @@ export default function StashAccessPage() {
             {isStashClaimed && stash && (
               <section className="p-4">
                 <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-3">Visibility</h3>
-                <button
-                  onClick={handleVisibilityToggle}
-                  disabled={visibilityPending}
-                  className="flex items-center justify-between w-full text-left disabled:opacity-50"
-                >
-                  <div>
-                    <p className="text-[13px] font-medium text-slate-700 dark:text-slate-300">
-                      {stash.visibility === 'PRIVATE' ? 'Private' : 'Shared'}
-                    </p>
-                    <p className="text-[12px] text-slate-400 dark:text-slate-500 leading-snug mt-0.5">
-                      {stash.visibility === 'PRIVATE'
-                        ? 'Only you can access this pouch.'
-                        : 'Anyone with the URL can access this pouch.'}
-                    </p>
-                  </div>
-                  <div
-                    className={[
-                      'relative flex-shrink-0 w-10 h-6 rounded-full transition-colors ml-3',
-                      stash.visibility === 'PRIVATE'
-                        ? 'bg-indigo-600'
-                        : 'bg-slate-200 dark:bg-slate-700',
-                    ].join(' ')}
-                  >
-                    <div
+                <div className="flex rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden">
+                  {(['PRIVATE', 'SHARED'] as const).map((option, i) => (
+                    <button
+                      key={option}
+                      onClick={() => handleVisibilityChange(option)}
+                      disabled={visibilityPending}
                       className={[
-                        'absolute top-0.5 w-5 h-5 bg-white rounded-full shadow-sm transition-transform',
-                        stash.visibility === 'PRIVATE' ? 'translate-x-4' : 'translate-x-0.5',
+                        'flex-1 py-1.5 text-[12px] font-medium transition-colors disabled:opacity-50',
+                        i > 0 ? 'border-l border-slate-200 dark:border-slate-700' : '',
+                        stash.visibility === option
+                          ? 'bg-indigo-600 text-white'
+                          : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800',
                       ].join(' ')}
-                    />
-                  </div>
-                </button>
+                    >
+                      {option === 'PRIVATE' ? 'Private' : 'Shared'}
+                    </button>
+                  ))}
+                </div>
+                <p className="text-[12px] text-slate-400 dark:text-slate-500 leading-snug mt-2">
+                  {stash.visibility === 'PRIVATE'
+                    ? 'Only you can access this pouch.'
+                    : 'Anyone with the URL can access this pouch.'}
+                </p>
               </section>
             )}
 
