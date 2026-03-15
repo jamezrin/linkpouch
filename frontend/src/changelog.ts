@@ -4,9 +4,20 @@ export interface ChangelogEntry {
   items: string[];
 }
 
-export const LATEST_VERSION = 4;
+export const LATEST_VERSION = 5;
 
 export const changelog: ChangelogEntry[] = [
+  {
+    version: 5,
+    date: new Date('2026-03-15'),
+    items: [
+      'Regenerate your pouch URL — rotate the signed link to invalidate old shared links',
+      'Visitors using a stale link now see when the URL was last changed',
+      'Your pouches modal now supports search, sort, and infinite scroll pagination',
+      'Read-only visitor UX — cleaner experience when a pouch is in read-only mode',
+      'What\'s New moved to the homepage for easier discovery',
+    ],
+  },
   {
     version: 4,
     date: new Date('2026-03-12'),
