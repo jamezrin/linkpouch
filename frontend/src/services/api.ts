@@ -24,21 +24,14 @@ export const tokenStorageKey = (stashId: string) => `token:${stashId}`;
 /** Returns the sessionStorage key used to store the HMAC signature for a stash. */
 export const signatureStorageKey = (stashId: string) => `sig:${stashId}`;
 
+/** Returns the sessionStorage key used to store the isClaimer flag for a stash. */
+export const claimerStorageKey = (stashId: string) => `claimer:${stashId}`;
+
 /** Checks whether a stored JWT is still valid (not expired). */
 export function isTokenValid(token: string): boolean {
   try {
     const payload = JSON.parse(atob(token.split('.')[1]));
     return typeof payload.exp === 'number' && payload.exp > Date.now() / 1000;
-  } catch {
-    return false;
-  }
-}
-
-/** Reads the `claimer` boolean claim from a JWT without full validation. */
-export function isClaimerToken(token: string): boolean {
-  try {
-    const payload = JSON.parse(atob(token.split('.')[1]));
-    return payload.claimer === true;
   } catch {
     return false;
   }
