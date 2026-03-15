@@ -12,7 +12,7 @@
 FROM arigaio/atlas:latest AS atlas-bin
 
 # ── Stage 2: Runtime image ──────────────────────────────────────────────────
-FROM eclipse-temurin:21-jre-alpine
+FROM eclipse-temurin:21.0.10_7-jre-alpine
 
 WORKDIR /app
 
