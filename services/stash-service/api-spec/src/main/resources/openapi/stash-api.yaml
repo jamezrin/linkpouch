@@ -350,10 +350,6 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/AccountProviderResponse'
-        claimedStashes:
-          type: array
-          items:
-            $ref: '#/components/schemas/ClaimedStashSummaryResponse'
 
     ClaimStashRequest:
       type: object
