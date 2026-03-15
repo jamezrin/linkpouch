@@ -7,6 +7,10 @@ export interface StashSearchContextValue {
   setMobilePane: (pane: 'list' | 'preview') => void;
   stashSettingsOpen: boolean;
   setStashSettingsOpen: (open: boolean) => void;
+  canWrite: boolean;
+  setCanWrite: (v: boolean) => void;
+  isClaimerToken: boolean;
+  setIsClaimerToken: (v: boolean) => void;
 }
 
 export const StashSearchContext = createContext<StashSearchContextValue>({
@@ -16,6 +20,10 @@ export const StashSearchContext = createContext<StashSearchContextValue>({
   setMobilePane: () => {},
   stashSettingsOpen: false,
   setStashSettingsOpen: () => {},
+  canWrite: true,
+  setCanWrite: () => {},
+  isClaimerToken: false,
+  setIsClaimerToken: () => {},
 });
 
 export const useStashSearch = () => useContext(StashSearchContext);

@@ -1,11 +1,14 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMutation } from '@tanstack/react-query';
 import { stashApi } from '../services/api';
 import { useReveal } from '../hooks/useReveal';
 import { useStashHistory } from '../hooks/useStashHistory';
+import { useChangelog } from '../hooks/useChangelog';
 import { StashHistoryEntry } from '../types';
 import { PouchIcon } from '../components/PouchIcon';
+import WhatsNewModal from '../components/WhatsNewModal';
+import { LATEST_VERSION } from '../changelog';
 
 // ─── Typography helpers ────────────────────────────────────────────────────
 const DISPLAY: React.CSSProperties = { fontFamily: "'Syne', system-ui, sans-serif", fontWeight: 800 };
@@ -624,9 +627,18 @@ function CreateForm({
 
 export default function HomePage() {
   const [newStashName, setNewStashName] = useState('');
+  const [whatsNewOpen, setWhatsNewOpen] = useState(false);
   const navigate = useNavigate();
   const { history, removeEntry, clearHistory } = useStashHistory();
+  const { hasUnseen, markSeen } = useChangelog();
   const featuresRef = useReveal();
+
+  useEffect(() => {
+    if (hasUnseen) {
+      setWhatsNewOpen(true);
+      markSeen();
+    }
+  }, []);
   const stepsRef    = useReveal();
   const faqRef      = useReveal();
   const roadmapRef  = useReveal();
@@ -775,6 +787,17 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+
+      {/* ── What's New chip ───────────────────────────────────────────────── */}
+      <div className="flex justify-center py-4 bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800">
+        <button
+          onClick={() => setWhatsNewOpen(true)}
+          className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-indigo-200 dark:border-indigo-800 bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 text-sm font-medium hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-colors"
+        >
+          <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 dark:bg-indigo-400 animate-pulse" />
+          {`What's New in v${LATEST_VERSION}`}
+        </button>
+      </div>
 
       {/* ── Features ──────────────────────────────────────────────────────── */}
       <section className="py-24 px-6 bg-white dark:bg-slate-900">
@@ -1013,6 +1036,8 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+
+      {whatsNewOpen && <WhatsNewModal onClose={() => setWhatsNewOpen(false)} />}
     </div>
   );
 }

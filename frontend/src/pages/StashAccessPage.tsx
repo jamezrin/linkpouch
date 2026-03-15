@@ -360,7 +360,7 @@ export default function StashAccessPage() {
   const [activeLinkId, setActiveLinkId] = useState<string | null>(null);
   const [lastCheckedIndex, setLastCheckedIndex] = useState<number | null>(null);
   const [selectingAll, setSelectingAll] = useState(false);
-  const { searchQuery, setSearchQuery, mobilePane, setMobilePane } = useStashSearch();
+  const { searchQuery, setSearchQuery, mobilePane, setMobilePane, setCanWrite, setIsClaimerToken } = useStashSearch();
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [newLinkUrl, setNewLinkUrl] = useState('');
   const [urlError, setUrlError] = useState<string | null>(null);
@@ -674,6 +674,11 @@ export default function StashAccessPage() {
   });
 
   const canWrite = !stash || stash.linkPermissions === 'FULL' || isClaimerToken;
+
+  // Sync write access flags to the shared context so App.tsx can gate the header UI
+  useEffect(() => { setCanWrite(canWrite); }, [canWrite, setCanWrite]);
+  useEffect(() => { setIsClaimerToken(isClaimerToken); }, [isClaimerToken, setIsClaimerToken]);
+  useEffect(() => () => { setCanWrite(true); setIsClaimerToken(false); }, [setCanWrite, setIsClaimerToken]);
 
   const {
     data: linksData,
@@ -1473,9 +1478,9 @@ export default function StashAccessPage() {
                 <PouchIcon className="w-6 h-6 text-slate-400 dark:text-slate-600" strokeWidth={1.5} />
               </div>
               <p className="text-slate-400 dark:text-slate-500 text-sm">
-                {isSearching ? 'No links match your search' : 'No links yet — paste one below'}
+                {isSearching ? 'No links match your search' : canWrite ? 'No links yet — paste one below' : 'No links have been added yet'}
               </p>
-              {!isSearching && features.demoButton && stashId && accessToken && (
+              {!isSearching && canWrite && features.demoButton && stashId && accessToken && (
                 <p className="text-slate-400 dark:text-slate-500 text-sm mt-1">
                   Or <DemoButton stashId={stashId} accessToken={accessToken} variant="inline" />
                 </p>

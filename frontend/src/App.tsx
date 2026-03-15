@@ -12,8 +12,6 @@ import { AccountProvider } from './contexts/account';
 import { stashApi } from './services/api';
 import { useStashToken } from './hooks/useStashToken';
 import { useStashHistory } from './hooks/useStashHistory';
-import { useChangelog } from './hooks/useChangelog';
-import WhatsNewModal from './components/WhatsNewModal';
 import { PouchIcon } from './components/PouchIcon';
 
 const queryClient = new QueryClient();
@@ -40,15 +38,9 @@ function AppContent() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [mobilePane, setMobilePane] = useState<'list' | 'preview'>('list');
   const [stashSettingsOpen, setStashSettingsOpen] = useState(false);
-  const [whatsNewOpen, setWhatsNewOpen] = useState(false);
-  const { hasUnseen, markSeen } = useChangelog();
+  const [canWrite, setCanWrite] = useState(true);
+  const [isClaimerToken, setIsClaimerToken] = useState(false);
   const queryClient = useQueryClient();
-
-
-  function handleOpenWhatsNew() {
-    setWhatsNewOpen(true);
-    markSeen();
-  }
 
   const { token: accessToken } = useStashToken(stashId);
   const { recordEntry } = useStashHistory();
@@ -130,7 +122,7 @@ function AppContent() {
   };
 
   return (
-    <StashSearchContext.Provider value={{ searchQuery, setSearchQuery, mobilePane, setMobilePane, stashSettingsOpen, setStashSettingsOpen }}>
+    <StashSearchContext.Provider value={{ searchQuery, setSearchQuery, mobilePane, setMobilePane, stashSettingsOpen, setStashSettingsOpen, canWrite, setCanWrite, isClaimerToken, setIsClaimerToken }}>
       <div className={`flex flex-col ${isStashPage ? 'h-dvh overflow-hidden' : 'min-h-dvh'}`}>
         <header className={`h-14 flex-shrink-0 bg-white dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800 items-center px-6 gap-3 relative ${isStashPage && mobilePane === 'preview' ? 'hidden md:flex' : 'flex'}`}>
           {/* Logo / home link */}
@@ -159,9 +151,9 @@ function AppContent() {
               ) : (
                 <span
                   id="lp-stash-name"
-                  onClick={handleNameClick}
-                  className="text-[14px] font-medium text-slate-600 dark:text-slate-300 truncate max-w-[180px] flex-shrink-0 cursor-pointer hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
-                  title="Click to rename"
+                  onClick={canWrite ? handleNameClick : undefined}
+                  className={`text-[14px] font-medium text-slate-600 dark:text-slate-300 truncate max-w-[180px] flex-shrink-0 transition-colors${canWrite ? ' cursor-pointer hover:text-indigo-600 dark:hover:text-indigo-400' : ''}`}
+                  title={canWrite ? 'Click to rename' : undefined}
                 >
                   {stash?.name ?? '…'}
                 </span>
@@ -202,8 +194,8 @@ function AppContent() {
             </button>
           )}
 
-          {/* Settings button — desktop only, stash pages only */}
-          {isStashPage && signature && (
+          {/* Settings button — desktop only, stash pages only, hidden for read-only visitors */}
+          {isStashPage && signature && (canWrite || isClaimerToken) && (
             <button
               id="lp-settings-button"
               onClick={() => setStashSettingsOpen((o) => !o)}
@@ -222,23 +214,6 @@ function AppContent() {
               Settings
             </button>
           )}
-
-          {/* What's New button — desktop only */}
-          <div className="hidden md:block relative">
-            <button
-              onClick={handleOpenWhatsNew}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[13px] font-medium transition-colors text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white"
-              title="What's new"
-            >
-              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3l1.5 1.5M12 2v2m6.5.5L17 6M3 12H1m22 0h-2M5.636 18.364l-1.414 1.414M19.778 4.222l-1.414 1.414M12 6a6 6 0 100 12A6 6 0 0012 6z" />
-              </svg>
-              <span>What's New</span>
-            </button>
-            {hasUnseen && (
-              <span className="absolute top-1 right-1 w-2 h-2 bg-indigo-500 rounded-full pointer-events-none" />
-            )}
-          </div>
 
           {/* Theme toggle — desktop only */}
           <div className="hidden md:block">
@@ -302,8 +277,8 @@ function AppContent() {
                   </button>
                 )}
 
-                {/* Settings — mobile */}
-                {isStashPage && signature && (
+                {/* Settings — mobile, hidden for read-only visitors */}
+                {isStashPage && signature && (canWrite || isClaimerToken) && (
                   <button
                     onClick={() => { setStashSettingsOpen(true); setMobileMenuOpen(false); }}
                     className="flex items-center gap-2.5 px-2 py-1.5 rounded-lg text-[13px] font-medium transition-colors text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white w-full text-left"
@@ -316,23 +291,10 @@ function AppContent() {
                   </button>
                 )}
 
-                {/* Divider before theme if share is shown */}
+                {/* Divider before theme if stash actions are shown */}
                 {isStashPage && signature && (
                   <div className="border-t border-slate-100 dark:border-slate-800 -mx-3" />
                 )}
-
-                {/* What's New — mobile */}
-                <button
-                  onClick={() => { handleOpenWhatsNew(); setMobileMenuOpen(false); }}
-                  className="flex items-center gap-2.5 px-2 py-1.5 rounded-lg text-[13px] font-medium transition-colors text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white w-full text-left"
-                >
-                  <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3l1.5 1.5M12 2v2m6.5.5L17 6M3 12H1m22 0h-2M5.636 18.364l-1.414 1.414M19.778 4.222l-1.414 1.414M12 6a6 6 0 100 12A6 6 0 0012 6z" />
-                  </svg>
-                  <span>What's New</span>
-                  {hasUnseen && <span className="ml-auto w-2 h-2 bg-indigo-500 rounded-full" />}
-                </button>
-                <div className="border-t border-slate-100 dark:border-slate-800 -mx-3" />
 
                 {/* Theme */}
                 <div>
@@ -366,7 +328,6 @@ function AppContent() {
           )}
         </main>
       </div>
-      {whatsNewOpen && <WhatsNewModal onClose={() => setWhatsNewOpen(false)} />}
     </StashSearchContext.Provider>
   );
 }
