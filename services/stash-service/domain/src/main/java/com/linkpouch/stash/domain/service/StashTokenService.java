@@ -9,32 +9,19 @@ public interface StashTokenService {
 
     /**
      * Issues a signed JWT granting access to the given stash.
-     * If the stash is password-protected, a {@code pwdKey} claim is included so that
-     * the token is automatically invalidated when the password changes.
+     *
+     * @param stash        the stash being accessed
+     * @param isClaimer    true if the caller is the account that claimed this stash
+     * @param stashClaimed true if any account has claimed this stash (encoded so controllers
+     *                     can check write permissions without a per-request DB query)
      */
-    String issueToken(Stash stash);
-
-    /**
-     * Issues a claimer token — same as {@link #issueToken(Stash)} but with {@code claimer=true}.
-     * Only issued via the account-based endpoint when ownership is verified.
-     * Claimer tokens bypass write-permission and password-change restrictions.
-     */
-    String issueClaimerToken(Stash stash);
+    String issueToken(Stash stash, boolean isClaimer, boolean stashClaimed);
 
     /**
      * Parses and validates the JWT. Throws {@link com.linkpouch.stash.domain.exception.UnauthorizedException}
      * if invalid or expired.
-     * Does NOT check the pwdKey claim — that requires loading the stash and is done separately.
      */
     StashAccessClaims validateToken(String token, UUID expectedStashId);
-
-    /**
-     * Validates the {@code pwdKey} claim against the stash's current password hash.
-     * Must be called when the stash is password-protected.
-     * Throws {@link com.linkpouch.stash.domain.exception.UnauthorizedException} if the claim is
-     * missing or doesn't match — which happens when the password was changed after token issuance.
-     */
-    void validatePwdKey(StashAccessClaims claims, UUID stashId, String currentPasswordHash);
 
     /** Returns the configured token lifetime in seconds (used to populate {@code expiresIn} in responses). */
     int getExpirySeconds();

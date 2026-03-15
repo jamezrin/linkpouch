@@ -22,6 +22,7 @@ public interface StashEntityMapper {
     @Mapping(target = "createdAt", source = "createdAt")
     @Mapping(target = "updatedAt", source = "updatedAt")
     @Mapping(target = "signatureRefreshedAt", source = "signatureRefreshedAt")
+    @Mapping(target = "version", source = "version")
     @Mapping(target = "links", source = "links")
     Stash mapIn(StashJpaEntity entity);
 
@@ -34,6 +35,7 @@ public interface StashEntityMapper {
     @Mapping(target = "createdAt", source = "createdAt")
     @Mapping(target = "updatedAt", source = "updatedAt")
     @Mapping(target = "signatureRefreshedAt", source = "signatureRefreshedAt")
+    @Mapping(target = "version", source = "version")
     @Mapping(target = "links", ignore = true)
     StashJpaEntity mapOut(Stash stash);
 
@@ -46,6 +48,7 @@ public interface StashEntityMapper {
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", source = "updatedAt")
     @Mapping(target = "signatureRefreshedAt", source = "signatureRefreshedAt")
+    @Mapping(target = "version", source = "version")
     @Mapping(target = "links", ignore = true)
     void updateEntity(Stash stash, @MappingTarget StashJpaEntity entity);
 }

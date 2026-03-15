@@ -12,6 +12,9 @@ import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
 
+import com.linkpouch.stash.domain.exception.NotFoundException;
+import com.linkpouch.stash.domain.exception.TokenVersionMismatchException;
+import com.linkpouch.stash.domain.port.in.FindStashVersionQuery;
 import com.linkpouch.stash.domain.service.StashAccessClaims;
 import com.linkpouch.stash.domain.service.StashTokenService;
 
@@ -23,20 +26,18 @@ import lombok.RequiredArgsConstructor;
  * <p>Extracts the token from {@code Authorization: Bearer {jwt}} or the {@code ?token=} query
  * parameter (the latter supports {@code <img src>} use cases where request headers cannot be set).
  *
+ * <p>On success, validates the token's {@code version} claim against the current DB value.
+ * A mismatch returns {@code TOKEN_VERSION_MISMATCH (401)} — the client should re-acquire.
+ *
  * <p>On success, attaches the validated {@link StashAccessClaims} to the request attribute
- * {@value CLAIMS_ATTR} for use by controllers that need to check the {@code pwdKey} claim.
+ * {@value CLAIMS_ATTR} for use by controllers.
  *
  * <p>The following paths are skipped because they use signature-based auth instead:
  * <ul>
  *   <li>{@code POST /stashes} — no auth required (creates a new stash)</li>
  *   <li>{@code POST /stashes/{id}/access-token} — exchanges signature for a JWT</li>
- *   <li>{@code PUT /stashes/{id}/password} — signature + optional Bearer</li>
- *   <li>{@code DELETE /stashes/{id}/password} — signature + Bearer (handled in controller)</li>
  *   <li>{@code POST /stashes/{id}/sse-ticket} — (FUTURE: will be migrated; skip for now)</li>
  * </ul>
- *
- * <p>The {@code pwdKey} claim is NOT validated here — that requires loading the stash from DB
- * and is performed by the individual controllers after they load the stash.
  */
 @Component
 @RequiredArgsConstructor
@@ -48,6 +49,7 @@ public class StashJwtInterceptor implements HandlerInterceptor {
     private static final Pattern STASH_ID_PATTERN = Pattern.compile("^/(?:api/)?stashes/([0-9a-fA-F-]{36})(?:/|$)");
 
     private final StashTokenService tokenService;
+    private final FindStashVersionQuery findStashVersionQuery;
 
     @Override
     public boolean preHandle(
@@ -70,6 +72,15 @@ public class StashJwtInterceptor implements HandlerInterceptor {
 
         final String token = extractToken(request);
         final StashAccessClaims claims = tokenService.validateToken(token, stashId);
+
+        // Version check: ensure the token reflects the current access-control state
+        final int currentVersion = findStashVersionQuery
+                .execute(stashId)
+                .orElseThrow(() -> new NotFoundException("Stash not found: " + stashId));
+        if (claims.version() != currentVersion) {
+            throw new TokenVersionMismatchException();
+        }
+
         request.setAttribute(CLAIMS_ATTR, claims);
         return true;
     }
@@ -81,14 +92,6 @@ public class StashJwtInterceptor implements HandlerInterceptor {
         }
         // POST /stashes/{id}/access-token — acquire JWT
         if ("POST".equals(method) && path.matches("^/(?:api/)?stashes/[^/]+/access-token$")) {
-            return true;
-        }
-        // PUT /stashes/{id}/password — set/change password
-        if ("PUT".equals(method) && path.matches("^/(?:api/)?stashes/[^/]+/password$")) {
-            return true;
-        }
-        // DELETE /stashes/{id}/password — remove password (controller does its own JWT check)
-        if ("DELETE".equals(method) && path.matches("^/(?:api/)?stashes/[^/]+/password$")) {
             return true;
         }
         // POST /stashes/{id}/sse-ticket — signature-based, migrated separately

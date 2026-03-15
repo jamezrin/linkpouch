@@ -51,6 +51,7 @@ components:
       required:
         - accessToken
         - expiresIn
+        - isClaimer
       properties:
         accessToken:
           type: string
@@ -58,6 +59,9 @@ components:
         expiresIn:
           type: integer
           description: Token lifetime in seconds
+        isClaimer:
+          type: boolean
+          description: True if the token was issued to the account that claimed this stash
 
     SetPasswordRequest:
       type: object
@@ -454,16 +458,21 @@ paths:
           format: uuid
       - name: X-Stash-Signature
         in: header
-        required: true
+        required: false
         schema:
           type: string
-        description: HMAC-SHA256 signature proving ownership of this stash
+        description: >
+          HMAC-SHA256 signature proving URL access. Required for non-private stashes.
+          Omit when using an account JWT to access a private stash as the claimer.
     post:
       summary: Acquire a short-lived access token for this stash
       description: >
-        Exchanges the permanent stash signature for a short-lived JWT.
-        If the stash is password-protected, the password must be provided in the request body.
+        Unified token acquisition endpoint. Accepts three optional credentials:
+        X-Stash-Signature (required for non-private stashes), Authorization: Bearer <accountJwt>
+        (optional; used to detect claimer and grant access to private stashes), and password in the
+        request body (required when the stash is password-protected).
         Returns 401 with errorCode PASSWORD_REQUIRED when the password is missing.
+        Returns 401 with errorCode TOKEN_VERSION_MISMATCH when an existing token is stale.
       operationId: acquireAccessToken
       tags:
         - Stashes
@@ -482,6 +491,12 @@ paths:
                 $ref: '#/components/schemas/AccessTokenResponse'
         '401':
           description: Invalid signature, wrong password, or missing password (errorCode PASSWORD_REQUIRED)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Stash is private and caller is not the claimer (errorCode STASH_PRIVATE)
           content:
             application/json:
               schema:
@@ -1405,47 +1420,6 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
         '403':
           description: Only the claiming account can change link permissions
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '404':
-          description: Stash not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-
-  /account/stashes/{stashId}/access-token:
-    parameters:
-      - name: stashId
-        in: path
-        required: true
-        schema:
-          type: string
-          format: uuid
-    post:
-      summary: Acquire a stash access token as the claimer (no signature needed)
-      operationId: acquireClaimedStashAccess
-      tags:
-        - Account
-      security:
-        - bearerAuth: []
-      responses:
-        '200':
-          description: Access token issued
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AccessTokenResponse'
-        '401':
-          description: Invalid or missing account token
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '403':
-          description: Stash not claimed by this account
           content:
             application/json:
               schema:

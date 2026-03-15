@@ -95,6 +95,14 @@ services:
       S3_BUCKET: linkpouch-screenshots
       BASE_URL: http://localhost:8080
       INDEXER_CALLBACK_SECRET: local-dev-indexer-secret
+      GITHUB_CLIENT_ID: local-dev-placeholder
+      GITHUB_CLIENT_SECRET: local-dev-placeholder
+      GOOGLE_CLIENT_ID: local-dev-placeholder
+      GOOGLE_CLIENT_SECRET: local-dev-placeholder
+      DISCORD_CLIENT_ID: local-dev-placeholder
+      DISCORD_CLIENT_SECRET: local-dev-placeholder
+      TWITTER_CLIENT_ID: local-dev-placeholder
+      TWITTER_CLIENT_SECRET: local-dev-placeholder
     depends_on:
       postgres:
         condition: service_healthy

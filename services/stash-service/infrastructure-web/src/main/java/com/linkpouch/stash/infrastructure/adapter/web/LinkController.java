@@ -15,7 +15,6 @@ import com.linkpouch.stash.api.controller.LinksApi;
 import com.linkpouch.stash.api.model.*;
 import com.linkpouch.stash.domain.exception.ForbiddenException;
 import com.linkpouch.stash.domain.exception.NotFoundException;
-import com.linkpouch.stash.domain.exception.StashPrivateException;
 import com.linkpouch.stash.domain.exception.UnauthorizedException;
 import com.linkpouch.stash.domain.model.Link;
 import com.linkpouch.stash.domain.model.LinkStatus;
@@ -38,9 +37,7 @@ import com.linkpouch.stash.domain.port.in.UpdateLinkMetadataCommand;
 import com.linkpouch.stash.domain.port.in.UpdateLinkMetadataUseCase;
 import com.linkpouch.stash.domain.port.in.UpdateLinkScreenshotUseCase;
 import com.linkpouch.stash.domain.port.in.UpdateLinkStatusUseCase;
-import com.linkpouch.stash.domain.port.outbound.AccountRepository;
 import com.linkpouch.stash.domain.service.StashAccessClaims;
-import com.linkpouch.stash.domain.service.StashTokenService;
 import com.linkpouch.stash.infrastructure.adapter.web.mapper.ApiDtoMapper;
 
 import lombok.RequiredArgsConstructor;
@@ -62,8 +59,6 @@ public class LinkController implements LinksApi {
     private final FindLinkByIdQuery findLinkByIdQuery;
     private final ListLinksQuery listLinksQuery;
     private final FindStashByIdQuery findStashByIdQuery;
-    private final AccountRepository accountRepository;
-    private final StashTokenService tokenService;
     private final ApiDtoMapper mapper;
     private final HttpServletRequest httpRequest;
 
@@ -80,9 +75,7 @@ public class LinkController implements LinksApi {
                 .execute(stashId)
                 .orElseThrow(() -> new NotFoundException("Stash not found: " + stashId));
 
-        requirePrivacyAccess(stash);
-        validatePwdKeyIfProtected(stashId, stash.getPasswordHash(), stash.isPasswordProtected());
-        requireWriteAccess(stashId, stash);
+        requireWriteAccess(stash);
 
         final var result =
                 addLinksBatchUseCase.execute(new AddLinksBatchCommand(stashId, addLinksBatchRequestDTO.getUrls()));
@@ -109,9 +102,7 @@ public class LinkController implements LinksApi {
                 .execute(stashId)
                 .orElseThrow(() -> new NotFoundException("Stash not found: " + stashId));
 
-        requirePrivacyAccess(stash);
-        validatePwdKeyIfProtected(stashId, stash.getPasswordHash(), stash.isPasswordProtected());
-        requireWriteAccess(stashId, stash);
+        requireWriteAccess(stash);
 
         final String url =
                 addLinkRequestDTO.getUrl() != null ? addLinkRequestDTO.getUrl().toString() : null;
@@ -125,9 +116,7 @@ public class LinkController implements LinksApi {
                 .execute(stashId)
                 .orElseThrow(() -> new NotFoundException("Stash not found: " + stashId));
 
-        requirePrivacyAccess(stash);
-        validatePwdKeyIfProtected(stashId, stash.getPasswordHash(), stash.isPasswordProtected());
-        requireWriteAccess(stashId, stash);
+        requireWriteAccess(stash);
 
         final var link =
                 findLinkByIdQuery.execute(linkId).orElseThrow(() -> new NotFoundException("Link not found: " + linkId));
@@ -143,13 +132,6 @@ public class LinkController implements LinksApi {
     @Override
     public ResponseEntity<PagedLinkResponseDTO> listLinks(
             final UUID stashId, final String search, final Integer page, final Integer size) {
-        final var stash = findStashByIdQuery
-                .execute(stashId)
-                .orElseThrow(() -> new NotFoundException("Stash not found: " + stashId));
-
-        requirePrivacyAccess(stash);
-        validatePwdKeyIfProtected(stashId, stash.getPasswordHash(), stash.isPasswordProtected());
-
         final var pagedResult = listLinksQuery.execute(stashId, search, page, size);
 
         final PagedLinkResponseDTO response = new PagedLinkResponseDTO();
@@ -168,9 +150,7 @@ public class LinkController implements LinksApi {
                 .execute(stashId)
                 .orElseThrow(() -> new NotFoundException("Stash not found: " + stashId));
 
-        requirePrivacyAccess(stash);
-        validatePwdKeyIfProtected(stashId, stash.getPasswordHash(), stash.isPasswordProtected());
-        requireWriteAccess(stashId, stash);
+        requireWriteAccess(stash);
 
         final var link =
                 findLinkByIdQuery.execute(linkId).orElseThrow(() -> new NotFoundException("Link not found: " + linkId));
@@ -190,9 +170,7 @@ public class LinkController implements LinksApi {
                 .execute(stashId)
                 .orElseThrow(() -> new NotFoundException("Stash not found: " + stashId));
 
-        requirePrivacyAccess(stash);
-        validatePwdKeyIfProtected(stashId, stash.getPasswordHash(), stash.isPasswordProtected());
-        requireWriteAccess(stashId, stash);
+        requireWriteAccess(stash);
 
         deleteLinksBatchUseCase.execute(
                 new DeleteLinksBatchCommand(stashId, List.copyOf(deleteLinksBatchRequestDTO.getLinkIds())));
@@ -206,9 +184,7 @@ public class LinkController implements LinksApi {
                 .execute(stashId)
                 .orElseThrow(() -> new NotFoundException("Stash not found: " + stashId));
 
-        requirePrivacyAccess(stash);
-        validatePwdKeyIfProtected(stashId, stash.getPasswordHash(), stash.isPasswordProtected());
-        requireWriteAccess(stashId, stash);
+        requireWriteAccess(stash);
 
         putBatchLinkScreenshotUseCase.execute(stashId, List.copyOf(putBatchLinkScreenshotRequestDTO.getLinkIds()));
         return ResponseEntity.accepted().build();
@@ -262,9 +238,7 @@ public class LinkController implements LinksApi {
                 .execute(stashId)
                 .orElseThrow(() -> new NotFoundException("Stash not found: " + stashId));
 
-        requirePrivacyAccess(stash);
-        validatePwdKeyIfProtected(stashId, stash.getPasswordHash(), stash.isPasswordProtected());
-        requireWriteAccess(stashId, stash);
+        requireWriteAccess(stash);
 
         final var insertAfterIdNullable = reorderLinksRequestDTO.getInsertAfterId();
         final UUID insertAfterId =
@@ -274,32 +248,20 @@ public class LinkController implements LinksApi {
         return ResponseEntity.noContent().build();
     }
 
-    private void requirePrivacyAccess(final Stash stash) {
-        if (!stash.isPrivate()) return;
-        if (isClaimer()) return;
-        throw new StashPrivateException("This pouch is private. Sign in as the owner to access it.");
-    }
-
-    private void requireWriteAccess(final UUID stashId, final Stash stash) {
+    private void requireWriteAccess(final Stash stash) {
         if (!stash.isReadOnly()) return;
-        if (!accountRepository.isStashClaimedByAnyone(stashId)) return;
-        if (isClaimer()) return;
+        final StashAccessClaims claims = getRequiredClaims();
+        if (!claims.stashClaimed()) return; // unclaimed → anyone can write
+        if (claims.claimer()) return;
         throw new ForbiddenException("This pouch is read-only");
     }
 
-    private boolean isClaimer() {
-        final Object claimsAttr = httpRequest.getAttribute(StashJwtInterceptor.CLAIMS_ATTR);
-        return claimsAttr instanceof StashAccessClaims claims && claims.claimer();
-    }
-
-    private void validatePwdKeyIfProtected(
-            final UUID stashId, final String passwordHash, final boolean isPasswordProtected) {
-        if (!isPasswordProtected) return;
-        final Object claimsAttr = httpRequest.getAttribute(StashJwtInterceptor.CLAIMS_ATTR);
-        if (!(claimsAttr instanceof StashAccessClaims claims)) {
+    private StashAccessClaims getRequiredClaims() {
+        final Object claims = httpRequest.getAttribute(StashJwtInterceptor.CLAIMS_ATTR);
+        if (!(claims instanceof StashAccessClaims)) {
             throw new UnauthorizedException("Access token is missing");
         }
-        tokenService.validatePwdKey(claims, stashId, passwordHash);
+        return (StashAccessClaims) claims;
     }
 
     private LinkResponseDTO toResponse(final Link link) {

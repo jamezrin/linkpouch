@@ -47,6 +47,7 @@ export interface AddLinkRequest {
 export interface AccessTokenResponse {
   accessToken: string;
   expiresIn: number;
+  isClaimer: boolean;
 }
 
 export interface WaybackMonthSummary {

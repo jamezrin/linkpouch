@@ -40,12 +40,21 @@ export const stashApi = {
   createStash: (data: CreateStashRequest) =>
     api.post<Stash>('/stashes', data),
 
-  /** Exchanges the stash signature (+ optional password) for a short-lived JWT. */
-  acquireAccessToken: (stashId: string, signature: string, password?: string) =>
+  /** Exchanges credentials for a short-lived JWT.
+   *  @param signature   HMAC signature (required for non-private stashes; null for private stash claimer access)
+   *  @param password    optional password (required when the stash is password-protected)
+   *  @param accountJwt  optional account JWT; if present and the account is the claimer, isClaimer=true is returned
+   */
+  acquireAccessToken: (stashId: string, signature: string | null, password?: string, accountJwt?: string) =>
     api.post<AccessTokenResponse>(
       `/stashes/${stashId}/access-token`,
       password ? { password } : {},
-      { headers: { 'X-Stash-Signature': signature } },
+      {
+        headers: {
+          ...(signature ? { 'X-Stash-Signature': signature } : {}),
+          ...(accountJwt ? { Authorization: `Bearer ${accountJwt}` } : {}),
+        },
+      },
     ),
 
   getStash: (id: string, accessToken: string) =>

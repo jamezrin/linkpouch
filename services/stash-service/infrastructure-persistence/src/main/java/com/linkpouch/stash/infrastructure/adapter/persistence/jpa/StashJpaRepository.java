@@ -15,4 +15,7 @@ public interface StashJpaRepository extends JpaRepository<StashJpaEntity, UUID> 
 
     @Query("SELECT s FROM StashJpaEntity s LEFT JOIN FETCH s.links WHERE s.id = :id")
     Optional<StashJpaEntity> findByIdWithLinks(@Param("id") UUID id);
+
+    @Query("SELECT s.version FROM StashJpaEntity s WHERE s.id = :id")
+    Optional<Integer> findVersionById(@Param("id") UUID id);
 }
