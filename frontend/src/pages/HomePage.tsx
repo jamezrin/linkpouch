@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMutation } from '@tanstack/react-query';
 import { stashApi } from '../services/api';
+import { useAccount } from '../contexts/account';
 import { useReveal } from '../hooks/useReveal';
 import { useStashHistory } from '../hooks/useStashHistory';
 import { useChangelog } from '../hooks/useChangelog';
@@ -527,6 +528,7 @@ export default function HomePage() {
   const [newStashName, setNewStashName] = useState('');
   const [whatsNewOpen, setWhatsNewOpen] = useState(false);
   const navigate = useNavigate();
+  const { accountToken } = useAccount();
   const { history, removeEntry, clearHistory } = useStashHistory();
   const { hasUnseen, markSeen } = useChangelog();
   const featuresRef = useReveal();
@@ -542,7 +544,7 @@ export default function HomePage() {
   const roadmapRef  = useReveal();
 
   const createMutation = useMutation({
-    mutationFn: (name: string) => stashApi.createStash({ name }),
+    mutationFn: (name: string) => stashApi.createStash({ name }, accountToken),
     onSuccess: (response) => {
       const signedUrl = response.data.signedUrl;
       if (signedUrl) {
