@@ -105,9 +105,12 @@ export const stashApi = {
     }),
 
   /** Regenerates the stash signature, invalidating all old shared URLs. Returns the stash with new signedUrl. */
-  regenerateSignature: (stashId: string, signature: string) =>
+  regenerateSignature: (stashId: string, signature: string, accessToken: string) =>
     api.post<Stash>(`/stashes/${stashId}/regenerate-signature`, null, {
-      headers: { 'X-Stash-Signature': signature },
+      headers: {
+        'X-Stash-Signature': signature,
+        ...bearerHeader(accessToken),
+      },
     }),
 };
 
