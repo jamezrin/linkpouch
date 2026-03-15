@@ -25,7 +25,12 @@ export const accountApi = {
       headers: bearerHeader(token),
     }),
 
-  /** Acquires a stash access token using the account JWT (no signature required). */
+  updateLinkPermissions: (token: string, stashId: string, permissions: 'FULL' | 'READ_ONLY') =>
+    api.put<void>(`/account/stashes/${stashId}/link-permissions`, { permissions }, {
+      headers: bearerHeader(token),
+    }),
+
+  /** Acquires a claimer stash access token using the account JWT (no signature required). */
   acquireStashAccess: (token: string, stashId: string) =>
     api.post<AccessTokenResponse>(`/account/stashes/${stashId}/access-token`, null, {
       headers: bearerHeader(token),

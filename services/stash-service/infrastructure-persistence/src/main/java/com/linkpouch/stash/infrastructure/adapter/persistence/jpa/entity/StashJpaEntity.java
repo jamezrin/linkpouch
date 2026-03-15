@@ -36,6 +36,9 @@ public class StashJpaEntity {
     @Column(name = "visibility", nullable = false)
     private String visibility = "SHARED";
 
+    @Column(name = "link_permissions", nullable = false)
+    private String linkPermissions = "FULL";
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;

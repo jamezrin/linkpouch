@@ -24,6 +24,7 @@ public class Stash {
     private SecretKey secretKey;
     private String passwordHash;
     private StashVisibility visibility;
+    private StashLinkPermissions linkPermissions;
     private final Set<Link> links;
 
     public Stash(
@@ -34,6 +35,7 @@ public class Stash {
             final SecretKey secretKey,
             final String passwordHash,
             final StashVisibility visibility,
+            final StashLinkPermissions linkPermissions,
             final Set<Link> links) {
         this.id = id != null ? id : UUID.randomUUID();
         this.createdAt = createdAt != null ? createdAt : LocalDateTime.now(ZoneOffset.UTC);
@@ -42,11 +44,14 @@ public class Stash {
         this.secretKey = secretKey != null ? secretKey : SecretKey.generate();
         this.passwordHash = passwordHash;
         this.visibility = visibility != null ? visibility : StashVisibility.SHARED;
+        this.linkPermissions = linkPermissions != null ? linkPermissions : StashLinkPermissions.FULL;
         this.links = links != null ? new HashSet<>(links) : new HashSet<>();
     }
 
     public static Stash create(final String name) {
-        return new Stash(null, null, null, StashName.of(name), null, null, StashVisibility.SHARED, null);
+        return new Stash(
+                null, null, null, StashName.of(name), null, null,
+                StashVisibility.SHARED, StashLinkPermissions.FULL, null);
     }
 
     public boolean isPasswordProtected() {
@@ -75,6 +80,15 @@ public class Stash {
     public void setVisibility(final StashVisibility visibility) {
         this.visibility = visibility != null ? visibility : StashVisibility.SHARED;
         this.updatedAt = LocalDateTime.now(ZoneOffset.UTC);
+    }
+
+    public void setLinkPermissions(final StashLinkPermissions linkPermissions) {
+        this.linkPermissions = linkPermissions != null ? linkPermissions : StashLinkPermissions.FULL;
+        this.updatedAt = LocalDateTime.now(ZoneOffset.UTC);
+    }
+
+    public boolean isReadOnly() {
+        return linkPermissions == StashLinkPermissions.READ_ONLY;
     }
 
     public void addLink(final Link link) {

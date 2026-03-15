@@ -15,6 +15,13 @@ public interface StashTokenService {
     String issueToken(Stash stash);
 
     /**
+     * Issues a claimer token — same as {@link #issueToken(Stash)} but with {@code claimer=true}.
+     * Only issued via the account-based endpoint when ownership is verified.
+     * Claimer tokens bypass write-permission and password-change restrictions.
+     */
+    String issueClaimerToken(Stash stash);
+
+    /**
      * Parses and validates the JWT. Throws {@link com.linkpouch.stash.domain.exception.UnauthorizedException}
      * if invalid or expired.
      * Does NOT check the pwdKey claim — that requires loading the stash and is done separately.

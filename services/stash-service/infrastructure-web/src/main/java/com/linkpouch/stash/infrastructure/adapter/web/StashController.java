@@ -12,10 +12,13 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.linkpouch.stash.api.controller.StashesApi;
 import com.linkpouch.stash.api.model.*;
+import com.linkpouch.stash.domain.exception.ForbiddenException;
 import com.linkpouch.stash.domain.exception.NotFoundException;
 import com.linkpouch.stash.domain.exception.StashPrivateException;
 import com.linkpouch.stash.domain.exception.UnauthorizedException;
+import com.linkpouch.stash.domain.model.Stash;
 import com.linkpouch.stash.domain.port.in.*;
+import com.linkpouch.stash.domain.port.outbound.AccountRepository;
 import com.linkpouch.stash.domain.service.StashAccessClaims;
 import com.linkpouch.stash.domain.service.StashSignatureService;
 import com.linkpouch.stash.domain.service.StashTokenService;
@@ -36,6 +39,7 @@ public class StashController implements StashesApi {
     private final AcquireStashAccessUseCase acquireStashAccessUseCase;
     private final SetStashPasswordUseCase setStashPasswordUseCase;
     private final RemoveStashPasswordUseCase removeStashPasswordUseCase;
+    private final AccountRepository accountRepository;
     private final StashSignatureService signatureService;
     private final StashTokenService tokenService;
     private final ApiDtoMapper mapper;
@@ -109,6 +113,8 @@ public class StashController implements StashesApi {
             tokenService.validatePwdKey(claims, stashId, stash.getPasswordHash());
         }
 
+        requireWriteAccess(stashId, stash);
+
         final var updatedStash = updateStashNameUseCase.execute(stashId, updateStashRequestDTO.getName());
         return ResponseEntity.ok(mapper.mapOut(updatedStash));
     }
@@ -123,6 +129,8 @@ public class StashController implements StashesApi {
             final StashAccessClaims claims = getRequiredClaims();
             tokenService.validatePwdKey(claims, stashId, stash.getPasswordHash());
         }
+
+        requireClaimerOrUnclaimed(stashId);
 
         deleteStashUseCase.execute(stashId);
         return ResponseEntity.noContent().build();
@@ -140,8 +148,10 @@ public class StashController implements StashesApi {
             throw new UnauthorizedException("Invalid signature");
         }
 
-        // If the stash already has a password, the caller must prove knowledge of it via JWT
-        if (stash.isPasswordProtected()) {
+        requireClaimerOrUnclaimed(stashId);
+
+        // For unclaimed+password-protected stashes: caller must prove knowledge of current password
+        if (stash.isPasswordProtected() && !accountRepository.isStashClaimedByAnyone(stashId)) {
             final String token = extractBearerToken();
             final StashAccessClaims claims = tokenService.validateToken(token, stashId);
             tokenService.validatePwdKey(claims, stashId, stash.getPasswordHash());
@@ -163,13 +173,43 @@ public class StashController implements StashesApi {
             throw new UnauthorizedException("Invalid signature");
         }
 
-        // Must prove knowledge of the current password via JWT
-        final String token = extractBearerToken();
-        final StashAccessClaims claims = tokenService.validateToken(token, stashId);
-        tokenService.validatePwdKey(claims, stashId, stash.getPasswordHash());
+        requireClaimerOrUnclaimed(stashId);
+
+        // For unclaimed stashes: prove knowledge of the current password via JWT
+        if (!accountRepository.isStashClaimedByAnyone(stashId)) {
+            final String token = extractBearerToken();
+            final StashAccessClaims claims = tokenService.validateToken(token, stashId);
+            tokenService.validatePwdKey(claims, stashId, stash.getPasswordHash());
+        }
 
         removeStashPasswordUseCase.execute(new RemoveStashPasswordCommand(stashId));
         return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * Enforces link-permission-based write access: blocked when the stash is claimed and
+     * linkPermissions is READ_ONLY and the caller is not the claimer.
+     */
+    private void requireWriteAccess(final UUID stashId, final Stash stash) {
+        if (!stash.isReadOnly()) return;
+        if (!accountRepository.isStashClaimedByAnyone(stashId)) return;
+        if (isClaimer()) return;
+        throw new ForbiddenException("This pouch is read-only");
+    }
+
+    /**
+     * Enforces that only the claimer (or nobody, if unclaimed) may perform an action.
+     * Used for operations that are always owner-only when a stash is claimed (delete, password).
+     */
+    private void requireClaimerOrUnclaimed(final UUID stashId) {
+        if (!accountRepository.isStashClaimedByAnyone(stashId)) return;
+        if (isClaimer()) return;
+        throw new ForbiddenException("Only the owner can perform this action");
+    }
+
+    private boolean isClaimer() {
+        final Object claimsAttr = httpRequest.getAttribute(StashJwtInterceptor.CLAIMS_ATTR);
+        return claimsAttr instanceof StashAccessClaims claims && claims.claimer();
     }
 
     /** Returns the JWT claims placed by the interceptor. Throws if missing (should not happen). */

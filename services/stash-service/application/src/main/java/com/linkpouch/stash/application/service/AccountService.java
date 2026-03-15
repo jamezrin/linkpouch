@@ -20,6 +20,8 @@ import com.linkpouch.stash.domain.port.in.ClaimStashCommand;
 import com.linkpouch.stash.domain.port.in.ClaimStashUseCase;
 import com.linkpouch.stash.domain.port.in.DisownStashCommand;
 import com.linkpouch.stash.domain.port.in.DisownStashUseCase;
+import com.linkpouch.stash.domain.port.in.UpdateStashLinkPermissionsCommand;
+import com.linkpouch.stash.domain.port.in.UpdateStashLinkPermissionsUseCase;
 import com.linkpouch.stash.domain.port.in.UpdateStashVisibilityCommand;
 import com.linkpouch.stash.domain.port.in.UpdateStashVisibilityUseCase;
 import com.linkpouch.stash.domain.port.in.UpsertAccountCommand;
@@ -42,6 +44,7 @@ public class AccountService
                 ClaimStashUseCase,
                 DisownStashUseCase,
                 UpdateStashVisibilityUseCase,
+                UpdateStashLinkPermissionsUseCase,
                 AcquireClaimedStashAccessUseCase {
 
     private final AccountRepository accountRepository;
@@ -124,6 +127,19 @@ public class AccountService
                 stashRepository.findById(command.stashId()).orElseThrow(() -> new NotFoundException("Stash not found"));
 
         stash.setVisibility(command.visibility());
+        stashRepository.save(stash);
+    }
+
+    @Override
+    @Transactional
+    public void execute(final UpdateStashLinkPermissionsCommand command) {
+        if (!accountRepository.isStashClaimed(command.accountId(), command.stashId())) {
+            throw new ForbiddenException("Only the claiming account can change link permissions");
+        }
+
+        final Stash stash =
+                stashRepository.findById(command.stashId()).orElseThrow(() -> new NotFoundException("Stash not found"));
+        stash.setLinkPermissions(command.permissions());
         stashRepository.save(stash);
     }
 
