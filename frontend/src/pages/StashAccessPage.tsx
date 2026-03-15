@@ -2017,7 +2017,7 @@ export default function StashAccessPage() {
           <div className="flex-1 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800">
 
             {/* ── Password ─────────────────────────────────────────────── */}
-            {isStashClaimed && <section className="p-4">
+            {(isClaimerToken || !isStashClaimed) && signature && <section className="p-4">
               <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-1">Password</h3>
 
               {stash?.passwordProtected ? (
