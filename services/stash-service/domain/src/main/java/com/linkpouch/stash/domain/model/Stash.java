@@ -25,6 +25,7 @@ public class Stash {
     private String passwordHash;
     private StashVisibility visibility;
     private StashLinkPermissions linkPermissions;
+    private LocalDateTime signatureRefreshedAt;
     private final Set<Link> links;
 
     public Stash(
@@ -36,6 +37,7 @@ public class Stash {
             final String passwordHash,
             final StashVisibility visibility,
             final StashLinkPermissions linkPermissions,
+            final LocalDateTime signatureRefreshedAt,
             final Set<Link> links) {
         this.id = id != null ? id : UUID.randomUUID();
         this.createdAt = createdAt != null ? createdAt : LocalDateTime.now(ZoneOffset.UTC);
@@ -45,6 +47,7 @@ public class Stash {
         this.passwordHash = passwordHash;
         this.visibility = visibility != null ? visibility : StashVisibility.SHARED;
         this.linkPermissions = linkPermissions != null ? linkPermissions : StashLinkPermissions.FULL;
+        this.signatureRefreshedAt = signatureRefreshedAt;
         this.links = links != null ? new HashSet<>(links) : new HashSet<>();
     }
 
@@ -58,7 +61,18 @@ public class Stash {
                 null,
                 StashVisibility.SHARED,
                 StashLinkPermissions.FULL,
+                null,
                 null);
+    }
+
+    public void regenerateSignature() {
+        this.secretKey = SecretKey.generate();
+        this.signatureRefreshedAt = LocalDateTime.now(ZoneOffset.UTC);
+        this.updatedAt = LocalDateTime.now(ZoneOffset.UTC);
+    }
+
+    public LocalDateTime getSignatureRefreshedAt() {
+        return signatureRefreshedAt;
     }
 
     public boolean isPasswordProtected() {

@@ -20,6 +20,8 @@ import com.linkpouch.stash.domain.port.in.ClaimStashUseCase;
 import com.linkpouch.stash.domain.port.in.DisownStashCommand;
 import com.linkpouch.stash.domain.port.in.DisownStashUseCase;
 import com.linkpouch.stash.domain.port.in.GetAccountQuery;
+import com.linkpouch.stash.domain.port.in.ListClaimedStashesCommand;
+import com.linkpouch.stash.domain.port.in.ListClaimedStashesQuery;
 import com.linkpouch.stash.domain.port.in.UpdateStashLinkPermissionsCommand;
 import com.linkpouch.stash.domain.port.in.UpdateStashLinkPermissionsUseCase;
 import com.linkpouch.stash.domain.port.in.UpdateStashVisibilityCommand;
@@ -42,6 +44,7 @@ public class AccountController {
     private final UpdateStashVisibilityUseCase updateStashVisibilityUseCase;
     private final UpdateStashLinkPermissionsUseCase updateStashLinkPermissionsUseCase;
     private final AcquireClaimedStashAccessUseCase acquireClaimedStashAccessUseCase;
+    private final ListClaimedStashesQuery listClaimedStashesQuery;
     private final AccountRepository accountRepository;
     private final StashRepository stashRepository;
     private final StashTokenService stashTokenService;
@@ -82,6 +85,33 @@ public class AccountController {
                 providers,
                 "claimedStashes",
                 claimedStashes));
+    }
+
+    @GetMapping("/stashes")
+    public ResponseEntity<Map<String, Object>> listStashes(
+            @RequestParam(defaultValue = "") final String search,
+            @RequestParam(defaultValue = "createdAt") final String sort,
+            @RequestParam(defaultValue = "desc") final String dir,
+            @RequestParam(defaultValue = "0") final int page,
+            @RequestParam(defaultValue = "20") final int size,
+            final HttpServletRequest request) {
+        final AccountClaims claims = (AccountClaims) request.getAttribute(AccountJwtInterceptor.CLAIMS_ATTR);
+        final var result = listClaimedStashesQuery.execute(
+                new ListClaimedStashesCommand(claims.accountId(), search, sort, dir, page, size));
+        final var content = result.content().stream()
+                .map(s -> Map.<String, Object>of(
+                        "stashId", s.stashId().toString(),
+                        "stashName", s.name(),
+                        "visibility", s.visibility().name(),
+                        "createdAt", s.createdAt(),
+                        "updatedAt", s.updatedAt()))
+                .toList();
+        return ResponseEntity.ok(Map.of(
+                "content", content,
+                "totalElements", result.totalElements(),
+                "totalPages", result.totalPages(),
+                "size", result.size(),
+                "number", result.number()));
     }
 
     @PostMapping("/stashes/claim")

@@ -19,7 +19,8 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { restrictToVerticalAxis, restrictToParentElement } from '@dnd-kit/modifiers';
-import { api, stashApi, linkApi, utilsApi, isTokenValid, tokenStorageKey } from '../services/api';
+import { api, stashApi, linkApi, utilsApi, isTokenValid, tokenStorageKey, signatureStorageKey } from '../services/api';
+import { useStashHistory } from '../hooks/useStashHistory';
 import { Link as LinkType } from '../types';
 import { useStashSearch } from '../contexts/stashSearch';
 import { useStashToken } from '../hooks/useStashToken';
@@ -391,12 +392,15 @@ export default function StashAccessPage() {
   const [linkPermissionsPending, setLinkPermissionsPending] = useState(false);
   const [isClaimerToken, setIsClaimerToken] = useState(false);
   const [signInOpen, setSignInOpen] = useState(false);
+  const [signatureRefreshedAt, setSignatureRefreshedAt] = useState<string | null>(null);
+  const [regenerateSignaturePending, setRegenerateSignaturePending] = useState(false);
   const sentinelRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const liveIframeRef = useRef<HTMLIFrameElement>(null);
   const blockTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const queryClient = useQueryClient();
   const { accountToken, isSignedIn } = useAccount();
+  const { recordEntry } = useStashHistory();
 
   if (!stashId || (!signature && !isSignedIn)) {
     return <Navigate to="/" replace />;
@@ -464,6 +468,9 @@ export default function StashAccessPage() {
           setAuthState('password_required');
         } else if (err?.response?.data?.errorCode === 'STASH_PRIVATE') {
           tryAccountAccess();
+        } else if (err?.response?.data?.errorCode === 'SIGNATURE_REGENERATED') {
+          setSignatureRefreshedAt(err.response.data.signatureRefreshedAt ?? null);
+          setAuthState('error');
         } else {
           setAuthState('error');
         }
@@ -575,6 +582,28 @@ export default function StashAccessPage() {
     setSettingsPassword('');
     setSettingsPasswordError(null);
     setRemovePasswordConfirm(false);
+  };
+
+  const handleRegenerateSignature = async () => {
+    if (!stashId || !signature) return;
+    setRegenerateSignaturePending(true);
+    try {
+      const res = await stashApi.regenerateSignature(stashId, signature);
+      const signedUrl: string = (res.data as any).signedUrl ?? '';
+      const parts = signedUrl.split(`/s/${stashId}/`);
+      const newSig = parts.length > 1 ? parts[1] : null;
+      if (newSig) {
+        try { sessionStorage.setItem(signatureStorageKey(stashId), newSig); } catch { /* ignore */ }
+        if (stash?.name) {
+          recordEntry(stashId, stash.name, newSig);
+        }
+      }
+      await queryClient.invalidateQueries({ queryKey: ['stash', stashId] });
+    } catch {
+      // Non-fatal — silently ignore
+    } finally {
+      setRegenerateSignaturePending(false);
+    }
   };
 
   const handleVisibilityChange = async (newVisibility: 'PRIVATE' | 'SHARED') => {
@@ -1206,6 +1235,35 @@ export default function StashAccessPage() {
             This pouch is private. Only the account that claimed it can access it.
           </p>
           <a href="/" className="inline-block text-slate-400 hover:text-indigo-400 text-sm transition-colors">
+            ← Go back home
+          </a>
+        </div>
+      </div>
+    );
+  }
+
+  if (authState === 'error') {
+    return (
+      <div className="h-full w-full flex items-center justify-center bg-white dark:bg-slate-950">
+        <div className="text-center max-w-sm w-full mx-4">
+          <div className="w-16 h-16 bg-red-100 dark:bg-red-900/20 rounded-2xl flex items-center justify-center mx-auto mb-5">
+            <svg className="w-8 h-8 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+            </svg>
+          </div>
+          <h2 className="text-xl font-bold text-slate-800 dark:text-slate-100 mb-2">Access Denied</h2>
+          {signatureRefreshedAt ? (
+            <p className="text-slate-500 dark:text-slate-400 text-sm mb-6">
+              The URL for this pouch was changed on{' '}
+              {new Date(signatureRefreshedAt).toLocaleDateString('en', { month: 'long', day: 'numeric', year: 'numeric' })}.
+              Bookmark the new link to regain access.
+            </p>
+          ) : (
+            <p className="text-slate-500 dark:text-slate-400 text-sm mb-6">
+              Invalid or expired signature. Check your URL.
+            </p>
+          )}
+          <a href="/" className="text-indigo-400 hover:text-indigo-300 text-sm">
             ← Go back home
           </a>
         </div>
@@ -2185,6 +2243,23 @@ export default function StashAccessPage() {
                     ? 'Anyone with access can add, remove, and reorder links.'
                     : 'Only you can add, remove, and reorder links.'}
                 </p>
+              </section>
+            )}
+
+            {/* ── Regenerate URL ────────────────────────────────────── */}
+            {(isClaimerToken || !isStashClaimed) && signature && (
+              <section className="p-4">
+                <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-3">Shared URL</h3>
+                <p className="text-[13px] text-slate-500 dark:text-slate-400 leading-snug mb-3">
+                  Generate a new URL for this pouch. Anyone using the old link will lose access.
+                </p>
+                <button
+                  onClick={handleRegenerateSignature}
+                  disabled={regenerateSignaturePending}
+                  className="w-full py-2 text-[13px] text-amber-600 dark:text-amber-400 hover:text-amber-700 dark:hover:text-amber-300 hover:bg-amber-50 dark:hover:bg-amber-950/30 rounded-lg border border-amber-200 dark:border-amber-800/40 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  {regenerateSignaturePending ? 'Regenerating…' : 'Regenerate URL'}
+                </button>
               </section>
             )}
 

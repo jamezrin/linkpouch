@@ -1,13 +1,24 @@
 package com.linkpouch.stash.infrastructure.adapter.persistence;
 
+import static com.linkpouch.stash.infrastructure.jooq.generated.Tables.STASHES;
+
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+import org.jooq.Condition;
+import org.jooq.DSLContext;
+import org.jooq.SortField;
+import org.jooq.impl.DSL;
 import org.springframework.stereotype.Component;
 
 import com.linkpouch.stash.domain.model.Account;
+import com.linkpouch.stash.domain.model.ClaimedStashSummary;
 import com.linkpouch.stash.domain.model.OAuthProvider;
+import com.linkpouch.stash.domain.model.StashVisibility;
+import com.linkpouch.stash.domain.port.in.ListClaimedStashesCommand;
+import com.linkpouch.stash.domain.port.in.PagedResult;
 import com.linkpouch.stash.domain.port.outbound.AccountRepository;
 import com.linkpouch.stash.infrastructure.adapter.persistence.jpa.AccountJpaRepository;
 import com.linkpouch.stash.infrastructure.adapter.persistence.jpa.AccountStashJpaRepository;
@@ -28,6 +39,7 @@ public class AccountPersistenceAdapter implements AccountRepository {
     private final AccountStashJpaRepository accountStashJpaRepository;
     private final StashJpaRepository stashJpaRepository;
     private final AccountEntityMapper accountMapper;
+    private final DSLContext dsl;
 
     @Override
     public Account save(final Account account) {
@@ -96,6 +108,71 @@ public class AccountPersistenceAdapter implements AccountRepository {
     @Override
     public Optional<UUID> findClaimerAccountId(final UUID stashId) {
         return accountStashJpaRepository.findClaimerAccountId(stashId);
+    }
+
+    @Override
+    public PagedResult<ClaimedStashSummary> listClaimedStashes(final ListClaimedStashesCommand command) {
+        final var accountStashes = DSL.table(DSL.name("account_stashes"));
+        final var accountIdField = DSL.field(DSL.name("account_stashes", "account_id"), UUID.class);
+        final var stashIdField = DSL.field(DSL.name("account_stashes", "stash_id"), UUID.class);
+        final var visibilityField = DSL.field(DSL.name("stashes", "visibility"), String.class);
+
+        Condition conditions = accountIdField.eq(command.accountId());
+        if (command.search() != null && !command.search().isBlank()) {
+            conditions = conditions.and(
+                    STASHES.NAME.likeIgnoreCase("%" + command.search().trim() + "%"));
+        }
+
+        final SortField<?> orderBy =
+                switch (command.sort()) {
+                    case "name" -> command.dir().equals("desc") ? STASHES.NAME.desc() : STASHES.NAME.asc();
+                    case "updatedAt" ->
+                        command.dir().equals("desc") ? STASHES.UPDATED_AT.desc() : STASHES.UPDATED_AT.asc();
+                    default -> command.dir().equals("desc") ? STASHES.CREATED_AT.desc() : STASHES.CREATED_AT.asc();
+                };
+
+        final int offset = command.page() * command.size();
+        final int total = dsl.fetchCount(dsl.select()
+                .from(accountStashes)
+                .join(STASHES)
+                .on(stashIdField.eq(STASHES.ID))
+                .where(conditions));
+
+        final List<ClaimedStashSummary> content = dsl.select(
+                        STASHES.ID, STASHES.NAME, visibilityField, STASHES.CREATED_AT, STASHES.UPDATED_AT)
+                .from(accountStashes)
+                .join(STASHES)
+                .on(stashIdField.eq(STASHES.ID))
+                .where(conditions)
+                .orderBy(orderBy)
+                .limit(command.size())
+                .offset(offset)
+                .fetch(r -> new ClaimedStashSummary(
+                        r.get(STASHES.ID),
+                        r.get(STASHES.NAME),
+                        parseVisibility(r.get(visibilityField)),
+                        r.get(STASHES.CREATED_AT) != null
+                                ? r.get(STASHES.CREATED_AT)
+                                        .withOffsetSameInstant(ZoneOffset.UTC)
+                                        .toLocalDateTime()
+                                : null,
+                        r.get(STASHES.UPDATED_AT) != null
+                                ? r.get(STASHES.UPDATED_AT)
+                                        .withOffsetSameInstant(ZoneOffset.UTC)
+                                        .toLocalDateTime()
+                                : null));
+
+        final int totalPages = (int) Math.ceil((double) total / command.size());
+        return new PagedResult<>(content, total, totalPages, command.size(), command.page());
+    }
+
+    private static StashVisibility parseVisibility(final String value) {
+        if (value == null) return StashVisibility.SHARED;
+        try {
+            return StashVisibility.valueOf(value);
+        } catch (IllegalArgumentException e) {
+            return StashVisibility.SHARED;
+        }
     }
 
     private void syncProviders(final Account account, final AccountJpaEntity entity) {

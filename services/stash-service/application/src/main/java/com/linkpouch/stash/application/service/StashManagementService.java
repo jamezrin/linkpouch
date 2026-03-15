@@ -16,6 +16,8 @@ import com.linkpouch.stash.domain.port.in.AcquireStashAccessUseCase;
 import com.linkpouch.stash.domain.port.in.CreateStashCommand;
 import com.linkpouch.stash.domain.port.in.CreateStashUseCase;
 import com.linkpouch.stash.domain.port.in.DeleteStashUseCase;
+import com.linkpouch.stash.domain.port.in.RegenerateStashSignatureCommand;
+import com.linkpouch.stash.domain.port.in.RegenerateStashSignatureUseCase;
 import com.linkpouch.stash.domain.port.in.RemoveStashPasswordCommand;
 import com.linkpouch.stash.domain.port.in.RemoveStashPasswordUseCase;
 import com.linkpouch.stash.domain.port.in.SetStashPasswordCommand;
@@ -41,7 +43,8 @@ public class StashManagementService
                 DeleteStashUseCase,
                 AcquireStashAccessUseCase,
                 SetStashPasswordUseCase,
-                RemoveStashPasswordUseCase {
+                RemoveStashPasswordUseCase,
+                RegenerateStashSignatureUseCase {
 
     private final StashRepository stashRepository;
     private final BCryptPasswordEncoder passwordEncoder;
@@ -122,5 +125,15 @@ public class StashManagementService
                 .orElseThrow(() -> new NotFoundException("Stash not found: " + command.stashId()));
         stash.removePassword();
         stashRepository.save(stash);
+    }
+
+    @Override
+    @Transactional
+    public Stash execute(final RegenerateStashSignatureCommand command) {
+        final Stash stash = stashRepository
+                .findById(command.stashId())
+                .orElseThrow(() -> new NotFoundException("Stash not found: " + command.stashId()));
+        stash.regenerateSignature();
+        return stashRepository.save(stash);
     }
 }

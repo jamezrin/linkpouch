@@ -1,5 +1,5 @@
 import { api } from './api';
-import { AccountResponse, StashVisibility } from '../types/account';
+import { AccountResponse, ClaimedStashPage, StashVisibility } from '../types/account';
 import { AccessTokenResponse } from '../types';
 
 const bearerHeader = (token: string) => ({ Authorization: `Bearer ${token}` });
@@ -34,5 +34,11 @@ export const accountApi = {
   acquireStashAccess: (token: string, stashId: string) =>
     api.post<AccessTokenResponse>(`/account/stashes/${stashId}/access-token`, null, {
       headers: bearerHeader(token),
+    }),
+
+  listStashes: (token: string, params: { search?: string; sort?: string; dir?: string; page?: number; size?: number }) =>
+    api.get<ClaimedStashPage>('/account/stashes', {
+      headers: bearerHeader(token),
+      params,
     }),
 };
