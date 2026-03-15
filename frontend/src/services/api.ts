@@ -27,6 +27,9 @@ export const signatureStorageKey = (stashId: string) => `sig:${stashId}`;
 /** Returns the sessionStorage key used to store the isClaimer flag for a stash. */
 export const claimerStorageKey = (stashId: string) => `claimer:${stashId}`;
 
+/** Returns the sessionStorage key used to store whether any account has claimed a stash. */
+export const stashClaimedStorageKey = (stashId: string) => `stashClaimed:${stashId}`;
+
 /**
  * Returns the sessionStorage key used to store the account fingerprint alongside a stash token.
  * Used to detect when the signed-in account has changed since the token was cached.

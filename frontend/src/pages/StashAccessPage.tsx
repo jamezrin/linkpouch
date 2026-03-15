@@ -19,7 +19,7 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { restrictToVerticalAxis, restrictToParentElement } from '@dnd-kit/modifiers';
-import { api, stashApi, linkApi, utilsApi, isTokenValid, tokenStorageKey, signatureStorageKey, claimerStorageKey, accountFingerprintKey, accountFingerprint } from '../services/api';
+import { api, stashApi, linkApi, utilsApi, isTokenValid, tokenStorageKey, signatureStorageKey, claimerStorageKey, stashClaimedStorageKey, accountFingerprintKey, accountFingerprint } from '../services/api';
 import { useStashHistory } from '../hooks/useStashHistory';
 import { Link as LinkType } from '../types';
 import { useStashSearch } from '../contexts/stashSearch';
@@ -393,6 +393,7 @@ export default function StashAccessPage() {
   const [visibilityPending, setVisibilityPending] = useState(false);
   const [linkPermissionsPending, setLinkPermissionsPending] = useState(false);
   const [isClaimerToken, setIsClaimerToken] = useState(false);
+  const [isStashClaimed, setIsStashClaimed] = useState(false);
   const [signInOpen, setSignInOpen] = useState(false);
   const [signatureRefreshedAt, setSignatureRefreshedAt] = useState<string | null>(null);
   const [regenerateSignaturePending, setRegenerateSignaturePending] = useState(false);
@@ -444,6 +445,7 @@ export default function StashAccessPage() {
     const cachedFingerprint = sessionStorage.getItem(accountFingerprintKey(stashId));
     if (cached && isTokenValid(cached) && cachedFingerprint === accountFingerprint(accountToken)) {
       setIsClaimerToken(sessionStorage.getItem(claimerStorageKey(stashId)) === 'true');
+      setIsStashClaimed(sessionStorage.getItem(stashClaimedStorageKey(stashId)) === 'true');
       setAuthState('ready');
       return;
     }
@@ -457,8 +459,10 @@ export default function StashAccessPage() {
         versionMismatchRetryCountRef.current = 0;
         setAccessToken(res.data.accessToken);
         sessionStorage.setItem(claimerStorageKey(stashId), String(res.data.isClaimer));
+        sessionStorage.setItem(stashClaimedStorageKey(stashId), String(res.data.isStashClaimed));
         sessionStorage.setItem(accountFingerprintKey(stashId), accountFingerprint(accountToken));
         setIsClaimerToken(res.data.isClaimer);
+        setIsStashClaimed(res.data.isStashClaimed);
         setAuthState('ready');
       })
       .catch((err) => {
@@ -485,6 +489,7 @@ export default function StashAccessPage() {
       if (stashId) {
         sessionStorage.removeItem(tokenStorageKey(stashId));
         sessionStorage.removeItem(claimerStorageKey(stashId));
+        sessionStorage.removeItem(stashClaimedStorageKey(stashId));
         sessionStorage.removeItem(accountFingerprintKey(stashId));
       }
       setAccessToken(null);
@@ -528,6 +533,7 @@ export default function StashAccessPage() {
       const res = await stashApi.acquireAccessToken(stashId, signature, passwordInput, accountToken ?? undefined);
       setAccessToken(res.data.accessToken);
       setIsClaimerToken(res.data.isClaimer);
+      setIsStashClaimed(res.data.isStashClaimed);
       setAuthState('ready');
     } catch (err: unknown) {
       setPasswordError('Incorrect password. Please try again.');
@@ -547,6 +553,7 @@ export default function StashAccessPage() {
       const res = await stashApi.acquireAccessToken(stashId, signature, settingsPassword, accountToken ?? undefined);
       setAccessToken(res.data.accessToken);
       setIsClaimerToken(res.data.isClaimer);
+      setIsStashClaimed(res.data.isStashClaimed);
       setSettingsPassword('');
       await queryClient.invalidateQueries({ queryKey: ['stash', stashId] });
     } catch {
@@ -566,6 +573,7 @@ export default function StashAccessPage() {
       const res = await stashApi.acquireAccessToken(stashId, signature, undefined, accountToken ?? undefined);
       setAccessToken(res.data.accessToken);
       setIsClaimerToken(res.data.isClaimer);
+      setIsStashClaimed(res.data.isStashClaimed);
       setRemovePasswordConfirm(false);
       await queryClient.invalidateQueries({ queryKey: ['stash', stashId] });
     } catch {
@@ -671,6 +679,7 @@ export default function StashAccessPage() {
       if (stashId) {
         sessionStorage.removeItem(tokenStorageKey(stashId));
         sessionStorage.removeItem(claimerStorageKey(stashId));
+        sessionStorage.removeItem(stashClaimedStorageKey(stashId));
         sessionStorage.removeItem(accountFingerprintKey(stashId));
       }
       setAccessToken(null);
@@ -2180,14 +2189,16 @@ export default function StashAccessPage() {
               ) : (
                 <div className="flex flex-col gap-2">
                   <p className="text-[13px] text-slate-500 dark:text-slate-400 leading-snug">
-                    Link this pouch to your account to recover it across devices.
+                    {isStashClaimed
+                      ? 'This pouch has already been claimed by another account.'
+                      : 'Link this pouch to your account to recover it across devices.'}
                   </p>
                   <button
                     onClick={() => claimMutation.mutate()}
-                    disabled={claimMutation.isPending}
-                    className="w-full py-2 text-[13px] font-medium bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg transition-colors disabled:opacity-40"
+                    disabled={claimMutation.isPending || isStashClaimed}
+                    className="w-full py-2 text-[13px] font-medium bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                   >
-                    {claimMutation.isPending ? 'Claiming…' : 'Claim this pouch'}
+                    {claimMutation.isPending ? 'Claiming…' : isStashClaimed ? 'Already claimed' : 'Claim this pouch'}
                   </button>
                   {claimMutation.isError && (
                     <p className="text-[12px] text-red-500">Failed to claim. Please try again.</p>

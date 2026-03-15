@@ -48,6 +48,7 @@ export interface AccessTokenResponse {
   accessToken: string;
   expiresIn: number;
   isClaimer: boolean;
+  isStashClaimed: boolean;
 }
 
 export interface WaybackMonthSummary {
