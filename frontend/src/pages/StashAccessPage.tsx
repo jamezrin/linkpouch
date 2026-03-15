@@ -19,7 +19,7 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { restrictToVerticalAxis, restrictToParentElement } from '@dnd-kit/modifiers';
-import { api, stashApi, linkApi, utilsApi, isTokenValid, isClaimerToken as decodeIsClaimerToken, tokenStorageKey, signatureStorageKey } from '../services/api';
+import { api, stashApi, linkApi, utilsApi, isTokenValid, tokenStorageKey, signatureStorageKey, claimerStorageKey } from '../services/api';
 import { useStashHistory } from '../hooks/useStashHistory';
 import { Link as LinkType } from '../types';
 import { useStashSearch } from '../contexts/stashSearch';
@@ -441,7 +441,7 @@ export default function StashAccessPage() {
     // Try cached token first (read directly from sessionStorage to avoid stale closure)
     const cached = sessionStorage.getItem(tokenStorageKey(stashId));
     if (cached && isTokenValid(cached)) {
-      setIsClaimerToken(decodeIsClaimerToken(cached));
+      setIsClaimerToken(sessionStorage.getItem(claimerStorageKey(stashId)) === 'true');
       setAuthState('ready');
       return;
     }
@@ -454,6 +454,7 @@ export default function StashAccessPage() {
       .then((res) => {
         versionMismatchRetryCountRef.current = 0;
         setAccessToken(res.data.accessToken);
+        sessionStorage.setItem(claimerStorageKey(stashId), String(res.data.isClaimer));
         setIsClaimerToken(res.data.isClaimer);
         setAuthState('ready');
       })
@@ -478,7 +479,10 @@ export default function StashAccessPage() {
   // always calls the most recent version without stale closures.
   useEffect(() => {
     handleTokenExpiredRef.current = () => {
-      if (stashId) sessionStorage.removeItem(tokenStorageKey(stashId));
+      if (stashId) {
+        sessionStorage.removeItem(tokenStorageKey(stashId));
+        sessionStorage.removeItem(claimerStorageKey(stashId));
+      }
       setAccessToken(null);
       setAuthAttempt((n) => n + 1);
     };
@@ -657,7 +661,10 @@ export default function StashAccessPage() {
     if (!stashError) return;
     const code = (stashError as { response?: { data?: { errorCode?: string } } })?.response?.data?.errorCode;
     if (code === 'STASH_PRIVATE') {
-      if (stashId) sessionStorage.removeItem(tokenStorageKey(stashId));
+      if (stashId) {
+        sessionStorage.removeItem(tokenStorageKey(stashId));
+        sessionStorage.removeItem(claimerStorageKey(stashId));
+      }
       setAccessToken(null);
       setAuthState('private');
     }
