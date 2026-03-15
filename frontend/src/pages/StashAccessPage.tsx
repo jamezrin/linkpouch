@@ -378,6 +378,7 @@ export default function StashAccessPage() {
   type AuthState = 'acquiring' | 'password_required' | 'ready' | 'error' | 'private';
   const [authState, setAuthState] = useState<AuthState>('acquiring');
   const [authAttempt, setAuthAttempt] = useState(0);
+  const versionMismatchRetryCountRef = useRef(0);
   const handleTokenExpiredRef = useRef<() => void>(() => {});
   const [passwordInput, setPasswordInput] = useState('');
   const [passwordError, setPasswordError] = useState<string | null>(null);
@@ -446,39 +447,28 @@ export default function StashAccessPage() {
 
     setAuthState('acquiring');
 
-    const tryAccountAccess = () => {
-      if (isSignedIn && accountToken) {
-        accountApi.acquireStashAccess(accountToken, stashId).then((res) => {
-          setAccessToken(res.data.accessToken);
-          setAuthState('ready');
-        }).catch(() => {
-          setAuthState('private');
-        });
-      } else {
-        setAuthState('private');
-      }
-    };
-
-    if (signature) {
-      stashApi.acquireAccessToken(stashId, signature).then((res) => {
+    // Unified acquisition: pass both signature and account JWT. The server determines
+    // isClaimer from the account JWT, and grants access to private stashes if claimer.
+    stashApi.acquireAccessToken(stashId, signature, undefined, accountToken ?? undefined)
+      .then((res) => {
+        versionMismatchRetryCountRef.current = 0;
         setAccessToken(res.data.accessToken);
+        setIsClaimerToken(res.data.isClaimer);
         setAuthState('ready');
-      }).catch((err) => {
-        if (err?.response?.data?.errorCode === 'PASSWORD_REQUIRED') {
+      })
+      .catch((err) => {
+        const errorCode = err?.response?.data?.errorCode;
+        if (errorCode === 'PASSWORD_REQUIRED') {
           setAuthState('password_required');
-        } else if (err?.response?.data?.errorCode === 'STASH_PRIVATE') {
-          tryAccountAccess();
-        } else if (err?.response?.data?.errorCode === 'SIGNATURE_REGENERATED') {
+        } else if (errorCode === 'STASH_PRIVATE') {
+          setAuthState('private');
+        } else if (errorCode === 'SIGNATURE_REGENERATED') {
           setSignatureRefreshedAt(err.response.data.signatureRefreshedAt ?? null);
           setAuthState('error');
         } else {
           setAuthState('error');
         }
       });
-    } else {
-      // No signature — try account-based access (claimer visiting their private stash)
-      tryAccountAccess();
-    }
   // authAttempt is intentionally included: incrementing it triggers re-acquisition after expiry
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [stashId, signature, authAttempt, isSignedIn, accountToken]);
@@ -503,7 +493,16 @@ export default function StashAccessPage() {
           error?.response?.status === 401 &&
           !error.config?.url?.includes('/access-token')
         ) {
-          handleTokenExpiredRef.current();
+          if (error?.response?.data?.errorCode === 'TOKEN_VERSION_MISMATCH') {
+            // Guard against infinite re-acquisition loops (max 3 retries)
+            if (versionMismatchRetryCountRef.current < 3) {
+              versionMismatchRetryCountRef.current++;
+              handleTokenExpiredRef.current();
+            }
+          } else {
+            versionMismatchRetryCountRef.current = 0;
+            handleTokenExpiredRef.current();
+          }
         }
         return Promise.reject(error);
       },
@@ -513,12 +512,13 @@ export default function StashAccessPage() {
 
   const handlePasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!stashId || !signature || !passwordInput.trim()) return;
+    if (!stashId || !passwordInput.trim()) return;
     setPasswordSubmitting(true);
     setPasswordError(null);
     try {
-      const res = await stashApi.acquireAccessToken(stashId, signature, passwordInput);
+      const res = await stashApi.acquireAccessToken(stashId, signature, passwordInput, accountToken ?? undefined);
       setAccessToken(res.data.accessToken);
+      setIsClaimerToken(res.data.isClaimer);
       setAuthState('ready');
     } catch (err: unknown) {
       setPasswordError('Incorrect password. Please try again.');
@@ -534,16 +534,10 @@ export default function StashAccessPage() {
     setSettingsPasswordError(null);
     try {
       await stashApi.setPassword(stashId, signature, settingsPassword, accessToken);
-      // Re-acquire token — pwdKey changes when password is set/changed.
-      // Claimers get a fresh claimer token; others get a regular token.
-      if (isStashClaimed && accountToken) {
-        const res = await accountApi.acquireStashAccess(accountToken, stashId);
-        setAccessToken(res.data.accessToken);
-        setIsClaimerToken(true);
-      } else {
-        const res = await stashApi.acquireAccessToken(stashId, signature, settingsPassword);
-        setAccessToken(res.data.accessToken);
-      }
+      // Re-acquire token — version bumped when password is set/changed.
+      const res = await stashApi.acquireAccessToken(stashId, signature, settingsPassword, accountToken ?? undefined);
+      setAccessToken(res.data.accessToken);
+      setIsClaimerToken(res.data.isClaimer);
       setSettingsPassword('');
       await queryClient.invalidateQueries({ queryKey: ['stash', stashId] });
     } catch {
@@ -559,15 +553,10 @@ export default function StashAccessPage() {
     setSettingsPasswordError(null);
     try {
       await stashApi.removePassword(stashId, signature, accessToken);
-      // Re-acquire token — pwdKey is gone now.
-      if (isStashClaimed && accountToken) {
-        const res = await accountApi.acquireStashAccess(accountToken, stashId);
-        setAccessToken(res.data.accessToken);
-        setIsClaimerToken(true);
-      } else {
-        const res = await stashApi.acquireAccessToken(stashId, signature);
-        setAccessToken(res.data.accessToken);
-      }
+      // Re-acquire token — version bumped when password is removed.
+      const res = await stashApi.acquireAccessToken(stashId, signature, undefined, accountToken ?? undefined);
+      setAccessToken(res.data.accessToken);
+      setIsClaimerToken(res.data.isClaimer);
       setRemovePasswordConfirm(false);
       await queryClient.invalidateQueries({ queryKey: ['stash', stashId] });
     } catch {
@@ -636,18 +625,6 @@ export default function StashAccessPage() {
   });
 
   const isStashClaimed = accountData?.claimedStashes.some((s) => s.stashId === stashId) ?? false;
-
-  // Upgrade to a claimer token whenever ownership is confirmed.
-  // This lets the backend recognise this user as the claimer for password and write-permission checks.
-  useEffect(() => {
-    if (!isStashClaimed || !accountToken || !stashId || isClaimerToken || authState !== 'ready') return;
-    accountApi.acquireStashAccess(accountToken, stashId).then((res) => {
-      setAccessToken(res.data.accessToken);
-      setIsClaimerToken(true);
-    }).catch(() => {
-      // Non-fatal — fall back to the existing (non-claimer) token
-    });
-  }, [isStashClaimed, accountToken, stashId, isClaimerToken, authState, setAccessToken]);
 
   const disownMutation = useMutation({
     mutationFn: () => accountApi.disownStash(accountToken!, stashId!),

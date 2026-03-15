@@ -114,6 +114,7 @@ public class StashManagementService
                 .findById(command.stashId())
                 .orElseThrow(() -> new NotFoundException("Stash not found: " + command.stashId()));
         stash.setPasswordHash(passwordEncoder.encode(command.rawPassword()));
+        stash.bumpVersion();
         return stashRepository.save(stash);
     }
 
@@ -124,6 +125,7 @@ public class StashManagementService
                 .findById(command.stashId())
                 .orElseThrow(() -> new NotFoundException("Stash not found: " + command.stashId()));
         stash.removePassword();
+        stash.bumpVersion();
         stashRepository.save(stash);
     }
 
@@ -134,6 +136,7 @@ public class StashManagementService
                 .findById(command.stashId())
                 .orElseThrow(() -> new NotFoundException("Stash not found: " + command.stashId()));
         stash.regenerateSignature();
+        stash.bumpVersion();
         return stashRepository.save(stash);
     }
 }

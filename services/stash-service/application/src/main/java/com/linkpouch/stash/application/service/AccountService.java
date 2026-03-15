@@ -15,8 +15,6 @@ import com.linkpouch.stash.domain.model.AccountProvider;
 import com.linkpouch.stash.domain.model.ClaimedStashSummary;
 import com.linkpouch.stash.domain.model.Stash;
 import com.linkpouch.stash.domain.model.StashVisibility;
-import com.linkpouch.stash.domain.port.in.AcquireClaimedStashAccessCommand;
-import com.linkpouch.stash.domain.port.in.AcquireClaimedStashAccessUseCase;
 import com.linkpouch.stash.domain.port.in.ClaimStashCommand;
 import com.linkpouch.stash.domain.port.in.ClaimStashUseCase;
 import com.linkpouch.stash.domain.port.in.DisownStashCommand;
@@ -49,7 +47,6 @@ public class AccountService
                 DisownStashUseCase,
                 UpdateStashVisibilityUseCase,
                 UpdateStashLinkPermissionsUseCase,
-                AcquireClaimedStashAccessUseCase,
                 ListClaimedStashesQuery {
 
     private final AccountRepository accountRepository;
@@ -103,6 +100,7 @@ public class AccountService
         accountRepository.claimStash(command.accountId(), command.stashId());
 
         stash.setVisibility(StashVisibility.PRIVATE);
+        stash.bumpVersion();
         stashRepository.save(stash);
     }
 
@@ -117,6 +115,7 @@ public class AccountService
 
         stashRepository.findById(command.stashId()).ifPresent(stash -> {
             stash.setVisibility(StashVisibility.SHARED);
+            stash.bumpVersion();
             stashRepository.save(stash);
         });
     }
@@ -132,6 +131,7 @@ public class AccountService
                 stashRepository.findById(command.stashId()).orElseThrow(() -> new NotFoundException("Stash not found"));
 
         stash.setVisibility(command.visibility());
+        stash.bumpVersion();
         stashRepository.save(stash);
     }
 
@@ -146,16 +146,6 @@ public class AccountService
                 stashRepository.findById(command.stashId()).orElseThrow(() -> new NotFoundException("Stash not found"));
         stash.setLinkPermissions(command.permissions());
         stashRepository.save(stash);
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public Stash execute(final AcquireClaimedStashAccessCommand command) {
-        if (!accountRepository.isStashClaimed(command.accountId(), command.stashId())) {
-            throw new ForbiddenException("This pouch is not claimed by your account");
-        }
-
-        return stashRepository.findById(command.stashId()).orElseThrow(() -> new NotFoundException("Stash not found"));
     }
 
     @Override

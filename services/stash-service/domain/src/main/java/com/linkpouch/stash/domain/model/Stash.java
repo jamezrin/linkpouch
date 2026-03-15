@@ -26,6 +26,7 @@ public class Stash {
     private StashVisibility visibility;
     private StashLinkPermissions linkPermissions;
     private LocalDateTime signatureRefreshedAt;
+    private int version;
     private final Set<Link> links;
 
     public Stash(
@@ -38,6 +39,7 @@ public class Stash {
             final StashVisibility visibility,
             final StashLinkPermissions linkPermissions,
             final LocalDateTime signatureRefreshedAt,
+            final int version,
             final Set<Link> links) {
         this.id = id != null ? id : UUID.randomUUID();
         this.createdAt = createdAt != null ? createdAt : LocalDateTime.now(ZoneOffset.UTC);
@@ -48,6 +50,7 @@ public class Stash {
         this.visibility = visibility != null ? visibility : StashVisibility.SHARED;
         this.linkPermissions = linkPermissions != null ? linkPermissions : StashLinkPermissions.FULL;
         this.signatureRefreshedAt = signatureRefreshedAt;
+        this.version = version;
         this.links = links != null ? new HashSet<>(links) : new HashSet<>();
     }
 
@@ -62,7 +65,13 @@ public class Stash {
                 StashVisibility.SHARED,
                 StashLinkPermissions.FULL,
                 null,
+                0,
                 null);
+    }
+
+    public void bumpVersion() {
+        this.version++;
+        this.updatedAt = LocalDateTime.now(ZoneOffset.UTC);
     }
 
     public void regenerateSignature() {

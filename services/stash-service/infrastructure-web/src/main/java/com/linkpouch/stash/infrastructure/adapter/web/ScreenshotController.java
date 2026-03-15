@@ -2,8 +2,6 @@ package com.linkpouch.stash.infrastructure.adapter.web;
 
 import java.util.UUID;
 
-import jakarta.servlet.http.HttpServletRequest;
-
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -16,9 +14,6 @@ import org.springframework.web.bind.annotation.RestController;
 import com.linkpouch.stash.domain.exception.ForbiddenException;
 import com.linkpouch.stash.domain.exception.NotFoundException;
 import com.linkpouch.stash.domain.port.in.FindLinkByIdQuery;
-import com.linkpouch.stash.domain.port.in.FindStashByIdQuery;
-import com.linkpouch.stash.domain.service.StashAccessClaims;
-import com.linkpouch.stash.domain.service.StashTokenService;
 
 import lombok.RequiredArgsConstructor;
 import software.amazon.awssdk.services.s3.S3Client;
@@ -29,11 +24,8 @@ import software.amazon.awssdk.services.s3.model.NoSuchKeyException;
 @RequiredArgsConstructor
 public class ScreenshotController {
 
-    private final FindStashByIdQuery findStashByIdQuery;
     private final FindLinkByIdQuery findLinkByIdQuery;
-    private final StashTokenService tokenService;
     private final S3Client s3Client;
-    private final HttpServletRequest httpRequest;
 
     @Value("${linkpouch.s3.bucket}")
     private String s3Bucket;
@@ -42,19 +34,7 @@ public class ScreenshotController {
     public ResponseEntity<byte[]> getScreenshot(
             @PathVariable("stashId") final UUID stashId, @PathVariable("linkId") final UUID linkId) {
 
-        // JWT validation (including ?token= fallback) is handled by StashJwtInterceptor.
-        // Here we only validate the pwdKey claim if the stash is password-protected.
-        final var stash = findStashByIdQuery
-                .execute(stashId)
-                .orElseThrow(() -> new NotFoundException("Stash not found: " + stashId));
-
-        if (stash.isPasswordProtected()) {
-            final Object claimsAttr = httpRequest.getAttribute(StashJwtInterceptor.CLAIMS_ATTR);
-            if (claimsAttr instanceof StashAccessClaims claims) {
-                tokenService.validatePwdKey(claims, stashId, stash.getPasswordHash());
-            }
-        }
-
+        // JWT validation (including version check) is handled by StashJwtInterceptor.
         final var link =
                 findLinkByIdQuery.execute(linkId).orElseThrow(() -> new NotFoundException("Link not found: " + linkId));
 

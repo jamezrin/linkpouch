@@ -16,6 +16,7 @@ import com.linkpouch.stash.domain.exception.NotFoundException;
 import com.linkpouch.stash.domain.exception.PasswordRequiredException;
 import com.linkpouch.stash.domain.exception.SignatureRegeneratedException;
 import com.linkpouch.stash.domain.exception.StashPrivateException;
+import com.linkpouch.stash.domain.exception.TokenVersionMismatchException;
 import com.linkpouch.stash.domain.exception.UnauthorizedException;
 
 @RestControllerAdvice
@@ -53,6 +54,14 @@ public class GlobalExceptionHandler {
         dto.setPath(request.getRequestURI());
         dto.setSignatureRefreshedAt(OffsetDateTime.of(ex.getSignatureRefreshedAt(), ZoneOffset.UTC));
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(dto);
+    }
+
+    @ExceptionHandler(TokenVersionMismatchException.class)
+    public ResponseEntity<ErrorResponseDTO> handleTokenVersionMismatch(
+            final TokenVersionMismatchException ex, final HttpServletRequest request) {
+        return buildResponse(
+                HttpStatus.UNAUTHORIZED, ex.getMessage(),
+                TokenVersionMismatchException.ERROR_CODE, request.getRequestURI());
     }
 
     @ExceptionHandler(UnauthorizedException.class)

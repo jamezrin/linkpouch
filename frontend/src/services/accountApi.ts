@@ -1,6 +1,5 @@
 import { api } from './api';
 import { AccountResponse, ClaimedStashPage, StashVisibility } from '../types/account';
-import { AccessTokenResponse } from '../types';
 
 const bearerHeader = (token: string) => ({ Authorization: `Bearer ${token}` });
 
@@ -27,12 +26,6 @@ export const accountApi = {
 
   updateLinkPermissions: (token: string, stashId: string, permissions: 'FULL' | 'READ_ONLY') =>
     api.put<void>(`/account/stashes/${stashId}/link-permissions`, { permissions }, {
-      headers: bearerHeader(token),
-    }),
-
-  /** Acquires a claimer stash access token using the account JWT (no signature required). */
-  acquireStashAccess: (token: string, stashId: string) =>
-    api.post<AccessTokenResponse>(`/account/stashes/${stashId}/access-token`, null, {
       headers: bearerHeader(token),
     }),
 

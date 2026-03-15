@@ -9,7 +9,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.linkpouch.stash.api.controller.AccountApi;
-import com.linkpouch.stash.api.model.AccessTokenResponseDTO;
 import com.linkpouch.stash.api.model.AccountProviderResponseDTO;
 import com.linkpouch.stash.api.model.AccountResponseDTO;
 import com.linkpouch.stash.api.model.ClaimStashRequestDTO;
@@ -21,8 +20,6 @@ import com.linkpouch.stash.domain.exception.NotFoundException;
 import com.linkpouch.stash.domain.model.Account;
 import com.linkpouch.stash.domain.model.StashLinkPermissions;
 import com.linkpouch.stash.domain.model.StashVisibility;
-import com.linkpouch.stash.domain.port.in.AcquireClaimedStashAccessCommand;
-import com.linkpouch.stash.domain.port.in.AcquireClaimedStashAccessUseCase;
 import com.linkpouch.stash.domain.port.in.ClaimStashCommand;
 import com.linkpouch.stash.domain.port.in.ClaimStashUseCase;
 import com.linkpouch.stash.domain.port.in.DisownStashCommand;
@@ -38,7 +35,6 @@ import com.linkpouch.stash.domain.port.in.UpdateStashVisibilityUseCase;
 import com.linkpouch.stash.domain.port.outbound.AccountRepository;
 import com.linkpouch.stash.domain.port.outbound.StashRepository;
 import com.linkpouch.stash.domain.service.AccountClaims;
-import com.linkpouch.stash.domain.service.StashTokenService;
 
 import lombok.RequiredArgsConstructor;
 
@@ -51,11 +47,9 @@ public class AccountController implements AccountApi {
     private final DisownStashUseCase disownStashUseCase;
     private final UpdateStashVisibilityUseCase updateStashVisibilityUseCase;
     private final UpdateStashLinkPermissionsUseCase updateStashLinkPermissionsUseCase;
-    private final AcquireClaimedStashAccessUseCase acquireClaimedStashAccessUseCase;
     private final ListClaimedStashesQuery listClaimedStashesQuery;
     private final AccountRepository accountRepository;
     private final StashRepository stashRepository;
-    private final StashTokenService stashTokenService;
     private final HttpServletRequest httpRequest;
 
     @Override
@@ -152,17 +146,6 @@ public class AccountController implements AccountApi {
         updateStashLinkPermissionsUseCase.execute(
                 new UpdateStashLinkPermissionsCommand(claims.accountId(), stashId, permissions));
         return ResponseEntity.noContent().build();
-    }
-
-    @Override
-    public ResponseEntity<AccessTokenResponseDTO> acquireClaimedStashAccess(final UUID stashId) {
-        final AccountClaims claims = getClaims();
-        final var stash = acquireClaimedStashAccessUseCase.execute(
-                new AcquireClaimedStashAccessCommand(claims.accountId(), stashId));
-        final String token = stashTokenService.issueClaimerToken(stash);
-        final AccessTokenResponseDTO response =
-                new AccessTokenResponseDTO().accessToken(token).expiresIn(stashTokenService.getExpirySeconds());
-        return ResponseEntity.ok(response);
     }
 
     private AccountClaims getClaims() {
