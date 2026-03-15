@@ -10,7 +10,7 @@ import MobileAccountSection from './components/MobileAccountSection';
 import { StashSearchContext } from './contexts/stashSearch';
 import { ThemeProvider } from './contexts/theme';
 import { AccountProvider, useAccount } from './contexts/account';
-import { stashApi } from './services/api';
+import { stashApi, signatureStorageKey } from './services/api';
 import { useStashToken } from './hooks/useStashToken';
 import { useStashHistory } from './hooks/useStashHistory';
 import { PouchIcon } from './components/PouchIcon';
@@ -31,6 +31,8 @@ function AppContent() {
   const isStashPage = sigMatch !== null || cleanMatch !== null;
   const stashId = sigMatch?.[1] ?? cleanMatch?.[1];
   const signature = sigMatch?.[2] ?? null;
+  // Fall back to sessionStorage so the Share button works for claimers on the clean URL
+  const effectiveSignature = signature ?? (stashId ? sessionStorage.getItem(signatureStorageKey(stashId)) : null);
 
   const [searchQuery, setSearchQuery] = useState('');
   const [isEditingName, setIsEditingName] = useState(false);
@@ -166,10 +168,11 @@ function AppContent() {
           <div className="flex-1" />
 
           {/* Share button — desktop only */}
-          {isStashPage && signature && (
+          {isStashPage && effectiveSignature && (
             <button
               onClick={() => {
-                navigator.clipboard.writeText(window.location.href).then(() => {
+                const url = `${window.location.origin}/s/${stashId}/${effectiveSignature}`;
+                navigator.clipboard.writeText(url).then(() => {
                   setShareCopied(true);
                   setTimeout(() => setShareCopied(false), 2000);
                 });
@@ -257,10 +260,11 @@ function AppContent() {
                 <div className="border-t border-slate-100 dark:border-slate-800 -mx-3 my-2" />
 
                 {/* Share */}
-                {isStashPage && signature && (
+                {isStashPage && effectiveSignature && (
                   <button
                     onClick={() => {
-                      navigator.clipboard.writeText(window.location.href).then(() => {
+                      const url = `${window.location.origin}/s/${stashId}/${effectiveSignature}`;
+                      navigator.clipboard.writeText(url).then(() => {
                         setShareCopied(true);
                         setTimeout(() => setShareCopied(false), 2000);
                       });
