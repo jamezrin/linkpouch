@@ -94,10 +94,6 @@ public class StashJwtInterceptor implements HandlerInterceptor {
         if ("POST".equals(method) && path.matches("^/(?:api/)?stashes/[^/]+/access-token$")) {
             return true;
         }
-        // POST /stashes/{id}/sse-ticket — signature-based, migrated separately
-        if ("POST".equals(method) && path.matches("^/(?:api/)?stashes/[^/]+/sse-ticket$")) {
-            return true;
-        }
         // GET /stashes/{id}/events — SSE stream, uses ticket-based auth not JWT
         if ("GET".equals(method) && path.matches("^/(?:api/)?stashes/[^/]+/events$")) {
             return true;

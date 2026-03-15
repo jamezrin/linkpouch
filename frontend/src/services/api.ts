@@ -65,9 +65,9 @@ export const stashApi = {
       headers: bearerHeader(accessToken),
     }),
 
-  createSseTicket: (stashId: string, signature: string) =>
+  createSseTicket: (stashId: string, accessToken: string) =>
     api.post<{ ticket: string; expiresIn: number }>(`/stashes/${stashId}/sse-ticket`, null, {
-      headers: { 'X-Stash-Signature': signature },
+      headers: bearerHeader(accessToken),
     }),
 
   deleteStash: (id: string, accessToken: string) =>
@@ -80,37 +80,22 @@ export const stashApi = {
       headers: bearerHeader(accessToken),
     }),
 
-  /** Sets or changes the stash password. Requires the signature; also requires a valid
-   *  Bearer token if the stash is currently password-protected. */
-  setPassword: (
-    stashId: string,
-    signature: string | null,
-    password: string,
-    currentAccessToken?: string,
-  ) =>
+  /** Sets or changes the stash password. Requires a valid claimer Bearer token. */
+  setPassword: (stashId: string, password: string, currentAccessToken?: string) =>
     api.put<Stash>(`/stashes/${stashId}/password`, { password }, {
-      headers: {
-        ...(signature ? { 'X-Stash-Signature': signature } : {}),
-        ...(currentAccessToken ? bearerHeader(currentAccessToken) : {}),
-      },
+      headers: currentAccessToken ? bearerHeader(currentAccessToken) : {},
     }),
 
-  /** Removes the stash password. Requires the signature (or claimer JWT) and a valid Bearer token. */
-  removePassword: (stashId: string, signature: string | null, accessToken: string) =>
+  /** Removes the stash password. Requires a valid claimer Bearer token. */
+  removePassword: (stashId: string, accessToken: string) =>
     api.delete(`/stashes/${stashId}/password`, {
-      headers: {
-        ...(signature ? { 'X-Stash-Signature': signature } : {}),
-        ...bearerHeader(accessToken),
-      },
+      headers: bearerHeader(accessToken),
     }),
 
   /** Regenerates the stash signature, invalidating all old shared URLs. Returns the stash with new signedUrl. */
-  regenerateSignature: (stashId: string, signature: string, accessToken: string) =>
+  regenerateSignature: (stashId: string, accessToken: string) =>
     api.post<Stash>(`/stashes/${stashId}/regenerate-signature`, null, {
-      headers: {
-        'X-Stash-Signature': signature,
-        ...bearerHeader(accessToken),
-      },
+      headers: bearerHeader(accessToken),
     }),
 };
 

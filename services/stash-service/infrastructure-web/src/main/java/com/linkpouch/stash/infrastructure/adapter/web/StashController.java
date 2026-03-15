@@ -149,7 +149,7 @@ public class StashController implements StashesApi {
 
     @Override
     public ResponseEntity<StashResponseDTO> setStashPassword(
-            final UUID stashId, final SetPasswordRequestDTO setPasswordRequestDTO, final String xStashSignature) {
+            final UUID stashId, final SetPasswordRequestDTO setPasswordRequestDTO) {
 
         requireClaimerOrUnclaimed();
 
@@ -159,7 +159,7 @@ public class StashController implements StashesApi {
     }
 
     @Override
-    public ResponseEntity<Void> removeStashPassword(final UUID stashId, final String xStashSignature) {
+    public ResponseEntity<Void> removeStashPassword(final UUID stashId) {
 
         requireClaimerOrUnclaimed();
 
@@ -168,15 +168,7 @@ public class StashController implements StashesApi {
     }
 
     @Override
-    public ResponseEntity<StashResponseDTO> regenerateSignature(final UUID stashId, final String xStashSignature) {
-
-        final var stash = findStashByIdQuery
-                .execute(stashId)
-                .orElseThrow(() -> new NotFoundException("Stash not found: " + stashId));
-
-        if (!signatureService.validateSignature(stashId, stash.getSecretKey().getValue(), xStashSignature)) {
-            throw new UnauthorizedException("Invalid signature");
-        }
+    public ResponseEntity<StashResponseDTO> regenerateSignature(final UUID stashId) {
 
         requireClaimerOrUnclaimed();
 

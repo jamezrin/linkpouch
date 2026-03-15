@@ -411,7 +411,7 @@ export default function StashAccessPage() {
 
   useStashEvents({
     stashId,
-    signature,
+    accessToken,
     onLinkUpdated: (updatedLink) => {
       // Update the link in-place inside all pages of the infinite query cache
       queryClient.setQueryData(
@@ -538,7 +538,7 @@ export default function StashAccessPage() {
     setSettingsPasswordPending(true);
     setSettingsPasswordError(null);
     try {
-      await stashApi.setPassword(stashId, signature, settingsPassword, accessToken);
+      await stashApi.setPassword(stashId, settingsPassword, accessToken);
       // Re-acquire token — version bumped when password is set/changed.
       const res = await stashApi.acquireAccessToken(stashId, signature, settingsPassword, accountToken ?? undefined);
       setAccessToken(res.data.accessToken);
@@ -557,7 +557,7 @@ export default function StashAccessPage() {
     setSettingsPasswordPending(true);
     setSettingsPasswordError(null);
     try {
-      await stashApi.removePassword(stashId, signature, accessToken);
+      await stashApi.removePassword(stashId, accessToken);
       // Re-acquire token — version bumped when password is removed.
       const res = await stashApi.acquireAccessToken(stashId, signature, undefined, accountToken ?? undefined);
       setAccessToken(res.data.accessToken);
@@ -579,10 +579,10 @@ export default function StashAccessPage() {
   };
 
   const handleRegenerateSignature = async () => {
-    if (!stashId || !signature || !accessToken) return;
+    if (!stashId || !accessToken) return;
     setRegenerateSignaturePending(true);
     try {
-      const res = await stashApi.regenerateSignature(stashId, signature, accessToken);
+      const res = await stashApi.regenerateSignature(stashId, accessToken);
       const signedUrl: string = (res.data as any).signedUrl ?? '';
       const parts = signedUrl.split(`/s/${stashId}/`);
       const newSig = parts.length > 1 ? parts[1] : null;
