@@ -50,8 +50,15 @@ public class Stash {
 
     public static Stash create(final String name) {
         return new Stash(
-                null, null, null, StashName.of(name), null, null,
-                StashVisibility.SHARED, StashLinkPermissions.FULL, null);
+                null,
+                null,
+                null,
+                StashName.of(name),
+                null,
+                null,
+                StashVisibility.SHARED,
+                StashLinkPermissions.FULL,
+                null);
     }
 
     public boolean isPasswordProtected() {
