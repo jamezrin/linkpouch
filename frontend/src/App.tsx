@@ -123,7 +123,7 @@ function AppContent() {
 
   return (
     <StashSearchContext.Provider value={{ searchQuery, setSearchQuery, mobilePane, setMobilePane, stashSettingsOpen, setStashSettingsOpen, canWrite, setCanWrite, isClaimerToken, setIsClaimerToken }}>
-      <div className={`flex flex-col ${isStashPage ? 'h-dvh overflow-hidden' : 'min-h-dvh'}`}>
+      <div className={`flex flex-col bg-white dark:bg-slate-950 ${isStashPage ? 'h-dvh overflow-hidden' : 'min-h-dvh'}`}>
         <header className={`h-14 flex-shrink-0 bg-white dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800 items-center px-6 gap-3 relative ${isStashPage && mobilePane === 'preview' ? 'hidden md:flex' : 'flex'}`}>
           {/* Logo / home link */}
           <a href="/" className="flex items-center gap-2.5 group flex-shrink-0">
