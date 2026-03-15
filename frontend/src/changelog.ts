@@ -16,6 +16,7 @@ export const changelog: ChangelogEntry[] = [
       'Your pouches modal now supports search, sort, and infinite scroll pagination',
       'Read-only visitor UX — cleaner experience when a pouch is in read-only mode',
       'What\'s New moved to the homepage for easier discovery',
+      'Several signed-in UX improvements: sign-in now opens in a modal instead of leaving the page, the walkthrough includes a step explaining account benefits, scrolling inside modals no longer scrolls the background, and auth/error pages now respect dark mode',
     ],
   },
   {
