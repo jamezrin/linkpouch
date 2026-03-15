@@ -39,6 +39,11 @@ export default function AccountStashCard({ stash }: Props) {
           </span>
         </div>
         <p className="text-[12px] text-slate-400 font-mono truncate mt-0.5">{stash.stashId}</p>
+        {stash.updatedAt && (
+          <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">
+            Updated {new Date(stash.updatedAt).toLocaleDateString('en', { month: 'short', day: 'numeric', year: 'numeric' })}
+          </p>
+        )}
       </div>
 
       <a

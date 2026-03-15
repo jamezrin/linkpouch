@@ -14,6 +14,7 @@ import com.linkpouch.stash.api.controller.StashesApi;
 import com.linkpouch.stash.api.model.*;
 import com.linkpouch.stash.domain.exception.ForbiddenException;
 import com.linkpouch.stash.domain.exception.NotFoundException;
+import com.linkpouch.stash.domain.exception.SignatureRegeneratedException;
 import com.linkpouch.stash.domain.exception.StashPrivateException;
 import com.linkpouch.stash.domain.exception.UnauthorizedException;
 import com.linkpouch.stash.domain.model.Stash;
@@ -39,6 +40,7 @@ public class StashController implements StashesApi {
     private final AcquireStashAccessUseCase acquireStashAccessUseCase;
     private final SetStashPasswordUseCase setStashPasswordUseCase;
     private final RemoveStashPasswordUseCase removeStashPasswordUseCase;
+    private final RegenerateStashSignatureUseCase regenerateStashSignatureUseCase;
     private final AccountRepository accountRepository;
     private final StashSignatureService signatureService;
     private final StashTokenService tokenService;
@@ -70,6 +72,9 @@ public class StashController implements StashesApi {
                 .orElseThrow(() -> new NotFoundException("Stash not found: " + stashId));
 
         if (!signatureService.validateSignature(stashId, stash.getSecretKey().getValue(), xStashSignature)) {
+            if (stash.getSignatureRefreshedAt() != null) {
+                throw new SignatureRegeneratedException(stash.getSignatureRefreshedAt());
+            }
             throw new UnauthorizedException("Invalid signature");
         }
 
@@ -184,6 +189,29 @@ public class StashController implements StashesApi {
 
         removeStashPasswordUseCase.execute(new RemoveStashPasswordCommand(stashId));
         return ResponseEntity.noContent().build();
+    }
+
+    @Override
+    public ResponseEntity<StashResponseDTO> regenerateSignature(final UUID stashId, final String xStashSignature) {
+
+        final var stash = findStashByIdQuery
+                .execute(stashId)
+                .orElseThrow(() -> new NotFoundException("Stash not found: " + stashId));
+
+        if (!signatureService.validateSignature(stashId, stash.getSecretKey().getValue(), xStashSignature)) {
+            throw new UnauthorizedException("Invalid signature");
+        }
+
+        requireClaimerOrUnclaimed(stashId);
+
+        final var updated = regenerateStashSignatureUseCase.execute(new RegenerateStashSignatureCommand(stashId));
+
+        final var response = mapper.mapOut(updated);
+        final String signedUrl = signatureService.generateSignedUrl(
+                updated.getId(), updated.getSecretKey().getValue());
+        response.setSignedUrl(signedUrl);
+
+        return ResponseEntity.ok(response);
     }
 
     /**

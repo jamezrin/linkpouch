@@ -1,6 +1,7 @@
 package com.linkpouch.stash.infrastructure.adapter.web;
 
 import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 
 import jakarta.servlet.http.HttpServletRequest;
 
@@ -13,6 +14,7 @@ import com.linkpouch.stash.api.model.ErrorResponseDTO;
 import com.linkpouch.stash.domain.exception.ForbiddenException;
 import com.linkpouch.stash.domain.exception.NotFoundException;
 import com.linkpouch.stash.domain.exception.PasswordRequiredException;
+import com.linkpouch.stash.domain.exception.SignatureRegeneratedException;
 import com.linkpouch.stash.domain.exception.StashPrivateException;
 import com.linkpouch.stash.domain.exception.UnauthorizedException;
 
@@ -37,6 +39,20 @@ public class GlobalExceptionHandler {
         return buildResponse(
                 HttpStatus.UNAUTHORIZED, ex.getMessage(),
                 PasswordRequiredException.ERROR_CODE, request.getRequestURI());
+    }
+
+    @ExceptionHandler(SignatureRegeneratedException.class)
+    public ResponseEntity<ErrorResponseDTO> handleSignatureRegenerated(
+            final SignatureRegeneratedException ex, final HttpServletRequest request) {
+        final var dto = new ErrorResponseDTO();
+        dto.setTimestamp(OffsetDateTime.now());
+        dto.setStatus(HttpStatus.UNAUTHORIZED.value());
+        dto.setError(HttpStatus.UNAUTHORIZED.getReasonPhrase());
+        dto.setMessage(ex.getMessage());
+        dto.setErrorCode(SignatureRegeneratedException.ERROR_CODE);
+        dto.setPath(request.getRequestURI());
+        dto.setSignatureRefreshedAt(OffsetDateTime.of(ex.getSignatureRefreshedAt(), ZoneOffset.UTC));
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(dto);
     }
 
     @ExceptionHandler(UnauthorizedException.class)

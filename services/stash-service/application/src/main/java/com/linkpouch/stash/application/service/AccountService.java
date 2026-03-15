@@ -12,6 +12,7 @@ import com.linkpouch.stash.domain.exception.NotFoundException;
 import com.linkpouch.stash.domain.exception.UnauthorizedException;
 import com.linkpouch.stash.domain.model.Account;
 import com.linkpouch.stash.domain.model.AccountProvider;
+import com.linkpouch.stash.domain.model.ClaimedStashSummary;
 import com.linkpouch.stash.domain.model.Stash;
 import com.linkpouch.stash.domain.model.StashVisibility;
 import com.linkpouch.stash.domain.port.in.AcquireClaimedStashAccessCommand;
@@ -20,6 +21,9 @@ import com.linkpouch.stash.domain.port.in.ClaimStashCommand;
 import com.linkpouch.stash.domain.port.in.ClaimStashUseCase;
 import com.linkpouch.stash.domain.port.in.DisownStashCommand;
 import com.linkpouch.stash.domain.port.in.DisownStashUseCase;
+import com.linkpouch.stash.domain.port.in.ListClaimedStashesCommand;
+import com.linkpouch.stash.domain.port.in.ListClaimedStashesQuery;
+import com.linkpouch.stash.domain.port.in.PagedResult;
 import com.linkpouch.stash.domain.port.in.UpdateStashLinkPermissionsCommand;
 import com.linkpouch.stash.domain.port.in.UpdateStashLinkPermissionsUseCase;
 import com.linkpouch.stash.domain.port.in.UpdateStashVisibilityCommand;
@@ -45,7 +49,8 @@ public class AccountService
                 DisownStashUseCase,
                 UpdateStashVisibilityUseCase,
                 UpdateStashLinkPermissionsUseCase,
-                AcquireClaimedStashAccessUseCase {
+                AcquireClaimedStashAccessUseCase,
+                ListClaimedStashesQuery {
 
     private final AccountRepository accountRepository;
     private final StashRepository stashRepository;
@@ -151,5 +156,11 @@ public class AccountService
         }
 
         return stashRepository.findById(command.stashId()).orElseThrow(() -> new NotFoundException("Stash not found"));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PagedResult<ClaimedStashSummary> execute(final ListClaimedStashesCommand command) {
+        return accountRepository.listClaimedStashes(command);
     }
 }

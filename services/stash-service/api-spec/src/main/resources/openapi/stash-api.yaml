@@ -313,6 +313,10 @@ components:
           description: Machine-readable error code (e.g. PASSWORD_REQUIRED, INVALID_TOKEN)
         path:
           type: string
+        signatureRefreshedAt:
+          type: string
+          format: date-time
+          description: When the stash signature was last regenerated (only set when errorCode is SIGNATURE_REGENERATED)
 
 paths:
   /stashes:
@@ -556,6 +560,55 @@ paths:
           description: Password removed successfully
         '401':
           description: Invalid signature or invalid Bearer token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Stash not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /stashes/{stashId}/regenerate-signature:
+    parameters:
+      - name: stashId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: X-Stash-Signature
+        in: header
+        required: true
+        schema:
+          type: string
+        description: HMAC-SHA256 signature proving ownership of this stash
+    post:
+      summary: Regenerate the stash signature (invalidates all old shared URLs)
+      description: >
+        Generates a new secret key for the stash, invalidating the previous signed URL.
+        Only the claimer (or unclaimed stash owner) may call this.
+        Returns the stash with the new signedUrl in the response.
+      operationId: regenerateSignature
+      tags:
+        - Stashes
+      responses:
+        '200':
+          description: Signature regenerated — new signedUrl in the response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StashResponse'
+        '401':
+          description: Invalid signature
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Only the owner can perform this action
           content:
             application/json:
               schema:

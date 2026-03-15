@@ -47,6 +47,9 @@ public class StashJpaEntity {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
+    @Column(name = "signature_refreshed_at")
+    private LocalDateTime signatureRefreshedAt;
+
     @OneToMany(mappedBy = "stash", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     @EqualsAndHashCode.Exclude

@@ -5,7 +5,10 @@ import java.util.Optional;
 import java.util.UUID;
 
 import com.linkpouch.stash.domain.model.Account;
+import com.linkpouch.stash.domain.model.ClaimedStashSummary;
 import com.linkpouch.stash.domain.model.OAuthProvider;
+import com.linkpouch.stash.domain.port.in.ListClaimedStashesCommand;
+import com.linkpouch.stash.domain.port.in.PagedResult;
 
 public interface AccountRepository {
 
@@ -17,6 +20,9 @@ public interface AccountRepository {
 
     /** Returns the stash IDs claimed by the given account. */
     List<UUID> findClaimedStashIds(UUID accountId);
+
+    /** Returns a paginated, searchable, sortable list of stashes claimed by the given account. */
+    PagedResult<ClaimedStashSummary> listClaimedStashes(ListClaimedStashesCommand command);
 
     void claimStash(UUID accountId, UUID stashId);
 

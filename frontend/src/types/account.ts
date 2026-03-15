@@ -10,6 +10,16 @@ export interface ClaimedStash {
   stashId: string;
   stashName: string;
   visibility: StashVisibility;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ClaimedStashPage {
+  content: ClaimedStash[];
+  totalElements: number;
+  totalPages: number;
+  size: number;
+  number: number;
 }
 
 export interface AccountResponse {
