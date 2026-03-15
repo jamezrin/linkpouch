@@ -89,11 +89,11 @@ public class AccountController {
 
     @GetMapping("/stashes")
     public ResponseEntity<Map<String, Object>> listStashes(
-            @RequestParam(defaultValue = "") final String search,
-            @RequestParam(defaultValue = "createdAt") final String sort,
-            @RequestParam(defaultValue = "desc") final String dir,
-            @RequestParam(defaultValue = "0") final int page,
-            @RequestParam(defaultValue = "20") final int size,
+            @RequestParam(name = "search", defaultValue = "") final String search,
+            @RequestParam(name = "sort", defaultValue = "createdAt") final String sort,
+            @RequestParam(name = "dir", defaultValue = "desc") final String dir,
+            @RequestParam(name = "page", defaultValue = "0") final int page,
+            @RequestParam(name = "size", defaultValue = "20") final int size,
             final HttpServletRequest request) {
         final AccountClaims claims = (AccountClaims) request.getAttribute(AccountJwtInterceptor.CLAIMS_ATTR);
         final var result = listClaimedStashesQuery.execute(
