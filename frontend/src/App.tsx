@@ -135,8 +135,8 @@ function AppContent() {
             <span className="text-[15px] font-semibold text-slate-900 dark:text-white tracking-tight">linkpouch</span>
           </a>
 
-          {/* Breadcrumb — only on stash pages with a valid signature */}
-          {isStashPage && signature && (
+          {/* Breadcrumb — on stash pages with a signature or when accessing as claimer */}
+          {isStashPage && (signature || isClaimerToken) && (
             <>
               <span className="text-slate-400 dark:text-slate-600 text-sm flex-shrink-0 select-none">/</span>
               {isEditingName ? (
@@ -197,7 +197,7 @@ function AppContent() {
           )}
 
           {/* Settings button — desktop only, stash pages only, hidden for read-only visitors */}
-          {isStashPage && signature && (canWrite || isClaimerToken) && (
+          {isStashPage && (signature || isClaimerToken) && (canWrite || isClaimerToken) && (
             <button
               id="lp-settings-button"
               onClick={() => setStashSettingsOpen((o) => !o)}
@@ -286,7 +286,7 @@ function AppContent() {
                 )}
 
                 {/* Settings — mobile, hidden for read-only visitors */}
-                {isStashPage && signature && (canWrite || isClaimerToken) && (
+                {isStashPage && (signature || isClaimerToken) && (canWrite || isClaimerToken) && (
                   <button
                     onClick={() => { setStashSettingsOpen(true); setMobileMenuOpen(false); }}
                     className="flex items-center gap-2.5 px-2 py-1.5 rounded-lg text-[13px] font-medium transition-colors text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white w-full text-left"
