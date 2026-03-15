@@ -34,6 +34,16 @@ export function isTokenValid(token: string): boolean {
   }
 }
 
+/** Reads the `claimer` boolean claim from a JWT without full validation. */
+export function isClaimerToken(token: string): boolean {
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    return payload.claimer === true;
+  } catch {
+    return false;
+  }
+}
+
 const bearerHeader = (accessToken: string) => ({ Authorization: `Bearer ${accessToken}` });
 
 export const stashApi = {

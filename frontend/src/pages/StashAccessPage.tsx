@@ -19,7 +19,7 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { restrictToVerticalAxis, restrictToParentElement } from '@dnd-kit/modifiers';
-import { api, stashApi, linkApi, utilsApi, isTokenValid, tokenStorageKey, signatureStorageKey } from '../services/api';
+import { api, stashApi, linkApi, utilsApi, isTokenValid, isClaimerToken as decodeIsClaimerToken, tokenStorageKey, signatureStorageKey } from '../services/api';
 import { useStashHistory } from '../hooks/useStashHistory';
 import { Link as LinkType } from '../types';
 import { useStashSearch } from '../contexts/stashSearch';
@@ -441,6 +441,7 @@ export default function StashAccessPage() {
     // Try cached token first (read directly from sessionStorage to avoid stale closure)
     const cached = sessionStorage.getItem(tokenStorageKey(stashId));
     if (cached && isTokenValid(cached)) {
+      setIsClaimerToken(decodeIsClaimerToken(cached));
       setAuthState('ready');
       return;
     }
