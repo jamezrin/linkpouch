@@ -595,7 +595,10 @@ export default function StashAccessPage() {
           recordEntry(stashId, stash.name, newSig);
         }
       }
-      await queryClient.invalidateQueries({ queryKey: ['stash', stashId] });
+      // Regeneration bumps the stash version, making the current token immediately stale.
+      // Force re-acquisition now (new sig is already in sessionStorage) rather than waiting
+      // for a background query failure to trigger the interceptor — that path has a race.
+      handleTokenExpiredRef.current();
     } catch {
       // Non-fatal — silently ignore
     } finally {
