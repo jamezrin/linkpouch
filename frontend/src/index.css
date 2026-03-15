@@ -41,11 +41,57 @@ body {
 /* ── Background blob drift ───────────────────────────────────────────────── */
 @keyframes blob-drift {
   0%, 100% { transform: translate(0, 0) scale(1); }
-  33%       { transform: translate(30px, -22px) scale(1.05); }
-  66%       { transform: translate(-18px, 16px) scale(0.97); }
+  33%       { transform: translate(40px, -30px) scale(1.05); }
+  66%       { transform: translate(-24px, 20px) scale(0.97); }
+}
+@keyframes blob-drift-3 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  25%       { transform: translate(-35px, 25px) scale(1.04); }
+  75%       { transform: translate(28px, -18px) scale(0.96); }
 }
 .animate-blob   { animation: blob-drift 20s ease-in-out infinite; }
 .animate-blob-2 { animation: blob-drift 26s ease-in-out infinite reverse; animation-delay: -10s; }
+.animate-blob-3 { animation: blob-drift-3 30s ease-in-out infinite; animation-delay: -15s; }
+
+/* ── Mouse-tracking spotlight ────────────────────────────────────────────── */
+.hero-spotlight {
+  opacity: 0;
+  transition: opacity 0.6s ease;
+  background: radial-gradient(
+    700px circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
+    rgba(99, 102, 241, 0.13) 0%,
+    rgba(139, 92, 246, 0.07) 30%,
+    transparent 65%
+  );
+}
+[data-spotlight="active"] .hero-spotlight { opacity: 1; }
+
+/* ── Cursor follower orb ─────────────────────────────────────────────────── */
+.cursor-follower {
+  position: fixed;
+  top: 0; left: 0;
+  width: 60px; height: 60px;
+  border-radius: 50%;
+  background: radial-gradient(circle,
+    rgba(139, 92, 246, 0.35) 0%,
+    rgba(99, 102, 241, 0.12) 60%,
+    transparent 100%
+  );
+  pointer-events: none;
+  opacity: 0;
+  transition: transform 0.12s cubic-bezier(0.25, 0.46, 0.45, 0.94), opacity 0.4s ease;
+  will-change: transform;
+  z-index: 100;
+  mix-blend-mode: screen;
+}
+@media (hover: none) { .cursor-follower { display: none; } }
+
+/* ── Reduced motion overrides ────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .hero-spotlight { display: none; }
+  .cursor-follower { display: none; }
+  .animate-blob, .animate-blob-2, .animate-blob-3 { animation: none; }
+}
 
 /* ── CTA button shimmer ──────────────────────────────────────────────────── */
 @keyframes shimmer-sweep {
