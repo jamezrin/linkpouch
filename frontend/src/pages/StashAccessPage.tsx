@@ -360,7 +360,7 @@ export default function StashAccessPage() {
   const [activeLinkId, setActiveLinkId] = useState<string | null>(null);
   const [lastCheckedIndex, setLastCheckedIndex] = useState<number | null>(null);
   const [selectingAll, setSelectingAll] = useState(false);
-  const { searchQuery, setSearchQuery, mobilePane, setMobilePane, setCanWrite, setIsClaimerToken } = useStashSearch();
+  const { searchQuery, setSearchQuery, mobilePane, setMobilePane, setCanWrite, setIsClaimerToken: setContextIsClaimerToken } = useStashSearch();
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [newLinkUrl, setNewLinkUrl] = useState('');
   const [urlError, setUrlError] = useState<string | null>(null);
@@ -677,8 +677,8 @@ export default function StashAccessPage() {
 
   // Sync write access flags to the shared context so App.tsx can gate the header UI
   useEffect(() => { setCanWrite(canWrite); }, [canWrite, setCanWrite]);
-  useEffect(() => { setIsClaimerToken(isClaimerToken); }, [isClaimerToken, setIsClaimerToken]);
-  useEffect(() => () => { setCanWrite(true); setIsClaimerToken(false); }, [setCanWrite, setIsClaimerToken]);
+  useEffect(() => { setContextIsClaimerToken(isClaimerToken); }, [isClaimerToken, setContextIsClaimerToken]);
+  useEffect(() => () => { setCanWrite(true); setContextIsClaimerToken(false); }, [setCanWrite, setContextIsClaimerToken]);
 
   const {
     data: linksData,
