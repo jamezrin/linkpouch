@@ -92,9 +92,10 @@ public class StashController implements StashesApi {
             }
             // Claimer on a private stash — no signature needed
         } else {
-            // Non-private stash — validate the signature
-            if (!signatureService.validateSignature(
-                    stashId, stash.getSecretKey().getValue(), xStashSignature)) {
+            // Non-private stash — validate the signature, unless the claimer is accessing
+            if (!isClaimer
+                    && !signatureService.validateSignature(
+                            stashId, stash.getSecretKey().getValue(), xStashSignature)) {
                 if (stash.getSignatureRefreshedAt() != null) {
                     throw new SignatureRegeneratedException(stash.getSignatureRefreshedAt());
                 }
