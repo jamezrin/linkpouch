@@ -4,7 +4,7 @@ import { stashApi } from '../services/api';
 
 interface UseStashEventsOptions {
   stashId: string;
-  signature: string | null;
+  accessToken: string | null;
   onLinkUpdated: (link: Link) => void;
 }
 
@@ -13,18 +13,18 @@ interface UseStashEventsOptions {
  * onLinkUpdated whenever a `link-updated` event is received.
  *
  * Before opening the SSE connection, a short-lived ticket is fetched via
- * POST /api/stashes/{stashId}/sse-ticket (authenticated with X-Stash-Signature).
+ * POST /api/stashes/{stashId}/sse-ticket (authenticated with the stash Bearer token).
  * The ticket is then passed as the `?ticket=` query parameter on the EventSource
- * URL, keeping the permanent HMAC signature out of server access logs.
+ * URL, keeping the Bearer token out of server access logs.
  *
  * Tickets are valid for 15 minutes — longer than the 10-minute SSE connection
  * timeout — so that the browser's native EventSource auto-reconnect succeeds
  * without requiring a new ticket exchange.
  *
  * The connection is automatically closed when the component unmounts or when
- * stashId / signature change.
+ * stashId / accessToken change.
  */
-export function useStashEvents({ stashId, signature, onLinkUpdated }: UseStashEventsOptions): void {
+export function useStashEvents({ stashId, accessToken, onLinkUpdated }: UseStashEventsOptions): void {
   // Keep the latest callback in a ref so the effect doesn't need to re-subscribe
   // when only the callback identity changes (e.g. inline arrow functions).
   const callbackRef = useRef(onLinkUpdated);
@@ -33,13 +33,13 @@ export function useStashEvents({ stashId, signature, onLinkUpdated }: UseStashEv
   });
 
   useEffect(() => {
-    if (!signature) return; // SSE requires a signature for ticket issuance
+    if (!accessToken) return;
 
     let es: EventSource | null = null;
     let cancelled = false;
 
     stashApi
-      .createSseTicket(stashId, signature)
+      .createSseTicket(stashId, accessToken)
       .then((res) => {
         if (cancelled) return;
 
@@ -72,5 +72,5 @@ export function useStashEvents({ stashId, signature, onLinkUpdated }: UseStashEv
       cancelled = true;
       es?.close();
     };
-  }, [stashId, signature]);
+  }, [stashId, accessToken]);
 }
