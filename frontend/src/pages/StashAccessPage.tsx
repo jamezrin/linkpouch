@@ -19,7 +19,7 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { restrictToVerticalAxis, restrictToParentElement } from '@dnd-kit/modifiers';
-import { api, stashApi, linkApi, utilsApi, isTokenValid, tokenStorageKey, signatureStorageKey, claimerStorageKey } from '../services/api';
+import { api, stashApi, linkApi, utilsApi, isTokenValid, tokenStorageKey, signatureStorageKey, claimerStorageKey, accountFingerprintKey, accountFingerprint } from '../services/api';
 import { useStashHistory } from '../hooks/useStashHistory';
 import { Link as LinkType } from '../types';
 import { useStashSearch } from '../contexts/stashSearch';
@@ -440,7 +440,8 @@ export default function StashAccessPage() {
 
     // Try cached token first (read directly from sessionStorage to avoid stale closure)
     const cached = sessionStorage.getItem(tokenStorageKey(stashId));
-    if (cached && isTokenValid(cached)) {
+    const cachedFingerprint = sessionStorage.getItem(accountFingerprintKey(stashId));
+    if (cached && isTokenValid(cached) && cachedFingerprint === accountFingerprint(accountToken)) {
       setIsClaimerToken(sessionStorage.getItem(claimerStorageKey(stashId)) === 'true');
       setAuthState('ready');
       return;
@@ -455,6 +456,7 @@ export default function StashAccessPage() {
         versionMismatchRetryCountRef.current = 0;
         setAccessToken(res.data.accessToken);
         sessionStorage.setItem(claimerStorageKey(stashId), String(res.data.isClaimer));
+        sessionStorage.setItem(accountFingerprintKey(stashId), accountFingerprint(accountToken));
         setIsClaimerToken(res.data.isClaimer);
         setAuthState('ready');
       })
@@ -482,6 +484,7 @@ export default function StashAccessPage() {
       if (stashId) {
         sessionStorage.removeItem(tokenStorageKey(stashId));
         sessionStorage.removeItem(claimerStorageKey(stashId));
+        sessionStorage.removeItem(accountFingerprintKey(stashId));
       }
       setAccessToken(null);
       setAuthAttempt((n) => n + 1);
@@ -656,6 +659,7 @@ export default function StashAccessPage() {
       if (stashId) {
         sessionStorage.removeItem(tokenStorageKey(stashId));
         sessionStorage.removeItem(claimerStorageKey(stashId));
+        sessionStorage.removeItem(accountFingerprintKey(stashId));
       }
       setAccessToken(null);
       setAuthState('private');
