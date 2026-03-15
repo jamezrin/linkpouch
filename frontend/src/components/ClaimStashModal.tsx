@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { accountApi } from '../services/accountApi';
 import { useAccount } from '../contexts/account';
+import { useScrollLock } from '../hooks/useScrollLock';
 
 interface Props {
   onClose: () => void;
@@ -11,6 +12,7 @@ interface Props {
 
 export default function ClaimStashModal({ onClose, prefillStashId, prefillSignature }: Props) {
   const { accountToken } = useAccount();
+  useScrollLock();
   const queryClient = useQueryClient();
   const [stashId, setStashId] = useState(prefillStashId ?? '');
   const [signature, setSignature] = useState(prefillSignature ?? '');

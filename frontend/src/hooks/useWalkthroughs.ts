@@ -64,6 +64,14 @@ export function useOnboardingWalkthrough(stashId: string) {
           },
         },
         {
+          element: '#lp-account-button',
+          popover: {
+            title: 'Link your account',
+            description:
+              'Sign in to recover this Pouch across devices, make it private so only you can access it, and control whether visitors can edit its links.',
+          },
+        },
+        {
           element: '#lp-share-button',
           popover: {
             title: 'Bookmark this URL',

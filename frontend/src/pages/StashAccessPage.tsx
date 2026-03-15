@@ -33,6 +33,7 @@ import { PouchIcon } from '../components/PouchIcon';
 import { useOnboardingWalkthrough, usePreviewWalkthrough } from '../hooks/useWalkthroughs';
 import { useAccount } from '../contexts/account';
 import { accountApi } from '../services/accountApi';
+import SignInModal from '../components/SignInModal';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -389,6 +390,7 @@ export default function StashAccessPage() {
   const [visibilityPending, setVisibilityPending] = useState(false);
   const [linkPermissionsPending, setLinkPermissionsPending] = useState(false);
   const [isClaimerToken, setIsClaimerToken] = useState(false);
+  const [signInOpen, setSignInOpen] = useState(false);
   const sentinelRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const liveIframeRef = useRef<HTMLIFrameElement>(null);
@@ -1184,7 +1186,7 @@ export default function StashAccessPage() {
       <div className="h-full w-full flex items-center justify-center bg-white dark:bg-slate-950">
         <div className="flex flex-col items-center gap-4">
           <div className="w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
-          <p className="text-slate-500 text-sm">Loading pouch…</p>
+          <p className="text-slate-500 dark:text-slate-400 text-sm">Loading pouch…</p>
         </div>
       </div>
     );
@@ -1247,7 +1249,7 @@ export default function StashAccessPage() {
       <div className="h-full w-full flex items-center justify-center bg-white dark:bg-slate-950">
         <div className="flex flex-col items-center gap-4">
           <div className="w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
-          <p className="text-slate-500 text-sm">Loading pouch…</p>
+          <p className="text-slate-500 dark:text-slate-400 text-sm">Loading pouch…</p>
         </div>
       </div>
     );
@@ -1926,6 +1928,8 @@ export default function StashAccessPage() {
       </div>
     </div>
 
+    {signInOpen && <SignInModal onClose={() => setSignInOpen(false)} />}
+
     {bulkImportOpen && stashId && accessToken && (
       <BulkImportModal
         stashId={stashId}
@@ -2082,12 +2086,12 @@ export default function StashAccessPage() {
                   <p className="text-[13px] text-slate-500 dark:text-slate-400 leading-snug">
                     Sign in to link this pouch to your account and recover it across devices.
                   </p>
-                  <a
-                    href="/account"
-                    className="block w-full py-2 text-center text-[13px] font-medium bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg transition-colors"
+                  <button
+                    onClick={() => setSignInOpen(true)}
+                    className="w-full py-2 text-[13px] font-medium bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg transition-colors"
                   >
                     Sign in
-                  </a>
+                  </button>
                 </div>
               ) : isStashClaimed ? (
                 <div className="flex flex-col gap-2">

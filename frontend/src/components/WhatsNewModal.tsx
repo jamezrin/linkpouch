@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { changelog } from '../changelog';
+import { useScrollLock } from '../hooks/useScrollLock';
 
 interface Props {
   onClose: () => void;
@@ -7,6 +8,7 @@ interface Props {
 
 export default function WhatsNewModal({ onClose }: Props) {
   const [visible, setVisible] = useState(false);
+  useScrollLock();
 
   useEffect(() => {
     // Defer one frame so the enter transition fires

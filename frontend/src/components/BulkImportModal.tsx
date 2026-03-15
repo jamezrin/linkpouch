@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { linkApi } from '../services/api';
 import { BulkImportResponse } from '../types';
+import { useScrollLock } from '../hooks/useScrollLock';
 
 interface BulkImportModalProps {
   stashId: string;
@@ -20,6 +21,7 @@ function parseUrls(text: string): string[] {
 
 export function BulkImportModal({ stashId, accessToken, onClose, onSuccess }: BulkImportModalProps) {
   const [tab, setTab] = useState<Tab>('paste');
+  useScrollLock();
   const [pasteText, setPasteText] = useState('');
   const [isDragOver, setIsDragOver] = useState(false);
   const [fileName, setFileName] = useState<string | null>(null);
