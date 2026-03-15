@@ -27,6 +27,23 @@ export const signatureStorageKey = (stashId: string) => `sig:${stashId}`;
 /** Returns the sessionStorage key used to store the isClaimer flag for a stash. */
 export const claimerStorageKey = (stashId: string) => `claimer:${stashId}`;
 
+/**
+ * Returns the sessionStorage key used to store the account fingerprint alongside a stash token.
+ * Used to detect when the signed-in account has changed since the token was cached.
+ */
+export const accountFingerprintKey = (stashId: string) => `acct-fp:${stashId}`;
+
+/**
+ * Derives a short fingerprint from an account JWT (the first 16 chars of the payload section).
+ * Different accounts always have different payload sections so this reliably detects account changes.
+ * An empty string is returned when there is no account JWT (anonymous access).
+ */
+export function accountFingerprint(accountJwt: string | null | undefined): string {
+  if (!accountJwt) return '';
+  const payload = accountJwt.split('.')[1] ?? '';
+  return payload.slice(0, 16);
+}
+
 /** Checks whether a stored JWT is still valid (not expired). */
 export function isTokenValid(token: string): boolean {
   try {
