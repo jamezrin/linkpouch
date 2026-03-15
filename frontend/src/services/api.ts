@@ -81,22 +81,22 @@ export const stashApi = {
    *  Bearer token if the stash is currently password-protected. */
   setPassword: (
     stashId: string,
-    signature: string,
+    signature: string | null,
     password: string,
     currentAccessToken?: string,
   ) =>
     api.put<Stash>(`/stashes/${stashId}/password`, { password }, {
       headers: {
-        'X-Stash-Signature': signature,
+        ...(signature ? { 'X-Stash-Signature': signature } : {}),
         ...(currentAccessToken ? bearerHeader(currentAccessToken) : {}),
       },
     }),
 
-  /** Removes the stash password. Requires the signature and a valid Bearer token with pwdKey. */
-  removePassword: (stashId: string, signature: string, accessToken: string) =>
+  /** Removes the stash password. Requires the signature (or claimer JWT) and a valid Bearer token. */
+  removePassword: (stashId: string, signature: string | null, accessToken: string) =>
     api.delete(`/stashes/${stashId}/password`, {
       headers: {
-        'X-Stash-Signature': signature,
+        ...(signature ? { 'X-Stash-Signature': signature } : {}),
         ...bearerHeader(accessToken),
       },
     }),

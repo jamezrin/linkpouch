@@ -529,7 +529,7 @@ export default function StashAccessPage() {
 
   const handleSetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!stashId || !signature || !accessToken || !settingsPassword.trim()) return;
+    if (!stashId || !accessToken || !settingsPassword.trim()) return;
     setSettingsPasswordPending(true);
     setSettingsPasswordError(null);
     try {
@@ -548,7 +548,7 @@ export default function StashAccessPage() {
   };
 
   const handleRemovePassword = async () => {
-    if (!stashId || !signature || !accessToken) return;
+    if (!stashId || !accessToken) return;
     setSettingsPasswordPending(true);
     setSettingsPasswordError(null);
     try {
@@ -2017,7 +2017,7 @@ export default function StashAccessPage() {
           <div className="flex-1 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800">
 
             {/* ── Password ─────────────────────────────────────────────── */}
-            {(isClaimerToken || !isStashClaimed) && signature && <section className="p-4">
+            {(isClaimerToken || (!isStashClaimed && signature)) && <section className="p-4">
               <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-1">Password</h3>
 
               {stash?.passwordProtected ? (

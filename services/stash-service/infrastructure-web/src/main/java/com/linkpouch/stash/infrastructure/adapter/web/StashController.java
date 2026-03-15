@@ -148,8 +148,12 @@ public class StashController implements StashesApi {
                 .execute(stashId)
                 .orElseThrow(() -> new NotFoundException("Stash not found: " + stashId));
 
-        if (!signatureService.validateSignature(stashId, stash.getSecretKey().getValue(), xStashSignature)) {
-            throw new UnauthorizedException("Invalid signature");
+        final StashAccessClaims claims = getRequiredClaims();
+        if (!claims.claimer()) {
+            if (!signatureService.validateSignature(
+                    stashId, stash.getSecretKey().getValue(), xStashSignature)) {
+                throw new UnauthorizedException("Invalid signature");
+            }
         }
 
         requireClaimerOrUnclaimed();
@@ -166,8 +170,12 @@ public class StashController implements StashesApi {
                 .execute(stashId)
                 .orElseThrow(() -> new NotFoundException("Stash not found: " + stashId));
 
-        if (!signatureService.validateSignature(stashId, stash.getSecretKey().getValue(), xStashSignature)) {
-            throw new UnauthorizedException("Invalid signature");
+        final StashAccessClaims claims = getRequiredClaims();
+        if (!claims.claimer()) {
+            if (!signatureService.validateSignature(
+                    stashId, stash.getSecretKey().getValue(), xStashSignature)) {
+                throw new UnauthorizedException("Invalid signature");
+            }
         }
 
         requireClaimerOrUnclaimed();
