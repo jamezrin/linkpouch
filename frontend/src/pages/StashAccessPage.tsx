@@ -579,7 +579,7 @@ export default function StashAccessPage() {
   };
 
   const handleRegenerateSignature = async () => {
-    if (!stashId || !signature) return;
+    if (!stashId || !signature || !accessToken) return;
     setRegenerateSignaturePending(true);
     try {
       const res = await stashApi.regenerateSignature(stashId, signature, accessToken);
