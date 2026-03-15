@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMutation } from '@tanstack/react-query';
 import { stashApi } from '../services/api';
@@ -543,6 +543,116 @@ export default function HomePage() {
   const faqRef      = useReveal();
   const roadmapRef  = useReveal();
 
+  // ── Interactive effects ───────────────────────────────────────────────────
+  const heroRef      = useRef<HTMLElement>(null);
+  const hasMovedRef  = useRef(false);
+  const canvasRef    = useRef<HTMLCanvasElement>(null);
+  const cursorRef    = useRef<HTMLDivElement>(null);
+
+  // Mouse-tracking spotlight
+  useEffect(() => {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const hero = heroRef.current;
+    if (!hero) return;
+    const onMove = (e: MouseEvent) => {
+      const rect = hero.getBoundingClientRect();
+      const x = ((e.clientX - rect.left) / rect.width) * 100;
+      const y = ((e.clientY - rect.top) / rect.height) * 100;
+      hero.style.setProperty('--mouse-x', `${x}%`);
+      hero.style.setProperty('--mouse-y', `${y}%`);
+      if (!hasMovedRef.current) {
+        hasMovedRef.current = true;
+        hero.setAttribute('data-spotlight', 'active');
+      }
+    };
+    hero.addEventListener('mousemove', onMove);
+    return () => hero.removeEventListener('mousemove', onMove);
+  }, []);
+
+  // Particle constellation canvas
+  useEffect(() => {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    type Particle = { x: number; y: number; vx: number; vy: number };
+    let particles: Particle[] = [];
+    let rafId: number;
+
+    const resize = () => {
+      canvas.width = canvas.offsetWidth;
+      canvas.height = canvas.offsetHeight;
+      particles = Array.from({ length: 55 }, () => ({
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height,
+        vx: (Math.random() - 0.5) * 0.6,
+        vy: (Math.random() - 0.5) * 0.6,
+      }));
+    };
+
+    const draw = () => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      for (const p of particles) {
+        p.x += p.vx;
+        p.y += p.vy;
+        if (p.x < 0 || p.x > canvas.width)  p.vx *= -1;
+        if (p.y < 0 || p.y > canvas.height) p.vy *= -1;
+      }
+      for (let i = 0; i < particles.length; i++) {
+        for (let j = i + 1; j < particles.length; j++) {
+          const dx = particles[i].x - particles[j].x;
+          const dy = particles[i].y - particles[j].y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          if (dist < 140) {
+            ctx.beginPath();
+            ctx.strokeStyle = `rgba(165,180,252,${0.18 * (1 - dist / 140)})`;
+            ctx.lineWidth = 0.8;
+            ctx.moveTo(particles[i].x, particles[i].y);
+            ctx.lineTo(particles[j].x, particles[j].y);
+            ctx.stroke();
+          }
+        }
+      }
+      for (const p of particles) {
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, 1.2, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(165,180,252,0.35)';
+        ctx.fill();
+      }
+      rafId = requestAnimationFrame(draw);
+    };
+
+    resize();
+    draw();
+
+    const ro = new ResizeObserver(resize);
+    ro.observe(canvas);
+    return () => {
+      cancelAnimationFrame(rafId);
+      ro.disconnect();
+    };
+  }, []);
+
+  // Cursor follower orb
+  useEffect(() => {
+    if (window.matchMedia('(hover: none)').matches) return;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const el = cursorRef.current;
+    if (!el) return;
+    let shown = false;
+    const onMove = (e: MouseEvent) => {
+      el.style.transform = `translate(${e.clientX - 30}px, ${e.clientY - 30}px)`;
+      if (!shown) {
+        shown = true;
+        el.style.opacity = '1';
+      }
+    };
+    window.addEventListener('mousemove', onMove);
+    return () => window.removeEventListener('mousemove', onMove);
+  }, []);
+
   const createMutation = useMutation({
     mutationFn: (name: string) => stashApi.createStash({ name }, accountToken),
     onSuccess: (response) => {
@@ -567,7 +677,7 @@ export default function HomePage() {
   return (
     <div>
       {/* ── Hero ──────────────────────────────────────────────────────────── */}
-      <section className="relative bg-slate-950 overflow-hidden">
+      <section ref={heroRef} className="relative bg-slate-950 overflow-hidden">
         {/* Animated gradient blobs */}
         <div aria-hidden="true" className="absolute inset-0 pointer-events-none overflow-hidden">
           <div
@@ -575,7 +685,7 @@ export default function HomePage() {
             style={{
               top: '-15%', left: '-10%',
               width: 700, height: 700,
-              background: 'radial-gradient(circle, rgba(99,102,241,0.22) 0%, transparent 65%)',
+              background: 'radial-gradient(circle, rgba(99,102,241,0.28) 0%, transparent 65%)',
               filter: 'blur(40px)',
             }}
           />
@@ -584,10 +694,28 @@ export default function HomePage() {
             style={{
               bottom: '-10%', right: '-5%',
               width: 600, height: 600,
-              background: 'radial-gradient(circle, rgba(139,92,246,0.18) 0%, transparent 65%)',
+              background: 'radial-gradient(circle, rgba(139,92,246,0.22) 0%, transparent 65%)',
               filter: 'blur(50px)',
             }}
           />
+          <div
+            className="animate-blob-3 absolute rounded-full"
+            style={{
+              top: '40%', right: '-8%',
+              width: 500, height: 500,
+              background: 'radial-gradient(circle, rgba(20,184,166,0.12) 0%, transparent 65%)',
+              filter: 'blur(55px)',
+            }}
+          />
+          {/* Particle constellation */}
+          <canvas
+            ref={canvasRef}
+            className="absolute inset-0 w-full h-full"
+            aria-hidden="true"
+            style={{ pointerEvents: 'none' }}
+          />
+          {/* Mouse spotlight */}
+          <div className="hero-spotlight absolute inset-0 pointer-events-none" />
           {/* Subtle grid */}
           <div
             className="absolute inset-0 opacity-[0.025]"
@@ -929,6 +1057,7 @@ export default function HomePage() {
         </div>
       </section>
 
+      <div ref={cursorRef} className="cursor-follower" aria-hidden="true" />
       {whatsNewOpen && <WhatsNewModal onClose={() => setWhatsNewOpen(false)} />}
     </div>
   );
