@@ -643,7 +643,7 @@ export default function HomePage() {
     if (!el) return;
     let shown = false;
     const onMove = (e: MouseEvent) => {
-      el.style.transform = `translate(${e.clientX - 30}px, ${e.clientY - 30}px)`;
+      el.style.transform = `translate(${e.clientX - 60}px, ${e.clientY - 60}px)`;
       if (!shown) {
         shown = true;
         el.style.opacity = '1';
