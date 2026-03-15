@@ -547,8 +547,6 @@ export default function HomePage() {
   const heroRef      = useRef<HTMLElement>(null);
   const hasMovedRef  = useRef(false);
   const canvasRef    = useRef<HTMLCanvasElement>(null);
-  const cursorRef    = useRef<HTMLDivElement>(null);
-
   // Mouse-tracking spotlight
   useEffect(() => {
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
@@ -633,24 +631,6 @@ export default function HomePage() {
       cancelAnimationFrame(rafId);
       ro.disconnect();
     };
-  }, []);
-
-  // Cursor follower orb
-  useEffect(() => {
-    if (window.matchMedia('(hover: none)').matches) return;
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-    const el = cursorRef.current;
-    if (!el) return;
-    let shown = false;
-    const onMove = (e: MouseEvent) => {
-      el.style.transform = `translate(${e.clientX - 60}px, ${e.clientY - 60}px)`;
-      if (!shown) {
-        shown = true;
-        el.style.opacity = '1';
-      }
-    };
-    window.addEventListener('mousemove', onMove);
-    return () => window.removeEventListener('mousemove', onMove);
   }, []);
 
   const createMutation = useMutation({
@@ -1057,7 +1037,6 @@ export default function HomePage() {
         </div>
       </section>
 
-      <div ref={cursorRef} className="cursor-follower" aria-hidden="true" />
       {whatsNewOpen && <WhatsNewModal onClose={() => setWhatsNewOpen(false)} />}
     </div>
   );
