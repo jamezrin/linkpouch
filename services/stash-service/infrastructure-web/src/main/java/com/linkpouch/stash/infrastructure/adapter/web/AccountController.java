@@ -11,9 +11,12 @@ import org.springframework.web.bind.annotation.*;
 
 import com.linkpouch.stash.domain.exception.NotFoundException;
 import com.linkpouch.stash.domain.model.Account;
+import com.linkpouch.stash.domain.model.StashLinkPermissions;
 import com.linkpouch.stash.domain.model.StashVisibility;
 import com.linkpouch.stash.domain.port.in.AcquireClaimedStashAccessCommand;
 import com.linkpouch.stash.domain.port.in.AcquireClaimedStashAccessUseCase;
+import com.linkpouch.stash.domain.port.in.UpdateStashLinkPermissionsCommand;
+import com.linkpouch.stash.domain.port.in.UpdateStashLinkPermissionsUseCase;
 import com.linkpouch.stash.domain.port.in.ClaimStashCommand;
 import com.linkpouch.stash.domain.port.in.ClaimStashUseCase;
 import com.linkpouch.stash.domain.port.in.DisownStashCommand;
@@ -37,6 +40,7 @@ public class AccountController {
     private final ClaimStashUseCase claimStashUseCase;
     private final DisownStashUseCase disownStashUseCase;
     private final UpdateStashVisibilityUseCase updateStashVisibilityUseCase;
+    private final UpdateStashLinkPermissionsUseCase updateStashLinkPermissionsUseCase;
     private final AcquireClaimedStashAccessUseCase acquireClaimedStashAccessUseCase;
     private final AccountRepository accountRepository;
     private final StashRepository stashRepository;
@@ -110,17 +114,32 @@ public class AccountController {
         return ResponseEntity.noContent().build();
     }
 
+    @PutMapping("/stashes/{stashId}/link-permissions")
+    public ResponseEntity<Void> updateStashLinkPermissions(
+            @PathVariable("stashId") final String stashId,
+            @RequestBody final UpdateLinkPermissionsRequest body,
+            final HttpServletRequest request) {
+        final AccountClaims claims = (AccountClaims) request.getAttribute(AccountJwtInterceptor.CLAIMS_ATTR);
+        final StashLinkPermissions permissions =
+                StashLinkPermissions.valueOf(body.permissions().toUpperCase());
+        updateStashLinkPermissionsUseCase.execute(
+                new UpdateStashLinkPermissionsCommand(claims.accountId(), UUID.fromString(stashId), permissions));
+        return ResponseEntity.noContent().build();
+    }
+
     @PostMapping("/stashes/{stashId}/access-token")
     public ResponseEntity<Map<String, Object>> acquireClaimedStashAccess(
             @PathVariable("stashId") final String stashId, final HttpServletRequest request) {
         final AccountClaims claims = (AccountClaims) request.getAttribute(AccountJwtInterceptor.CLAIMS_ATTR);
         final var stash = acquireClaimedStashAccessUseCase.execute(
                 new AcquireClaimedStashAccessCommand(claims.accountId(), UUID.fromString(stashId)));
-        final String token = stashTokenService.issueToken(stash);
+        final String token = stashTokenService.issueClaimerToken(stash);
         return ResponseEntity.ok(Map.of("accessToken", token, "expiresIn", stashTokenService.getExpirySeconds()));
     }
 
     public record ClaimStashRequest(String stashId, String signature, String password) {}
 
     public record UpdateVisibilityRequest(String visibility) {}
+
+    public record UpdateLinkPermissionsRequest(String permissions) {}
 }

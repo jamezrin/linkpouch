@@ -87,6 +87,12 @@ components:
             - SHARED
             - PRIVATE
           description: Who can access this stash (SHARED = anyone with URL, PRIVATE = claimer only)
+        linkPermissions:
+          type: string
+          enum:
+            - FULL
+            - READ_ONLY
+          description: Write access for non-owner visitors (FULL = anyone can edit, READ_ONLY = owner only)
         linkCount:
           type: integer
         createdAt:

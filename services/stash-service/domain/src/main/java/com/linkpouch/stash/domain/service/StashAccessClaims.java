@@ -8,4 +8,4 @@ import java.util.UUID;
  * <p>Decouples the web and application layers from JJWT implementation types.
  * The {@code pwdKey} field is {@code null} for stashes without a password.
  */
-public record StashAccessClaims(UUID stashId, String pwdKey) {}
+public record StashAccessClaims(UUID stashId, String pwdKey, boolean claimer) {}

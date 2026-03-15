@@ -11,6 +11,7 @@ import org.mapstruct.Mapping;
 
 import com.linkpouch.stash.api.model.*;
 import com.linkpouch.stash.domain.model.*;
+import com.linkpouch.stash.domain.model.StashLinkPermissions;
 import com.linkpouch.stash.domain.port.in.AddLinkCommand;
 import com.linkpouch.stash.domain.port.in.CreateStashCommand;
 
@@ -33,6 +34,7 @@ public interface ApiDtoMapper {
     @Mapping(target = "name", source = "name")
     @Mapping(target = "passwordProtected", expression = "java(stash.isPasswordProtected())")
     @Mapping(target = "visibility", source = "visibility")
+    @Mapping(target = "linkPermissions", source = "linkPermissions")
     @Mapping(target = "linkCount", constant = "0")
     @Mapping(target = "createdAt", source = "createdAt")
     @Mapping(target = "updatedAt", source = "updatedAt")
@@ -94,5 +96,13 @@ public interface ApiDtoMapper {
 
     default String linkStatusToString(LinkStatus status) {
         return status != null ? status.name() : LinkStatus.PENDING.name();
+    }
+
+    default String stashLinkPermissionsToString(StashLinkPermissions permissions) {
+        return permissions != null ? permissions.name() : StashLinkPermissions.FULL.name();
+    }
+
+    default String stashVisibilityToString(StashVisibility visibility) {
+        return visibility != null ? visibility.name() : StashVisibility.SHARED.name();
     }
 }

@@ -3,6 +3,7 @@ export interface Stash {
   name: string;
   passwordProtected: boolean;
   visibility: 'SHARED' | 'PRIVATE';
+  linkPermissions: 'FULL' | 'READ_ONLY';
   linkCount: number;
   createdAt: string;
   updatedAt: string;

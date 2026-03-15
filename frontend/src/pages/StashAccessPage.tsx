@@ -293,6 +293,7 @@ interface SortableLinkItemProps {
   activeLinkId: string | null;
   draggingId: string | null;
   isSearching: boolean;
+  dragDisabled: boolean;
   index: number;
   onItemClick: (id: string) => void;
   onCheckboxClick: (id: string, index: number, shiftKey: boolean) => void;
@@ -304,13 +305,14 @@ const SortableLinkItem = ({
   activeLinkId,
   draggingId,
   isSearching,
+  dragDisabled,
   index,
   onItemClick,
   onCheckboxClick,
 }: SortableLinkItemProps) => {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: link.id,
-    disabled: isSearching,
+    disabled: isSearching || dragDisabled,
   });
 
   // isDragging = this item is the primary dragged item (hidden; DragOverlay shows it)
@@ -330,7 +332,7 @@ const SortableLinkItem = ({
         isSelected={isSelected}
         isActive={link.id === activeLinkId}
         index={index}
-        isDragDisabled={isSearching}
+        isDragDisabled={isSearching || dragDisabled}
         isGroupDragging={isGroupDragging}
         onItemClick={onItemClick}
         onCheckboxClick={onCheckboxClick}
@@ -385,6 +387,8 @@ export default function StashAccessPage() {
   const [removePasswordConfirm, setRemovePasswordConfirm] = useState(false);
   const [showSettingsPassword, setShowSettingsPassword] = useState(false);
   const [visibilityPending, setVisibilityPending] = useState(false);
+  const [linkPermissionsPending, setLinkPermissionsPending] = useState(false);
+  const [isClaimerToken, setIsClaimerToken] = useState(false);
   const sentinelRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const liveIframeRef = useRef<HTMLIFrameElement>(null);
@@ -521,9 +525,16 @@ export default function StashAccessPage() {
     setSettingsPasswordError(null);
     try {
       await stashApi.setPassword(stashId, signature, settingsPassword, accessToken);
-      // Re-acquire token — pwdKey changes when password is set/changed
-      const res = await stashApi.acquireAccessToken(stashId, signature, settingsPassword);
-      setAccessToken(res.data.accessToken);
+      // Re-acquire token — pwdKey changes when password is set/changed.
+      // Claimers get a fresh claimer token; others get a regular token.
+      if (isStashClaimed && accountToken) {
+        const res = await accountApi.acquireStashAccess(accountToken, stashId);
+        setAccessToken(res.data.accessToken);
+        setIsClaimerToken(true);
+      } else {
+        const res = await stashApi.acquireAccessToken(stashId, signature, settingsPassword);
+        setAccessToken(res.data.accessToken);
+      }
       setSettingsPassword('');
       await queryClient.invalidateQueries({ queryKey: ['stash', stashId] });
     } catch {
@@ -539,9 +550,15 @@ export default function StashAccessPage() {
     setSettingsPasswordError(null);
     try {
       await stashApi.removePassword(stashId, signature, accessToken);
-      // Re-acquire token — pwdKey is gone now
-      const res = await stashApi.acquireAccessToken(stashId, signature);
-      setAccessToken(res.data.accessToken);
+      // Re-acquire token — pwdKey is gone now.
+      if (isStashClaimed && accountToken) {
+        const res = await accountApi.acquireStashAccess(accountToken, stashId);
+        setAccessToken(res.data.accessToken);
+        setIsClaimerToken(true);
+      } else {
+        const res = await stashApi.acquireAccessToken(stashId, signature);
+        setAccessToken(res.data.accessToken);
+      }
       setRemovePasswordConfirm(false);
       await queryClient.invalidateQueries({ queryKey: ['stash', stashId] });
     } catch {
@@ -570,6 +587,17 @@ export default function StashAccessPage() {
     }
   };
 
+  const handleLinkPermissionsChange = async (newPermissions: 'FULL' | 'READ_ONLY') => {
+    if (!stashId || !accountToken || !stash || newPermissions === stash.linkPermissions) return;
+    setLinkPermissionsPending(true);
+    try {
+      await accountApi.updateLinkPermissions(accountToken, stashId, newPermissions);
+      await queryClient.invalidateQueries({ queryKey: ['stash', stashId] });
+    } finally {
+      setLinkPermissionsPending(false);
+    }
+  };
+
   const { data: accountData } = useQuery({
     queryKey: ['account'],
     queryFn: () => accountApi.getAccount(accountToken!).then((r) => r.data),
@@ -577,6 +605,18 @@ export default function StashAccessPage() {
   });
 
   const isStashClaimed = accountData?.claimedStashes.some((s) => s.stashId === stashId) ?? false;
+
+  // Upgrade to a claimer token whenever ownership is confirmed.
+  // This lets the backend recognise this user as the claimer for password and write-permission checks.
+  useEffect(() => {
+    if (!isStashClaimed || !accountToken || !stashId || isClaimerToken || authState !== 'ready') return;
+    accountApi.acquireStashAccess(accountToken, stashId).then((res) => {
+      setAccessToken(res.data.accessToken);
+      setIsClaimerToken(true);
+    }).catch(() => {
+      // Non-fatal — fall back to the existing (non-claimer) token
+    });
+  }, [isStashClaimed, accountToken, stashId, isClaimerToken, authState, setAccessToken]);
 
   const disownMutation = useMutation({
     mutationFn: () => accountApi.disownStash(accountToken!, stashId!),
@@ -601,6 +641,8 @@ export default function StashAccessPage() {
     },
     enabled: !!stashId && !!accessToken,
   });
+
+  const canWrite = !stash || stash.linkPermissions === 'FULL' || isClaimerToken;
 
   const {
     data: linksData,
@@ -1272,7 +1314,7 @@ export default function StashAccessPage() {
           {/* Refresh screenshots */}
           <button
             onClick={handleBatchRefresh}
-            disabled={selectedLinkIds.size === 0 || batchRefreshScreenshotMutation.isPending}
+            disabled={selectedLinkIds.size === 0 || batchRefreshScreenshotMutation.isPending || !canWrite}
             title="Refresh screenshots"
             className="p-1.5 text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700 rounded transition-colors disabled:opacity-30"
           >
@@ -1289,7 +1331,7 @@ export default function StashAccessPage() {
           {/* Delete selected */}
           <button
             onClick={handleBatchDelete}
-            disabled={selectedLinkIds.size === 0 || batchDeleteMutation.isPending}
+            disabled={selectedLinkIds.size === 0 || batchDeleteMutation.isPending || !canWrite}
             title="Delete selected"
             className="p-1.5 text-red-500 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-100/80 dark:hover:bg-red-900/20 rounded transition-colors disabled:opacity-30"
           >
@@ -1401,6 +1443,7 @@ export default function StashAccessPage() {
                       activeLinkId={activeLinkId}
                       draggingId={draggingId}
                       isSearching={isSearching}
+                      dragDisabled={!canWrite}
                       onItemClick={handleItemClick}
                       onCheckboxClick={handleCheckboxClick}
                     />
@@ -1430,7 +1473,7 @@ export default function StashAccessPage() {
         )}
 
         {/* Add link + bulk import — combined row */}
-        <form onSubmit={handleAddLink} className="px-3 py-2.5 border-t border-slate-200/70 dark:border-slate-800/70">
+        {canWrite && <form onSubmit={handleAddLink} className="px-3 py-2.5 border-t border-slate-200/70 dark:border-slate-800/70">
           <div className="flex gap-1.5 items-center">
             {/* Unified input + submit pill */}
             <div className={`relative flex flex-1 min-w-0 items-center bg-slate-100 dark:bg-slate-800/60 border rounded-lg transition-all focus-within:ring-1 ${
@@ -1472,7 +1515,7 @@ export default function StashAccessPage() {
           {urlError && (
             <p className="text-[11px] text-red-400 mt-1.5">{urlError}</p>
           )}
-        </form>
+        </form>}
       </div>
 
       {/* ── Preview panel ────────────────────────────────────────────────────── */}
@@ -1604,7 +1647,7 @@ export default function StashAccessPage() {
                 ) : (
                   <button
                     onClick={() => refreshScreenshotMutation.mutate(activeLink.id)}
-                    disabled={refreshScreenshotMutation.isPending}
+                    disabled={refreshScreenshotMutation.isPending || !canWrite}
                     title={
                       refreshScreenshotMutation.isPending
                         ? 'Generating screenshot…'
@@ -1708,7 +1751,7 @@ export default function StashAccessPage() {
                   ) : (
                     <button
                       onClick={() => refreshScreenshotMutation.mutate(activeLink.id)}
-                      disabled={refreshScreenshotMutation.isPending}
+                      disabled={refreshScreenshotMutation.isPending || !canWrite}
                       title={refreshScreenshotMutation.isPending ? 'Generating screenshot…' : 'Generate screenshot'}
                       className="w-14 h-7 rounded border border-dashed border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors flex items-center justify-center disabled:opacity-50"
                     >
@@ -1918,7 +1961,7 @@ export default function StashAccessPage() {
           <div className="flex-1 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800">
 
             {/* ── Password ─────────────────────────────────────────────── */}
-            <section className="p-4">
+            {isStashClaimed && <section className="p-4">
               <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-1">Password</h3>
 
               {stash?.passwordProtected ? (
@@ -2028,7 +2071,7 @@ export default function StashAccessPage() {
               {settingsPasswordError && (
                 <p className="mt-2 text-[12px] text-red-500">{settingsPasswordError}</p>
               )}
-            </section>
+            </section>}
 
             {/* ── Account ──────────────────────────────────────────────── */}
             <section className="p-4">
@@ -2107,6 +2150,36 @@ export default function StashAccessPage() {
                   {stash.visibility === 'PRIVATE'
                     ? 'Only you can access this pouch.'
                     : 'Anyone with the URL can access this pouch.'}
+                </p>
+              </section>
+            )}
+
+            {/* ── Link permissions ──────────────────────────────────────── */}
+            {isStashClaimed && stash && stash.visibility === 'SHARED' && (
+              <section className="p-4">
+                <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-3">Visitor permissions</h3>
+                <div className="flex rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden">
+                  {(['FULL', 'READ_ONLY'] as const).map((option, i) => (
+                    <button
+                      key={option}
+                      onClick={() => handleLinkPermissionsChange(option)}
+                      disabled={linkPermissionsPending}
+                      className={[
+                        'flex-1 py-1.5 text-[12px] font-medium transition-colors disabled:opacity-50',
+                        i > 0 ? 'border-l border-slate-200 dark:border-slate-700' : '',
+                        stash.linkPermissions === option
+                          ? 'bg-indigo-600 text-white'
+                          : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800',
+                      ].join(' ')}
+                    >
+                      {option === 'FULL' ? 'Can edit' : 'Read-only'}
+                    </button>
+                  ))}
+                </div>
+                <p className="text-[12px] text-slate-400 dark:text-slate-500 leading-snug mt-2">
+                  {stash.linkPermissions === 'FULL'
+                    ? 'Anyone with access can add, remove, and reorder links.'
+                    : 'Only you can add, remove, and reorder links.'}
                 </p>
               </section>
             )}

@@ -68,6 +68,19 @@ public interface ValueObjectMapper {
         return status != null ? status.name() : LinkStatus.PENDING.name();
     }
 
+    default StashLinkPermissions stringToStashLinkPermissions(String value) {
+        if (value == null) return StashLinkPermissions.FULL;
+        try {
+            return StashLinkPermissions.valueOf(value);
+        } catch (IllegalArgumentException e) {
+            return StashLinkPermissions.FULL;
+        }
+    }
+
+    default String stashLinkPermissionsToString(StashLinkPermissions permissions) {
+        return permissions != null ? permissions.name() : StashLinkPermissions.FULL.name();
+    }
+
     default StashVisibility stringToStashVisibility(String value) {
         if (value == null) return StashVisibility.SHARED;
         try {

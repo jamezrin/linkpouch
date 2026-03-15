@@ -1,0 +1,1 @@
+ALTER TABLE stashes ADD COLUMN link_permissions TEXT NOT NULL DEFAULT 'FULL';

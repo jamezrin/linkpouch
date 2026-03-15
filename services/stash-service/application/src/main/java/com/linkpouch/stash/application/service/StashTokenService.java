@@ -47,6 +47,7 @@ public class StashTokenService implements com.linkpouch.stash.domain.service.Sta
     private static final String ISSUER = "linkpouch";
     private static final String CLAIM_TYPE = "type";
     private static final String CLAIM_PWD_KEY = "pwdKey";
+    private static final String CLAIM_CLAIMER = "claimer";
     private static final String TOKEN_TYPE_STASH = "stash_access";
     private static final Base64.Encoder BASE64URL_ENCODER =
             Base64.getUrlEncoder().withoutPadding();
@@ -71,6 +72,15 @@ public class StashTokenService implements com.linkpouch.stash.domain.service.Sta
      */
     @Override
     public String issueToken(final Stash stash) {
+        return buildToken(stash, false);
+    }
+
+    @Override
+    public String issueClaimerToken(final Stash stash) {
+        return buildToken(stash, true);
+    }
+
+    private String buildToken(final Stash stash, final boolean claimer) {
         final Instant now = Instant.now();
         final var builder = Jwts.builder()
                 .issuer(ISSUER)
@@ -82,6 +92,9 @@ public class StashTokenService implements com.linkpouch.stash.domain.service.Sta
 
         if (stash.isPasswordProtected()) {
             builder.claim(CLAIM_PWD_KEY, computePwdKey(stash.getId(), stash.getPasswordHash()));
+        }
+        if (claimer) {
+            builder.claim(CLAIM_CLAIMER, true);
         }
 
         return builder.compact();
@@ -112,7 +125,8 @@ public class StashTokenService implements com.linkpouch.stash.domain.service.Sta
             }
 
             final String pwdKey = claims.get(CLAIM_PWD_KEY, String.class);
-            return new StashAccessClaims(expectedStashId, pwdKey);
+            final boolean claimer = Boolean.TRUE.equals(claims.get(CLAIM_CLAIMER, Boolean.class));
+            return new StashAccessClaims(expectedStashId, pwdKey, claimer);
         } catch (JwtException e) {
             log.debug("JWT validation failed: {}", e.getMessage());
             throw new UnauthorizedException("Invalid or expired access token");
