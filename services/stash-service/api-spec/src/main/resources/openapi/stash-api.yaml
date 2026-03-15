@@ -288,6 +288,105 @@ components:
           minItems: 1
           maxItems: 100
 
+    AccountProviderResponse:
+      type: object
+      properties:
+        provider:
+          type: string
+
+    ClaimedStashSummaryResponse:
+      type: object
+      properties:
+        stashId:
+          type: string
+          format: uuid
+        stashName:
+          type: string
+        visibility:
+          type: string
+          enum:
+            - SHARED
+            - PRIVATE
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    PagedClaimedStashResponse:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/ClaimedStashSummaryResponse'
+        totalElements:
+          type: integer
+        totalPages:
+          type: integer
+        size:
+          type: integer
+        number:
+          type: integer
+
+    AccountResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+        displayName:
+          type: string
+        avatarUrl:
+          type: string
+        providers:
+          type: array
+          items:
+            $ref: '#/components/schemas/AccountProviderResponse'
+        claimedStashes:
+          type: array
+          items:
+            $ref: '#/components/schemas/ClaimedStashSummaryResponse'
+
+    ClaimStashRequest:
+      type: object
+      required:
+        - stashId
+        - signature
+      properties:
+        stashId:
+          type: string
+          format: uuid
+        signature:
+          type: string
+        password:
+          type: string
+
+    UpdateVisibilityRequest:
+      type: object
+      required:
+        - visibility
+      properties:
+        visibility:
+          type: string
+          enum:
+            - SHARED
+            - PRIVATE
+
+    UpdateLinkPermissionsRequest:
+      type: object
+      required:
+        - permissions
+      properties:
+        permissions:
+          type: string
+          enum:
+            - FULL
+            - READ_ONLY
+
     EmbeddabilityCheckResponse:
       type: object
       properties:
@@ -1081,6 +1180,278 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
         '404':
           description: Link not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /account/me:
+    get:
+      summary: Get authenticated account profile
+      operationId: getAccount
+      tags:
+        - Account
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Account details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountResponse'
+        '401':
+          description: Invalid or missing account token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Account not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /account/stashes:
+    get:
+      summary: List claimed stashes with search, sort, and pagination
+      description: >
+        Sort uses the JSON:API convention: prefix a field name with `-` for descending order.
+        Supported fields: `name`, `createdAt`, `updatedAt`.
+        Example: `sort=-createdAt` (newest first), `sort=name` (A→Z).
+      operationId: listClaimedStashes
+      tags:
+        - Account
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: search
+          in: query
+          schema:
+            type: string
+            default: ''
+        - name: sort
+          in: query
+          description: >
+            JSON:API sort field. Prefix with `-` for descending.
+            Supported: `name`, `createdAt`, `updatedAt`. Default: `-createdAt`.
+          schema:
+            type: string
+            default: '-createdAt'
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 0
+        - name: size
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: Paginated list of claimed stashes
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PagedClaimedStashResponse'
+        '401':
+          description: Invalid or missing account token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /account/stashes/claim:
+    post:
+      summary: Claim a stash for this account
+      operationId: claimStash
+      tags:
+        - Account
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ClaimStashRequest'
+      responses:
+        '204':
+          description: Stash claimed successfully
+        '401':
+          description: Invalid signature or wrong password
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Stash already claimed by another account
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Stash not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /account/stashes/{stashId}:
+    parameters:
+      - name: stashId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    delete:
+      summary: Disown a claimed stash
+      operationId: disownStash
+      tags:
+        - Account
+      security:
+        - bearerAuth: []
+      responses:
+        '204':
+          description: Stash disowned successfully
+        '401':
+          description: Invalid or missing account token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Stash not claimed by this account
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /account/stashes/{stashId}/visibility:
+    parameters:
+      - name: stashId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    put:
+      summary: Update stash visibility
+      operationId: updateStashVisibility
+      tags:
+        - Account
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateVisibilityRequest'
+      responses:
+        '204':
+          description: Visibility updated
+        '401':
+          description: Invalid or missing account token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Only the claiming account can change visibility
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Stash not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /account/stashes/{stashId}/link-permissions:
+    parameters:
+      - name: stashId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    put:
+      summary: Update stash link permissions
+      operationId: updateStashLinkPermissions
+      tags:
+        - Account
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateLinkPermissionsRequest'
+      responses:
+        '204':
+          description: Link permissions updated
+        '401':
+          description: Invalid or missing account token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Only the claiming account can change link permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Stash not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /account/stashes/{stashId}/access-token:
+    parameters:
+      - name: stashId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    post:
+      summary: Acquire a stash access token as the claimer (no signature needed)
+      operationId: acquireClaimedStashAccess
+      tags:
+        - Account
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Access token issued
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccessTokenResponse'
+        '401':
+          description: Invalid or missing account token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Stash not claimed by this account
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Stash not found
           content:
             application/json:
               schema:
