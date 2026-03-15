@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
-import { useParams, Navigate } from 'react-router-dom';
+import { useParams, Navigate, useNavigate } from 'react-router-dom';
 import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { AxiosError } from 'axios';
 import {
@@ -354,6 +354,7 @@ function getSessionSignature(stashId: string): string | null {
 }
 
 export default function StashAccessPage() {
+  const navigate = useNavigate();
   const { stashId, signature: urlSignature } = useParams<{ stashId: string; signature?: string }>();
   const signature = urlSignature ?? (stashId ? getSessionSignature(stashId) : null);
   const [selectedLinkIds, setSelectedLinkIds] = useState<Set<string>>(new Set());
@@ -631,7 +632,15 @@ export default function StashAccessPage() {
 
   const disownMutation = useMutation({
     mutationFn: () => accountApi.disownStash(accountToken!, stashId!),
-    onSuccess: () => handleTokenExpiredRef.current(),
+    onSuccess: () => {
+      // Clear the claimer token and force re-acquisition as a regular visitor.
+      // Then navigate to the signed URL so the signature is in the address bar
+      // (required to access the now-unclaimed stash without an account).
+      handleTokenExpiredRef.current();
+      if (stashId && signature) {
+        navigate(`/s/${stashId}/${signature}`, { replace: true });
+      }
+    },
   });
 
   const claimMutation = useMutation({

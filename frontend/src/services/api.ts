@@ -57,8 +57,10 @@ export function isTokenValid(token: string): boolean {
 const bearerHeader = (accessToken: string) => ({ Authorization: `Bearer ${accessToken}` });
 
 export const stashApi = {
-  createStash: (data: CreateStashRequest) =>
-    api.post<Stash>('/stashes', data),
+  createStash: (data: CreateStashRequest, accountJwt?: string | null) =>
+    api.post<Stash>('/stashes', data, {
+      headers: accountJwt ? bearerHeader(accountJwt) : {},
+    }),
 
   /** Exchanges credentials for a short-lived JWT.
    *  @param signature   HMAC signature (required for non-private stashes; null for private stash claimer access)
