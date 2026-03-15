@@ -611,15 +611,15 @@ paths:
           format: uuid
       - name: X-Stash-Signature
         in: header
-        required: true
+        required: false
         schema:
           type: string
-        description: HMAC-SHA256 signature proving ownership of this stash
+        description: HMAC-SHA256 signature proving ownership of this stash. Optional when using a claimer Bearer token.
     put:
       summary: Set or change the stash password
       description: >
         Sets or changes the password on this stash.
-        Requires the stash signature (proof of ownership).
+        Requires the stash signature or a claimer Bearer token (proof of ownership).
         If the stash is currently password-protected, also requires a valid Bearer token
         with a matching pwdKey to prove knowledge of the current password.
       operationId: setStashPassword
