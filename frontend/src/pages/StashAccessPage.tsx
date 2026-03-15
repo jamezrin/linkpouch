@@ -673,6 +673,18 @@ export default function StashAccessPage() {
     enabled: !!stashId && !!accessToken,
   });
 
+  // Stale token: if the stash was made private after the token was issued, the backend now
+  // returns 403 STASH_PRIVATE from getStash. Clear the token and drop back to 'private'.
+  useEffect(() => {
+    if (!stashError) return;
+    const code = (stashError as { response?: { data?: { errorCode?: string } } })?.response?.data?.errorCode;
+    if (code === 'STASH_PRIVATE') {
+      if (stashId) sessionStorage.removeItem(tokenStorageKey(stashId));
+      setAccessToken(null);
+      setAuthState('private');
+    }
+  }, [stashError, stashId, setAccessToken]);
+
   const canWrite = !stash || stash.linkPermissions === 'FULL' || isClaimerToken;
 
   // Sync write access flags to the shared context so App.tsx can gate the header UI

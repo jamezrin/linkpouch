@@ -15,6 +15,7 @@ import com.linkpouch.stash.api.controller.LinksApi;
 import com.linkpouch.stash.api.model.*;
 import com.linkpouch.stash.domain.exception.ForbiddenException;
 import com.linkpouch.stash.domain.exception.NotFoundException;
+import com.linkpouch.stash.domain.exception.StashPrivateException;
 import com.linkpouch.stash.domain.exception.UnauthorizedException;
 import com.linkpouch.stash.domain.model.Link;
 import com.linkpouch.stash.domain.model.LinkStatus;
@@ -79,6 +80,7 @@ public class LinkController implements LinksApi {
                 .execute(stashId)
                 .orElseThrow(() -> new NotFoundException("Stash not found: " + stashId));
 
+        requirePrivacyAccess(stash);
         validatePwdKeyIfProtected(stashId, stash.getPasswordHash(), stash.isPasswordProtected());
         requireWriteAccess(stashId, stash);
 
@@ -107,6 +109,7 @@ public class LinkController implements LinksApi {
                 .execute(stashId)
                 .orElseThrow(() -> new NotFoundException("Stash not found: " + stashId));
 
+        requirePrivacyAccess(stash);
         validatePwdKeyIfProtected(stashId, stash.getPasswordHash(), stash.isPasswordProtected());
         requireWriteAccess(stashId, stash);
 
@@ -122,6 +125,7 @@ public class LinkController implements LinksApi {
                 .execute(stashId)
                 .orElseThrow(() -> new NotFoundException("Stash not found: " + stashId));
 
+        requirePrivacyAccess(stash);
         validatePwdKeyIfProtected(stashId, stash.getPasswordHash(), stash.isPasswordProtected());
         requireWriteAccess(stashId, stash);
 
@@ -143,6 +147,7 @@ public class LinkController implements LinksApi {
                 .execute(stashId)
                 .orElseThrow(() -> new NotFoundException("Stash not found: " + stashId));
 
+        requirePrivacyAccess(stash);
         validatePwdKeyIfProtected(stashId, stash.getPasswordHash(), stash.isPasswordProtected());
 
         final var pagedResult = listLinksQuery.execute(stashId, search, page, size);
@@ -163,6 +168,7 @@ public class LinkController implements LinksApi {
                 .execute(stashId)
                 .orElseThrow(() -> new NotFoundException("Stash not found: " + stashId));
 
+        requirePrivacyAccess(stash);
         validatePwdKeyIfProtected(stashId, stash.getPasswordHash(), stash.isPasswordProtected());
         requireWriteAccess(stashId, stash);
 
@@ -184,6 +190,7 @@ public class LinkController implements LinksApi {
                 .execute(stashId)
                 .orElseThrow(() -> new NotFoundException("Stash not found: " + stashId));
 
+        requirePrivacyAccess(stash);
         validatePwdKeyIfProtected(stashId, stash.getPasswordHash(), stash.isPasswordProtected());
         requireWriteAccess(stashId, stash);
 
@@ -199,6 +206,7 @@ public class LinkController implements LinksApi {
                 .execute(stashId)
                 .orElseThrow(() -> new NotFoundException("Stash not found: " + stashId));
 
+        requirePrivacyAccess(stash);
         validatePwdKeyIfProtected(stashId, stash.getPasswordHash(), stash.isPasswordProtected());
         requireWriteAccess(stashId, stash);
 
@@ -254,6 +262,7 @@ public class LinkController implements LinksApi {
                 .execute(stashId)
                 .orElseThrow(() -> new NotFoundException("Stash not found: " + stashId));
 
+        requirePrivacyAccess(stash);
         validatePwdKeyIfProtected(stashId, stash.getPasswordHash(), stash.isPasswordProtected());
         requireWriteAccess(stashId, stash);
 
@@ -263,6 +272,12 @@ public class LinkController implements LinksApi {
         reorderLinksUseCase.execute(
                 new ReorderLinksCommand(stashId, reorderLinksRequestDTO.getLinkIds(), insertAfterId));
         return ResponseEntity.noContent().build();
+    }
+
+    private void requirePrivacyAccess(final Stash stash) {
+        if (!stash.isPrivate()) return;
+        if (isClaimer()) return;
+        throw new StashPrivateException("This pouch is private. Sign in as the owner to access it.");
     }
 
     private void requireWriteAccess(final UUID stashId, final Stash stash) {

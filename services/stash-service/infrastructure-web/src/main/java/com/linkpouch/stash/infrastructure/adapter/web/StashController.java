@@ -98,6 +98,8 @@ public class StashController implements StashesApi {
                 .execute(stashId)
                 .orElseThrow(() -> new NotFoundException("Stash not found: " + stashId));
 
+        requirePrivacyAccess(stash);
+
         if (stash.isPasswordProtected()) {
             final StashAccessClaims claims = getRequiredClaims();
             tokenService.validatePwdKey(claims, stashId, stash.getPasswordHash());
@@ -112,6 +114,8 @@ public class StashController implements StashesApi {
         final var stash = findStashByIdQuery
                 .execute(stashId)
                 .orElseThrow(() -> new NotFoundException("Stash not found: " + stashId));
+
+        requirePrivacyAccess(stash);
 
         if (stash.isPasswordProtected()) {
             final StashAccessClaims claims = getRequiredClaims();
@@ -129,6 +133,8 @@ public class StashController implements StashesApi {
         final var stash = findStashByIdQuery
                 .execute(stashId)
                 .orElseThrow(() -> new NotFoundException("Stash not found: " + stashId));
+
+        requirePrivacyAccess(stash);
 
         if (stash.isPasswordProtected()) {
             final StashAccessClaims claims = getRequiredClaims();
@@ -212,6 +218,16 @@ public class StashController implements StashesApi {
         response.setSignedUrl(signedUrl);
 
         return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Enforces that private stashes are only accessible to claimer token holders.
+     * Called on every user-facing stash endpoint immediately after loading the stash.
+     */
+    private void requirePrivacyAccess(final Stash stash) {
+        if (!stash.isPrivate()) return;
+        if (isClaimer()) return;
+        throw new StashPrivateException("This pouch is private. Sign in as the owner to access it.");
     }
 
     /**
