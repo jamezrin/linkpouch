@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useAccount } from '../contexts/account';
 import { accountApi } from '../services/accountApi';
 import AccountStashCard from './AccountStashCard';
+import { useScrollLock } from '../hooks/useScrollLock';
 
 interface Props {
   onClose: () => void;
@@ -11,6 +12,7 @@ interface Props {
 export default function StashesModal({ onClose }: Props) {
   const { accountToken, isSignedIn } = useAccount();
   const [visible, setVisible] = useState(false);
+  useScrollLock();
 
   useEffect(() => {
     const raf = requestAnimationFrame(() => setVisible(true));

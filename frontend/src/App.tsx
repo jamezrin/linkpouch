@@ -246,7 +246,9 @@ function AppContent() {
           </div>
 
           {/* Account dropdown — always visible, rightmost */}
-          <AccountDropdown />
+          <div id="lp-account-button">
+            <AccountDropdown />
+          </div>
 
           {/* Hamburger — mobile only */}
           <button

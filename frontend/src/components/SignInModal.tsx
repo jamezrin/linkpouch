@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import OAuthSignInButtons from './OAuthSignInButtons';
+import { useScrollLock } from '../hooks/useScrollLock';
 
 interface Props {
   onClose: () => void;
@@ -7,6 +8,7 @@ interface Props {
 
 export default function SignInModal({ onClose }: Props) {
   const [visible, setVisible] = useState(false);
+  useScrollLock();
 
   useEffect(() => {
     const raf = requestAnimationFrame(() => setVisible(true));
