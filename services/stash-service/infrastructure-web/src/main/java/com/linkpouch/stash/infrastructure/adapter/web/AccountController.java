@@ -1,14 +1,22 @@
 package com.linkpouch.stash.infrastructure.adapter.web;
 
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
 import jakarta.servlet.http.HttpServletRequest;
 
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.RestController;
 
+import com.linkpouch.stash.api.controller.AccountApi;
+import com.linkpouch.stash.api.model.AccessTokenResponseDTO;
+import com.linkpouch.stash.api.model.AccountProviderResponseDTO;
+import com.linkpouch.stash.api.model.AccountResponseDTO;
+import com.linkpouch.stash.api.model.ClaimStashRequestDTO;
+import com.linkpouch.stash.api.model.ClaimedStashSummaryResponseDTO;
+import com.linkpouch.stash.api.model.PagedClaimedStashResponseDTO;
+import com.linkpouch.stash.api.model.UpdateLinkPermissionsRequestDTO;
+import com.linkpouch.stash.api.model.UpdateVisibilityRequestDTO;
 import com.linkpouch.stash.domain.exception.NotFoundException;
 import com.linkpouch.stash.domain.model.Account;
 import com.linkpouch.stash.domain.model.StashLinkPermissions;
@@ -22,6 +30,7 @@ import com.linkpouch.stash.domain.port.in.DisownStashUseCase;
 import com.linkpouch.stash.domain.port.in.GetAccountQuery;
 import com.linkpouch.stash.domain.port.in.ListClaimedStashesCommand;
 import com.linkpouch.stash.domain.port.in.ListClaimedStashesQuery;
+import com.linkpouch.stash.domain.port.in.PagedResult;
 import com.linkpouch.stash.domain.port.in.UpdateStashLinkPermissionsCommand;
 import com.linkpouch.stash.domain.port.in.UpdateStashLinkPermissionsUseCase;
 import com.linkpouch.stash.domain.port.in.UpdateStashVisibilityCommand;
@@ -34,9 +43,8 @@ import com.linkpouch.stash.domain.service.StashTokenService;
 import lombok.RequiredArgsConstructor;
 
 @RestController
-@RequestMapping("/account")
 @RequiredArgsConstructor
-public class AccountController {
+public class AccountController implements AccountApi {
 
     private final GetAccountQuery getAccountQuery;
     private final ClaimStashUseCase claimStashUseCase;
@@ -48,128 +56,116 @@ public class AccountController {
     private final AccountRepository accountRepository;
     private final StashRepository stashRepository;
     private final StashTokenService stashTokenService;
+    private final HttpServletRequest httpRequest;
 
-    @GetMapping("/me")
-    public ResponseEntity<Map<String, Object>> getAccount(final HttpServletRequest request) {
-        final AccountClaims claims = (AccountClaims) request.getAttribute(AccountJwtInterceptor.CLAIMS_ATTR);
+    @Override
+    public ResponseEntity<AccountResponseDTO> getAccount() {
+        final AccountClaims claims = getClaims();
         final Account account = getAccountQuery
                 .execute(claims.accountId())
                 .orElseThrow(() -> new NotFoundException("Account not found"));
 
-        final List<UUID> claimedStashIds = accountRepository.findClaimedStashIds(claims.accountId());
-        final List<Map<String, Object>> claimedStashes = claimedStashIds.stream()
-                .map(stashId -> stashRepository
-                        .findById(stashId)
-                        .map(stash -> Map.<String, Object>of(
-                                "stashId", stash.getId().toString(),
-                                "stashName", stash.getName().getValue(),
-                                "visibility", stash.getVisibility().name()))
-                        .orElse(null))
-                .filter(entry -> entry != null)
+        final List<ClaimedStashSummaryResponseDTO> claimedStashes =
+                accountRepository.findClaimedStashIds(claims.accountId()).stream()
+                        .flatMap(stashId -> stashRepository.findById(stashId).stream())
+                        .map(stash -> new ClaimedStashSummaryResponseDTO()
+                                .stashId(stash.getId())
+                                .stashName(stash.getName().getValue())
+                                .visibility(ClaimedStashSummaryResponseDTO.VisibilityEnum.fromValue(
+                                        stash.getVisibility().name())))
+                        .toList();
+
+        final List<AccountProviderResponseDTO> providers = account.getProviders().stream()
+                .map(p -> new AccountProviderResponseDTO()
+                        .provider(p.provider().name().toLowerCase()))
                 .toList();
 
-        final List<Map<String, String>> providers = account.getProviders().stream()
-                .map(p -> Map.of("provider", p.provider().name().toLowerCase()))
-                .toList();
+        final AccountResponseDTO response = new AccountResponseDTO()
+                .id(account.getId())
+                .email(account.getEmail())
+                .displayName(account.getDisplayName())
+                .avatarUrl(account.getAvatarUrl())
+                .providers(providers)
+                .claimedStashes(claimedStashes);
 
-        return ResponseEntity.ok(Map.of(
-                "id",
-                account.getId().toString(),
-                "email",
-                account.getEmail() != null ? account.getEmail() : "",
-                "displayName",
-                account.getDisplayName(),
-                "avatarUrl",
-                account.getAvatarUrl() != null ? account.getAvatarUrl() : "",
-                "providers",
-                providers,
-                "claimedStashes",
-                claimedStashes));
+        return ResponseEntity.ok(response);
     }
 
-    @GetMapping("/stashes")
-    public ResponseEntity<Map<String, Object>> listStashes(
-            @RequestParam(name = "search", defaultValue = "") final String search,
-            @RequestParam(name = "sort", defaultValue = "createdAt") final String sort,
-            @RequestParam(name = "dir", defaultValue = "desc") final String dir,
-            @RequestParam(name = "page", defaultValue = "0") final int page,
-            @RequestParam(name = "size", defaultValue = "20") final int size,
-            final HttpServletRequest request) {
-        final AccountClaims claims = (AccountClaims) request.getAttribute(AccountJwtInterceptor.CLAIMS_ATTR);
-        final var result = listClaimedStashesQuery.execute(
-                new ListClaimedStashesCommand(claims.accountId(), search, sort, dir, page, size));
-        final var content = result.content().stream()
-                .map(s -> Map.<String, Object>of(
-                        "stashId", s.stashId().toString(),
-                        "stashName", s.name(),
-                        "visibility", s.visibility().name(),
-                        "createdAt", s.createdAt(),
-                        "updatedAt", s.updatedAt()))
+    @Override
+    public ResponseEntity<PagedClaimedStashResponseDTO> listClaimedStashes(
+            final String search, final String sort, final Integer page, final Integer size) {
+        final AccountClaims claims = getClaims();
+        final PagedResult<com.linkpouch.stash.domain.model.ClaimedStashSummary> result =
+                listClaimedStashesQuery.execute(
+                        new ListClaimedStashesCommand(claims.accountId(), search, sort, page, size));
+
+        final List<ClaimedStashSummaryResponseDTO> content = result.content().stream()
+                .map(s -> new ClaimedStashSummaryResponseDTO()
+                        .stashId(s.stashId())
+                        .stashName(s.name())
+                        .visibility(ClaimedStashSummaryResponseDTO.VisibilityEnum.fromValue(
+                                s.visibility().name()))
+                        .createdAt(s.createdAt() != null ? s.createdAt().atOffset(java.time.ZoneOffset.UTC) : null)
+                        .updatedAt(s.updatedAt() != null ? s.updatedAt().atOffset(java.time.ZoneOffset.UTC) : null))
                 .toList();
-        return ResponseEntity.ok(Map.of(
-                "content", content,
-                "totalElements", result.totalElements(),
-                "totalPages", result.totalPages(),
-                "size", result.size(),
-                "number", result.number()));
+
+        final PagedClaimedStashResponseDTO response = new PagedClaimedStashResponseDTO()
+                .content(content)
+                .totalElements(result.totalElements())
+                .totalPages(result.totalPages())
+                .size(result.size())
+                .number(result.number());
+
+        return ResponseEntity.ok(response);
     }
 
-    @PostMapping("/stashes/claim")
-    public ResponseEntity<Void> claimStash(
-            @RequestBody final ClaimStashRequest body, final HttpServletRequest request) {
-        final AccountClaims claims = (AccountClaims) request.getAttribute(AccountJwtInterceptor.CLAIMS_ATTR);
-        claimStashUseCase.execute(new ClaimStashCommand(
-                claims.accountId(), UUID.fromString(body.stashId()), body.signature(), body.password()));
+    @Override
+    public ResponseEntity<Void> claimStash(final ClaimStashRequestDTO body) {
+        final AccountClaims claims = getClaims();
+        claimStashUseCase.execute(
+                new ClaimStashCommand(claims.accountId(), body.getStashId(), body.getSignature(), body.getPassword()));
         return ResponseEntity.noContent().build();
     }
 
-    @DeleteMapping("/stashes/{stashId}")
-    public ResponseEntity<Void> disownStash(
-            @PathVariable("stashId") final String stashId, final HttpServletRequest request) {
-        final AccountClaims claims = (AccountClaims) request.getAttribute(AccountJwtInterceptor.CLAIMS_ATTR);
-        disownStashUseCase.execute(new DisownStashCommand(claims.accountId(), UUID.fromString(stashId)));
+    @Override
+    public ResponseEntity<Void> disownStash(final UUID stashId) {
+        final AccountClaims claims = getClaims();
+        disownStashUseCase.execute(new DisownStashCommand(claims.accountId(), stashId));
         return ResponseEntity.noContent().build();
     }
 
-    @PutMapping("/stashes/{stashId}/visibility")
-    public ResponseEntity<Void> updateStashVisibility(
-            @PathVariable("stashId") final String stashId,
-            @RequestBody final UpdateVisibilityRequest body,
-            final HttpServletRequest request) {
-        final AccountClaims claims = (AccountClaims) request.getAttribute(AccountJwtInterceptor.CLAIMS_ATTR);
+    @Override
+    public ResponseEntity<Void> updateStashVisibility(final UUID stashId, final UpdateVisibilityRequestDTO body) {
+        final AccountClaims claims = getClaims();
         final StashVisibility visibility =
-                StashVisibility.valueOf(body.visibility().toUpperCase());
-        updateStashVisibilityUseCase.execute(
-                new UpdateStashVisibilityCommand(claims.accountId(), UUID.fromString(stashId), visibility));
+                StashVisibility.valueOf(body.getVisibility().getValue());
+        updateStashVisibilityUseCase.execute(new UpdateStashVisibilityCommand(claims.accountId(), stashId, visibility));
         return ResponseEntity.noContent().build();
     }
 
-    @PutMapping("/stashes/{stashId}/link-permissions")
+    @Override
     public ResponseEntity<Void> updateStashLinkPermissions(
-            @PathVariable("stashId") final String stashId,
-            @RequestBody final UpdateLinkPermissionsRequest body,
-            final HttpServletRequest request) {
-        final AccountClaims claims = (AccountClaims) request.getAttribute(AccountJwtInterceptor.CLAIMS_ATTR);
+            final UUID stashId, final UpdateLinkPermissionsRequestDTO body) {
+        final AccountClaims claims = getClaims();
         final StashLinkPermissions permissions =
-                StashLinkPermissions.valueOf(body.permissions().toUpperCase());
+                StashLinkPermissions.valueOf(body.getPermissions().getValue());
         updateStashLinkPermissionsUseCase.execute(
-                new UpdateStashLinkPermissionsCommand(claims.accountId(), UUID.fromString(stashId), permissions));
+                new UpdateStashLinkPermissionsCommand(claims.accountId(), stashId, permissions));
         return ResponseEntity.noContent().build();
     }
 
-    @PostMapping("/stashes/{stashId}/access-token")
-    public ResponseEntity<Map<String, Object>> acquireClaimedStashAccess(
-            @PathVariable("stashId") final String stashId, final HttpServletRequest request) {
-        final AccountClaims claims = (AccountClaims) request.getAttribute(AccountJwtInterceptor.CLAIMS_ATTR);
+    @Override
+    public ResponseEntity<AccessTokenResponseDTO> acquireClaimedStashAccess(final UUID stashId) {
+        final AccountClaims claims = getClaims();
         final var stash = acquireClaimedStashAccessUseCase.execute(
-                new AcquireClaimedStashAccessCommand(claims.accountId(), UUID.fromString(stashId)));
+                new AcquireClaimedStashAccessCommand(claims.accountId(), stashId));
         final String token = stashTokenService.issueClaimerToken(stash);
-        return ResponseEntity.ok(Map.of("accessToken", token, "expiresIn", stashTokenService.getExpirySeconds()));
+        final AccessTokenResponseDTO response =
+                new AccessTokenResponseDTO().accessToken(token).expiresIn(stashTokenService.getExpirySeconds());
+        return ResponseEntity.ok(response);
     }
 
-    public record ClaimStashRequest(String stashId, String signature, String password) {}
-
-    public record UpdateVisibilityRequest(String visibility) {}
-
-    public record UpdateLinkPermissionsRequest(String permissions) {}
+    private AccountClaims getClaims() {
+        return (AccountClaims) httpRequest.getAttribute(AccountJwtInterceptor.CLAIMS_ATTR);
+    }
 }

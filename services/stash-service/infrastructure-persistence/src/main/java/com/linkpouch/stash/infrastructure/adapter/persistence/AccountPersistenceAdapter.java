@@ -123,12 +123,14 @@ public class AccountPersistenceAdapter implements AccountRepository {
                     STASHES.NAME.likeIgnoreCase("%" + command.search().trim() + "%"));
         }
 
+        final String rawSort = command.sort() != null ? command.sort() : "-createdAt";
+        final boolean desc = rawSort.startsWith("-");
+        final String field = desc ? rawSort.substring(1) : rawSort;
         final SortField<?> orderBy =
-                switch (command.sort()) {
-                    case "name" -> command.dir().equals("desc") ? STASHES.NAME.desc() : STASHES.NAME.asc();
-                    case "updatedAt" ->
-                        command.dir().equals("desc") ? STASHES.UPDATED_AT.desc() : STASHES.UPDATED_AT.asc();
-                    default -> command.dir().equals("desc") ? STASHES.CREATED_AT.desc() : STASHES.CREATED_AT.asc();
+                switch (field) {
+                    case "name" -> desc ? STASHES.NAME.desc() : STASHES.NAME.asc();
+                    case "updatedAt" -> desc ? STASHES.UPDATED_AT.desc() : STASHES.UPDATED_AT.asc();
+                    default -> desc ? STASHES.CREATED_AT.desc() : STASHES.CREATED_AT.asc();
                 };
 
         final int offset = command.page() * command.size();

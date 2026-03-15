@@ -36,7 +36,7 @@ export const accountApi = {
       headers: bearerHeader(token),
     }),
 
-  listStashes: (token: string, params: { search?: string; sort?: string; dir?: string; page?: number; size?: number }) =>
+  listStashes: (token: string, params: { search?: string; sort?: string; page?: number; size?: number }) =>
     api.get<ClaimedStashPage>('/account/stashes', {
       headers: bearerHeader(token),
       params,

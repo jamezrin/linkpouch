@@ -10,15 +10,19 @@ interface Props {
 }
 
 type SortField = 'createdAt' | 'updatedAt' | 'name';
-type SortDir = 'asc' | 'desc';
 
-const ChevronIcon = ({ dir }: { dir: SortDir }) => (
+// JSON:API sort: prefix with '-' for descending
+function toApiSort(field: SortField, desc: boolean): string {
+  return desc ? `-${field}` : field;
+}
+
+const ChevronIcon = ({ desc }: { desc: boolean }) => (
   <svg className="w-3 h-3 inline ml-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
     <path
       strokeLinecap="round"
       strokeLinejoin="round"
       strokeWidth={2}
-      d={dir === 'asc' ? 'M5 15l7-7 7 7' : 'M19 9l-7 7-7-7'}
+      d={desc ? 'M19 9l-7 7-7-7' : 'M5 15l7-7 7 7'}
     />
   </svg>
 );
@@ -29,7 +33,7 @@ export default function StashesModal({ onClose }: Props) {
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [sort, setSort] = useState<SortField>('createdAt');
-  const [dir, setDir] = useState<SortDir>('desc');
+  const [desc, setDesc] = useState(true);
   const sentinelRef = useRef<HTMLDivElement>(null);
   useScrollLock();
 
@@ -57,10 +61,10 @@ export default function StashesModal({ onClose }: Props) {
 
   function handleSortClick(field: SortField) {
     if (sort === field) {
-      setDir((d) => (d === 'desc' ? 'asc' : 'desc'));
+      setDesc((d) => !d);
     } else {
       setSort(field);
-      setDir('desc');
+      setDesc(true);
     }
   }
 
@@ -72,12 +76,11 @@ export default function StashesModal({ onClose }: Props) {
     hasNextPage,
     isFetchingNextPage,
   } = useInfiniteQuery({
-    queryKey: ['account-stashes', debouncedSearch, sort, dir],
+    queryKey: ['account-stashes', debouncedSearch, sort, desc],
     queryFn: ({ pageParam = 0 }) =>
       accountApi.listStashes(accountToken!, {
         search: debouncedSearch || undefined,
-        sort,
-        dir,
+        sort: toApiSort(sort, desc),
         page: pageParam as number,
         size: 20,
       }).then((r) => r.data),
@@ -117,7 +120,7 @@ export default function StashesModal({ onClose }: Props) {
       ].join(' ')}
     >
       {label}
-      {sort === field && <ChevronIcon dir={dir} />}
+      {sort === field && <ChevronIcon desc={desc} />}
     </button>
   );
 
