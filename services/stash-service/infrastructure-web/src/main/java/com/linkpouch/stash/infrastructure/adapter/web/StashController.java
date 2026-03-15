@@ -114,7 +114,8 @@ public class StashController implements StashesApi {
         final var response = new AccessTokenResponseDTO()
                 .accessToken(token)
                 .expiresIn(tokenService.getExpirySeconds())
-                .isClaimer(isClaimer);
+                .isClaimer(isClaimer)
+                .isStashClaimed(stashClaimed);
         return ResponseEntity.ok(response);
     }
 
