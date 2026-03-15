@@ -162,108 +162,6 @@ const FAQS = [
   },
 ];
 
-const ROADMAP: Array<{ icon: React.ReactNode; title: string; desc: string }> = [
-  {
-    icon: (
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 12h14M5 12l4-4m-4 4l4 4m10-4l-4-4m4 4l-4 4" />
-      </svg>
-    ),
-    title: 'Multiple archival sources',
-    desc: 'Choose from archive.org, archive.is, and more for the best chance of a working snapshot.',
-  },
-  {
-    icon: (
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-      </svg>
-    ),
-    title: 'Collections & tags',
-    desc: 'Organise links into nested collections or tag them freely — group research, projects, and reading lists.',
-  },
-  {
-    icon: (
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
-      </svg>
-    ),
-    title: 'AI smart tagging',
-    desc: 'Save a URL and let AI extract metadata, pick a category, and write a short summary — automatically.',
-  },
-  {
-    icon: (
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-      </svg>
-    ),
-    title: 'Improved full-text search',
-    desc: 'Better relevance ranking, smarter metadata indexing, and faster suggestions across your collection.',
-  },
-  {
-    icon: (
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7a2 2 0 012-2h3.172a2 2 0 011.414.586l1.828 1.828A2 2 0 0012.828 8H19a2 2 0 012 2v7a2 2 0 01-2 2H5a2 2 0 01-2-2V7z" />
-      </svg>
-    ),
-    title: 'Nested folders',
-    desc: 'Organize your collection into a hierarchy of folders, as deep as you need. Group research projects, reading lists, and references without collapsing everything into a single flat list.',
-  },
-  {
-    icon: (
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-      </svg>
-    ),
-    title: 'Markdown export',
-    desc: 'Export your entire pouch as clean Markdown — ready to drop into Obsidian, Notion, Bear, or any plain-text tool. Your links, your data, wherever you want it.',
-  },
-  {
-    icon: (
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.25 6.087c0-.355.186-.676.401-.959.221-.29.349-.634.349-1.003 0-1.036-1.007-1.875-2.25-1.875s-2.25.84-2.25 1.875c0 .369.128.713.349 1.003.215.283.401.604.401.959v0a.64.64 0 01-.657.643 48.39 48.39 0 01-4.163-.3c.186 1.613.293 3.25.315 4.907a.656.656 0 01-.658.663v0c-.355 0-.676-.186-.959-.401a1.647 1.647 0 00-1.003-.349c-1.036 0-1.875 1.007-1.875 2.25s.84 2.25 1.875 2.25c.369 0 .713-.128 1.003-.349.283-.215.604-.401.959-.401v0c.31 0 .555.26.532.57a48.039 48.039 0 01-.642 5.056c1.518.19 3.058.309 4.616.354a.64.64 0 00.657-.643v0c0-.355-.186-.676-.401-.959a1.647 1.647 0 01-.349-1.003c0-1.035 1.008-1.875 2.25-1.875 1.243 0 2.25.84 2.25 1.875 0 .369-.128.713-.349 1.003-.215.283-.401.604-.401.959v0c0 .333.277.599.61.58a48.1 48.1 0 005.427-.63 48.05 48.05 0 00.582-4.717.532.532 0 00-.533-.57v0c-.355 0-.676.186-.959.401-.29.221-.634.349-1.003.349-1.036 0-1.875-1.007-1.875-2.25s.84-2.25 1.875-2.25c.37 0 .713.128 1.003.349.283.215.604.401.959.401v0a.656.656 0 00.658-.663 48.422 48.422 0 00-.37-5.36c-1.886.342-3.81.574-5.766.689a.578.578 0 01-.61-.58v0z" />
-      </svg>
-    ),
-    title: 'Browser extension',
-    desc: 'Save any page to your pouch with a single click from your browser toolbar — no copying URLs, no switching tabs. Choose which pouch to save to, add a note, and move on. Screenshots and metadata are queued in the background as always.',
-  },
-  {
-    icon: (
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
-      </svg>
-    ),
-    title: 'UI customization',
-    desc: 'Prefer the sidebar on the right? Want a denser link list or a larger preview? Adjust the layout, link card style, and other preferences to make Linkpouch feel like yours. Settings are saved locally and persist across visits.',
-  },
-  {
-    icon: (
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-      </svg>
-    ),
-    title: 'Advanced pouch management',
-    desc: 'Fork a pouch to remix a shared collection as your own, duplicate one of your own pouches for a fresh starting point, or permanently delete a pouch when you no longer need it. Full control over your data, including a clear confirmation flow before anything irreversible happens.',
-  },
-  {
-    icon: (
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
-      </svg>
-    ),
-    title: 'Stars & likes',
-    desc: 'Star your most-used or most-important links and filter your list to show only favourites. A fast way to surface your go-to resources without having to scroll or search.',
-  },
-  {
-    icon: (
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-      </svg>
-    ),
-    title: 'Content change notifications',
-    desc: 'Our indexer periodically re-visits your saved links and compares them to the previous snapshot. When a page changes significantly — updated content, a broken URL, or a site going offline — you get notified so you always know what\'s still current.',
-  },
-];
-
 // ─── Relative time helper ──────────────────────────────────────────────────
 
 function formatRelativeTime(isoString: string): string {
@@ -915,54 +813,46 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ── Roadmap ───────────────────────────────────────────────────────── */}
+      {/* ── More on the way ───────────────────────────────────────────────── */}
       <section className="py-24 px-6 bg-slate-50 dark:bg-slate-950">
-        <div ref={roadmapRef} className="max-w-6xl mx-auto">
-          <div className="text-center mb-16 reveal-up">
+        <div ref={roadmapRef} className="max-w-xl mx-auto text-center">
+          <div className="reveal-up">
             <div className="inline-flex items-center gap-2 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-900 rounded-full px-4 py-1.5 mb-6">
               <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
               <span className="text-sm text-emerald-700 dark:text-emerald-400 font-medium" style={MONO}>Actively developed</span>
             </div>
             <h2
-              className="text-3xl md:text-4xl text-slate-900 dark:text-slate-100 mb-3 tracking-tight"
+              className="text-3xl md:text-4xl text-slate-900 dark:text-slate-100 mb-4 tracking-tight"
               style={DISPLAY}
             >
               More on the way
             </h2>
-            <p className="text-slate-500 dark:text-slate-400 text-lg max-w-xl mx-auto">
-              Linkpouch ships improvements regularly. Here's what's on the horizon.
+            <p className="text-slate-500 dark:text-slate-400 text-base max-w-sm mx-auto leading-relaxed mb-10">
+              Linkpouch ships improvements regularly. The roadmap is always evolving — have an idea or suggestion? I'd love to hear it.
             </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {ROADMAP.map((item, i) => (
-              <div
-                key={item.title}
-                className="roadmap-card reveal-up bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 p-5 flex gap-4 items-start"
-                style={{ transitionDelay: `${i * 35}ms` }}
+            <div className="flex items-center justify-center gap-3 flex-wrap">
+              <a
+                href="https://x.com/jamezrin"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 text-sm font-medium hover:border-slate-300 dark:hover:border-slate-700 hover:text-slate-900 dark:hover:text-white transition-colors shadow-sm"
               >
-                <div className="w-9 h-9 rounded-xl bg-indigo-50 dark:bg-indigo-950/50 text-indigo-500 dark:text-indigo-400 flex items-center justify-center flex-shrink-0 mt-0.5">
-                  {item.icon}
-                </div>
-                <div>
-                  <h3 className="font-semibold text-slate-900 dark:text-slate-100 mb-1 text-[14px]">{item.title}</h3>
-                  <p className="text-slate-500 dark:text-slate-400 text-sm leading-relaxed">{item.desc}</p>
-                </div>
-              </div>
-            ))}
+                <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.745l7.73-8.835L1.254 2.25H8.08l4.213 5.567z" />
+                </svg>
+                Message on X
+              </a>
+              <a
+                href="mailto:mrjaime1999@gmail.com"
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 text-sm font-medium hover:border-slate-300 dark:hover:border-slate-700 hover:text-slate-900 dark:hover:text-white transition-colors shadow-sm"
+              >
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                </svg>
+                Send an email
+              </a>
+            </div>
           </div>
-
-          <p className="text-center text-slate-400 dark:text-slate-500 text-sm mt-10">
-            Have a suggestion?{' '}
-            <a
-              href="https://github.com/jamezrin/linkpouch"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-indigo-500 hover:text-indigo-600 font-medium transition-colors"
-            >
-              Open an issue on GitHub →
-            </a>
-          </p>
         </div>
       </section>
 
