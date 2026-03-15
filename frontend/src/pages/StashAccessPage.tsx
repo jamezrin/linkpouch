@@ -623,17 +623,9 @@ export default function StashAccessPage() {
     }
   };
 
-  const { data: accountData } = useQuery({
-    queryKey: ['account'],
-    queryFn: () => accountApi.getAccount(accountToken!).then((r) => r.data),
-    enabled: isSignedIn && !!accountToken,
-  });
-
-  const isStashClaimed = accountData?.claimedStashes.some((s) => s.stashId === stashId) ?? false;
-
   const disownMutation = useMutation({
     mutationFn: () => accountApi.disownStash(accountToken!, stashId!),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['account'] }),
+    onSuccess: () => handleTokenExpiredRef.current(),
   });
 
   const claimMutation = useMutation({
@@ -643,7 +635,7 @@ export default function StashAccessPage() {
         signature: signature ?? '',
         ...(passwordInput.trim() ? { password: passwordInput } : {}),
       }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['account'] }),
+    onSuccess: () => handleTokenExpiredRef.current(),
   });
 
   const { data: stash, isLoading: stashLoading, error: stashError } = useQuery({
@@ -2025,7 +2017,7 @@ export default function StashAccessPage() {
           <div className="flex-1 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800">
 
             {/* ── Password ─────────────────────────────────────────────── */}
-            {(isClaimerToken || (!isStashClaimed && signature)) && <section className="p-4">
+            {(isClaimerToken || signature) && <section className="p-4">
               <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-1">Password</h3>
 
               {stash?.passwordProtected ? (
@@ -2153,7 +2145,7 @@ export default function StashAccessPage() {
                     Sign in
                   </button>
                 </div>
-              ) : isStashClaimed ? (
+              ) : isClaimerToken ? (
                 <div className="flex flex-col gap-2">
                   <div className="flex items-center gap-2 text-[13px] text-slate-500 dark:text-slate-400">
                     <svg className="w-4 h-4 text-green-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -2189,7 +2181,7 @@ export default function StashAccessPage() {
             </section>
 
             {/* ── Visibility ────────────────────────────────────────────── */}
-            {isStashClaimed && stash && (
+            {isClaimerToken && stash && (
               <section className="p-4">
                 <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-3">Visibility</h3>
                 <div className="flex rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden">
@@ -2219,7 +2211,7 @@ export default function StashAccessPage() {
             )}
 
             {/* ── Link permissions ──────────────────────────────────────── */}
-            {isStashClaimed && stash && stash.visibility === 'SHARED' && (
+            {isClaimerToken && stash && stash.visibility === 'SHARED' && (
               <section className="p-4">
                 <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-3">Visitor permissions</h3>
                 <div className="flex rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden">
@@ -2249,7 +2241,7 @@ export default function StashAccessPage() {
             )}
 
             {/* ── Regenerate URL ────────────────────────────────────── */}
-            {(isClaimerToken || !isStashClaimed) && signature && (
+            {signature && (
               <section className="p-4">
                 <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-3">Shared URL</h3>
                 <p className="text-[13px] text-slate-500 dark:text-slate-400 leading-snug mb-3">

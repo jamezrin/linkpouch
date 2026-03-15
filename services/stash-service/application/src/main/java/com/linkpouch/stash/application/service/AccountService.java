@@ -15,6 +15,7 @@ import com.linkpouch.stash.domain.model.AccountProvider;
 import com.linkpouch.stash.domain.model.ClaimedStashSummary;
 import com.linkpouch.stash.domain.model.Stash;
 import com.linkpouch.stash.domain.model.StashVisibility;
+import com.linkpouch.stash.domain.port.in.AutoClaimStashUseCase;
 import com.linkpouch.stash.domain.port.in.ClaimStashCommand;
 import com.linkpouch.stash.domain.port.in.ClaimStashUseCase;
 import com.linkpouch.stash.domain.port.in.DisownStashCommand;
@@ -43,6 +44,7 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class AccountService
         implements UpsertAccountUseCase,
+                AutoClaimStashUseCase,
                 ClaimStashUseCase,
                 DisownStashUseCase,
                 UpdateStashVisibilityUseCase,
@@ -69,6 +71,19 @@ public class AccountService
         final Account account = Account.create(command.displayName(), command.email(), command.avatarUrl());
         account.addProvider(new AccountProvider(UUID.randomUUID(), command.provider(), command.providerUserId()));
         return accountRepository.save(account);
+    }
+
+    @Override
+    @Transactional
+    public Stash execute(final UUID stashId, final UUID accountId) {
+        final Stash stash =
+                stashRepository.findById(stashId).orElseThrow(() -> new NotFoundException("Stash not found"));
+
+        accountRepository.claimStash(accountId, stashId);
+
+        stash.setVisibility(StashVisibility.PRIVATE);
+        stash.bumpVersion();
+        return stashRepository.save(stash);
     }
 
     @Override

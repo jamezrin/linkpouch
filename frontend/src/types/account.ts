@@ -28,5 +28,4 @@ export interface AccountResponse {
   displayName: string;
   avatarUrl?: string;
   providers: AccountProvider[];
-  claimedStashes: ClaimedStash[];
 }

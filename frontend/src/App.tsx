@@ -6,6 +6,7 @@ import StashAccessPage from './pages/StashAccessPage';
 import AccountPage from './pages/AccountPage';
 import ThemeToggle from './components/ThemeToggle';
 import AccountDropdown from './components/AccountDropdown';
+import MobileAccountSection from './components/MobileAccountSection';
 import { StashSearchContext } from './contexts/stashSearch';
 import { ThemeProvider } from './contexts/theme';
 import { AccountProvider, useAccount } from './contexts/account';
@@ -221,8 +222,8 @@ function AppContent() {
             <ThemeToggle />
           </div>
 
-          {/* Account dropdown — always visible, rightmost */}
-          <div id="lp-account-button">
+          {/* Account dropdown — desktop only */}
+          <div id="lp-account-button" className="hidden md:block">
             <AccountDropdown />
           </div>
 
@@ -248,7 +249,13 @@ function AppContent() {
             <>
               {/* Transparent backdrop — closes menu on outside tap */}
               <div className="fixed inset-0 z-40" onClick={() => setMobileMenuOpen(false)} />
-              <div className="md:hidden absolute top-full right-0 z-50 mt-1 mr-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-lg p-3 min-w-[200px] flex flex-col gap-3">
+              <div className="md:hidden absolute top-full right-0 z-50 mt-1 mr-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-lg p-3 min-w-[200px] flex flex-col gap-1">
+                {/* Account section */}
+                <MobileAccountSection onAction={() => setMobileMenuOpen(false)} />
+
+                {/* Divider — always separates account from rest */}
+                <div className="border-t border-slate-100 dark:border-slate-800 -mx-3 my-2" />
+
                 {/* Share */}
                 {isStashPage && signature && (
                   <button
@@ -294,7 +301,7 @@ function AppContent() {
 
                 {/* Divider before theme if stash actions are shown */}
                 {isStashPage && signature && (
-                  <div className="border-t border-slate-100 dark:border-slate-800 -mx-3" />
+                  <div className="border-t border-slate-100 dark:border-slate-800 -mx-3 my-2" />
                 )}
 
                 {/* Theme */}
@@ -302,8 +309,6 @@ function AppContent() {
                   <p className="text-[11px] font-medium text-slate-400 dark:text-slate-500 uppercase tracking-wide px-2 mb-2">Theme</p>
                   <ThemeToggle />
                 </div>
-
-
               </div>
             </>
           )}

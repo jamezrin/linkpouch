@@ -32,8 +32,6 @@ import com.linkpouch.stash.domain.port.in.UpdateStashLinkPermissionsCommand;
 import com.linkpouch.stash.domain.port.in.UpdateStashLinkPermissionsUseCase;
 import com.linkpouch.stash.domain.port.in.UpdateStashVisibilityCommand;
 import com.linkpouch.stash.domain.port.in.UpdateStashVisibilityUseCase;
-import com.linkpouch.stash.domain.port.outbound.AccountRepository;
-import com.linkpouch.stash.domain.port.outbound.StashRepository;
 import com.linkpouch.stash.domain.service.AccountClaims;
 
 import lombok.RequiredArgsConstructor;
@@ -48,8 +46,6 @@ public class AccountController implements AccountApi {
     private final UpdateStashVisibilityUseCase updateStashVisibilityUseCase;
     private final UpdateStashLinkPermissionsUseCase updateStashLinkPermissionsUseCase;
     private final ListClaimedStashesQuery listClaimedStashesQuery;
-    private final AccountRepository accountRepository;
-    private final StashRepository stashRepository;
     private final HttpServletRequest httpRequest;
 
     @Override
@@ -58,16 +54,6 @@ public class AccountController implements AccountApi {
         final Account account = getAccountQuery
                 .execute(claims.accountId())
                 .orElseThrow(() -> new NotFoundException("Account not found"));
-
-        final List<ClaimedStashSummaryResponseDTO> claimedStashes =
-                accountRepository.findClaimedStashIds(claims.accountId()).stream()
-                        .flatMap(stashId -> stashRepository.findById(stashId).stream())
-                        .map(stash -> new ClaimedStashSummaryResponseDTO()
-                                .stashId(stash.getId())
-                                .stashName(stash.getName().getValue())
-                                .visibility(ClaimedStashSummaryResponseDTO.VisibilityEnum.fromValue(
-                                        stash.getVisibility().name())))
-                        .toList();
 
         final List<AccountProviderResponseDTO> providers = account.getProviders().stream()
                 .map(p -> new AccountProviderResponseDTO()
@@ -79,8 +65,7 @@ public class AccountController implements AccountApi {
                 .email(account.getEmail())
                 .displayName(account.getDisplayName())
                 .avatarUrl(account.getAvatarUrl())
-                .providers(providers)
-                .claimedStashes(claimedStashes);
+                .providers(providers);
 
         return ResponseEntity.ok(response);
     }

@@ -35,6 +35,7 @@ public class StashController implements StashesApi {
 
     private static final String BEARER_PREFIX = "Bearer ";
 
+    private final AutoClaimStashUseCase autoClaimStashUseCase;
     private final CreateStashUseCase createStashUseCase;
     private final FindStashByIdQuery findStashByIdQuery;
     private final UpdateStashNameUseCase updateStashNameUseCase;
@@ -54,7 +55,12 @@ public class StashController implements StashesApi {
     public ResponseEntity<StashResponseDTO> createStash(final CreateStashRequestDTO createStashRequestDTO) {
         final var command =
                 new CreateStashCommand(createStashRequestDTO.getName(), createStashRequestDTO.getPassword());
-        final var stash = createStashUseCase.execute(command);
+        var stash = createStashUseCase.execute(command);
+
+        final AccountClaims accountClaims = tryExtractAccountClaims();
+        if (accountClaims != null) {
+            stash = autoClaimStashUseCase.execute(stash.getId(), accountClaims.accountId());
+        }
 
         final var response = mapper.mapOut(stash);
         final String signedUrl = signatureService.generateSignedUrl(
