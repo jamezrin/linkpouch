@@ -19,7 +19,7 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { restrictToVerticalAxis, restrictToParentElement } from '@dnd-kit/modifiers';
-import { api, stashApi, linkApi, utilsApi, isTokenValid, tokenStorageKey, signatureStorageKey, claimerStorageKey, stashClaimedStorageKey, accountFingerprintKey, accountFingerprint } from '../services/api';
+import { api, stashApi, linkApi, folderApi, utilsApi, isTokenValid, tokenStorageKey, signatureStorageKey, claimerStorageKey, stashClaimedStorageKey, accountFingerprintKey, accountFingerprint } from '../services/api';
 import { useStashHistory } from '../hooks/useStashHistory';
 import { Link as LinkType } from '../types';
 import { useStashSearch } from '../contexts/stashSearch';
@@ -35,6 +35,8 @@ import { useOnboardingWalkthrough, usePreviewWalkthrough } from '../hooks/useWal
 import { useAccount } from '../contexts/account';
 import { accountApi } from '../services/accountApi';
 import SignInModal from '../components/SignInModal';
+import { FolderTreePane } from '../components/FolderTreePane';
+import { LinkItem as LinkItemComponent } from '../components/LinkItem';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -63,9 +65,6 @@ const getFaviconUrl = (url: string, provided?: string): string | null => {
     return null;
   }
 };
-
-const formatDate = (dateStr: string) =>
-  new Date(dateStr).toLocaleDateString('en', { month: 'short', day: 'numeric' });
 
 const formatRelativeTime = (dateStr: string): string => {
   const diff = Date.now() - new Date(dateStr).getTime();
@@ -146,147 +145,6 @@ function DragPreview({ links }: { links: LinkType[] }) {
   );
 }
 
-// ─── LinkItem ─────────────────────────────────────────────────────────────────
-
-interface LinkItemProps {
-  link: LinkType;
-  isSelected: boolean;
-  isActive: boolean;
-  index: number;
-  onItemClick: (id: string) => void;
-  onCheckboxClick: (id: string, index: number, shiftKey: boolean) => void;
-  isDragDisabled: boolean;
-  isGroupDragging: boolean;
-}
-
-const LinkItem = ({
-  link,
-  isSelected,
-  isActive,
-  index,
-  onItemClick,
-  onCheckboxClick,
-  isDragDisabled,
-  isGroupDragging,
-}: LinkItemProps) => {
-  const [hovered, setHovered] = useState(false);
-  const showCheckbox = hovered || isSelected;
-  const faviconUrl = getFaviconUrl(link.url, link.faviconUrl);
-
-  return (
-    <div
-      role="option"
-      aria-selected={isSelected}
-      className={[
-        'relative flex items-center gap-2 px-3 py-2.5 select-none',
-        isDragDisabled ? 'cursor-pointer' : 'cursor-grab',
-        'border-b border-slate-200/50 dark:border-slate-800/50 transition-colors duration-100',
-        isGroupDragging
-          ? 'bg-indigo-500/10'
-          : isActive
-          ? 'bg-indigo-500/20 border-l-2 border-l-indigo-400'
-          : isSelected
-          ? 'bg-indigo-500/10'
-          : hovered
-          ? 'bg-slate-100 dark:bg-white/[0.04]'
-          : '',
-      ]
-        .filter(Boolean)
-        .join(' ')}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      onClick={(e) => {
-        onItemClick(link.id);
-        if (e.shiftKey || e.ctrlKey || e.metaKey) {
-          onCheckboxClick(link.id, index, e.shiftKey);
-        }
-      }}
-    >
-      {/* Checkbox */}
-      <div
-        role="checkbox"
-        aria-checked={isSelected}
-        aria-label={isSelected ? 'Deselect link' : 'Select link'}
-        tabIndex={-1}
-        className={`flex-shrink-0 transition-opacity ${showCheckbox ? 'opacity-100' : 'opacity-0'}`}
-        onClick={(e) => {
-          e.stopPropagation();
-          onCheckboxClick(link.id, index, e.shiftKey);
-        }}
-      >
-        <div
-          className={`w-4 h-4 rounded border-[1.5px] flex items-center justify-center transition-all ${
-            isSelected
-              ? 'bg-indigo-500 border-indigo-500'
-              : 'border-slate-300 dark:border-slate-600 hover:border-slate-500 dark:hover:border-slate-400'
-          }`}
-        >
-          {isSelected && <CheckIcon />}
-        </div>
-      </div>
-
-      {/* Favicon */}
-      <div className="flex-shrink-0 w-4 h-4 flex items-center justify-center">
-        {faviconUrl ? (
-          <img
-            src={faviconUrl}
-            alt=""
-            className="w-4 h-4 rounded-sm object-contain"
-            onError={(e) => {
-              (e.target as HTMLImageElement).style.display = 'none';
-            }}
-          />
-        ) : (
-          <div className="w-3 h-3 bg-slate-300 dark:bg-slate-700 rounded-sm" />
-        )}
-      </div>
-
-      {/* Text */}
-      <div className="flex-1 min-w-0">
-        <p className={`text-[13px] font-medium truncate leading-tight ${
-          !link.status || link.status === 'PENDING'
-            ? 'text-slate-400 italic'
-            : 'text-slate-800 dark:text-slate-200'
-        }`}>
-          {link.title || link.url}
-        </p>
-        <div className="flex items-center gap-1 mt-0.5 min-w-0">
-          <p className="text-[11px] text-slate-500 truncate">{link.url}</p>
-          <a
-            href={link.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            title="Open in new tab"
-            onClick={(e) => e.stopPropagation()}
-            className={`flex-shrink-0 text-slate-400 dark:text-slate-600 hover:text-slate-700 dark:hover:text-slate-300 transition-opacity transition-colors ${hovered ? 'opacity-100' : 'opacity-0'}`}
-          >
-            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
-              />
-            </svg>
-          </a>
-        </div>
-      </div>
-
-      {/* Meta */}
-      <div className="flex-shrink-0 flex flex-col items-end gap-1">
-        <span className="text-[11px] text-slate-500 dark:text-slate-600">{formatDate(link.createdAt)}</span>
-        {link.status === 'FAILED' ? (
-          <div className="w-1.5 h-1.5 bg-red-500 rounded-full" title="Indexing failed" />
-        ) : link.status === 'INDEXED' ? (
-          <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full" title="Indexed" />
-        ) : (
-          <div className="w-1.5 h-1.5 bg-amber-400 rounded-full animate-pulse" title="Indexing…" />
-        )}
-      </div>
-    </div>
-  );
-};
-
 // ─── SortableLinkItem ─────────────────────────────────────────────────────────
 
 interface SortableLinkItemProps {
@@ -312,7 +170,7 @@ const SortableLinkItem = ({
   onItemClick,
   onCheckboxClick,
 }: SortableLinkItemProps) => {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+  const { attributes, setNodeRef, transform, transition, isDragging } = useSortable({
     id: link.id,
     disabled: isSearching || dragDisabled,
   });
@@ -328,8 +186,8 @@ const SortableLinkItem = ({
   };
 
   return (
-    <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
-      <LinkItem
+    <div ref={setNodeRef} style={style} {...attributes}>
+      <LinkItemComponent
         link={link}
         isSelected={isSelected}
         isActive={link.id === activeLinkId}
@@ -359,6 +217,7 @@ export default function StashAccessPage() {
   const signature = urlSignature ?? (stashId ? getSessionSignature(stashId) : null);
   const [selectedLinkIds, setSelectedLinkIds] = useState<Set<string>>(new Set());
   const [activeLinkId, setActiveLinkId] = useState<string | null>(null);
+  const [activeLinkData, setActiveLinkData] = useState<LinkType | null>(null);
   const [lastCheckedIndex, setLastCheckedIndex] = useState<number | null>(null);
   const [selectingAll, setSelectingAll] = useState(false);
   const { searchQuery, setSearchQuery, mobilePane, setMobilePane, setCanWrite, setIsClaimerToken: setContextIsClaimerToken } = useStashSearch();
@@ -397,6 +256,8 @@ export default function StashAccessPage() {
   const [signInOpen, setSignInOpen] = useState(false);
   const [signatureRefreshedAt, setSignatureRefreshedAt] = useState<string | null>(null);
   const [regenerateSignaturePending, setRegenerateSignaturePending] = useState(false);
+  // null = root level, string = folder ID
+  const [activeFolderId, setActiveFolderId] = useState<string | null>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const liveIframeRef = useRef<HTMLIFrameElement>(null);
@@ -411,28 +272,19 @@ export default function StashAccessPage() {
 
   // ─── SSE: real-time link updates ─────────────────────────────────────────────
 
+  // Debounce SSE invalidations so a burst of events (e.g. 50 screenshot refreshes)
+  // collapses into a single refetch instead of 50 back-to-back requests.
+  const sseInvalidateTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   useStashEvents({
     stashId,
     accessToken,
-    onLinkUpdated: (updatedLink) => {
-      // Update the link in-place inside all pages of the infinite query cache
-      queryClient.setQueryData(
-        ['links', stashId, debouncedSearch],
-        (old: { pages: { content: LinkType[] }[] } | undefined) => {
-          if (!old) return old;
-          return {
-            ...old,
-            pages: old.pages.map((page) => ({
-              ...page,
-              content: page.content.map((l) =>
-                l.id === updatedLink.id ? { ...l, ...updatedLink } : l
-              ),
-            })),
-          };
-        }
-      );
-      // Also mirror the update into the local links state so the sidebar re-renders
-      setLinks((prev) => prev.map((l) => (l.id === updatedLink.id ? { ...l, ...updatedLink } : l)));
+    onLinkUpdated: () => {
+      if (sseInvalidateTimerRef.current) clearTimeout(sseInvalidateTimerRef.current);
+      sseInvalidateTimerRef.current = setTimeout(() => {
+        sseInvalidateTimerRef.current = null;
+        queryClient.invalidateQueries({ queryKey: ['links', stashId] });
+      }, 500);
     },
   });
 
@@ -687,6 +539,17 @@ export default function StashAccessPage() {
     }
   }, [stashError, stashId, setAccessToken]);
 
+  const { data: foldersData } = useQuery({
+    queryKey: ['folders', stashId],
+    queryFn: async () => {
+      const res = await folderApi.listFolders(stashId, accessToken!);
+      return res.data;
+    },
+    enabled: !!stashId && !!accessToken,
+  });
+
+  const folders = foldersData ?? [];
+
   const canWrite = !stash || stash.linkPermissions === 'FULL' || isClaimerToken;
 
   // Sync write access flags to the shared context so App.tsx can gate the header UI
@@ -729,13 +592,15 @@ export default function StashAccessPage() {
     }
   }, [linksData]);
 
-  // Clear active link if it was deleted
+  // Clear active link if it was deleted (only in search/list mode where links is authoritative)
   useEffect(() => {
+    if (!debouncedSearch.trim()) return;
     if (activeLinkId && !links.find((l) => l.id === activeLinkId)) {
       setActiveLinkId(null);
+      setActiveLinkData(null);
       setMobilePane('list');
     }
-  }, [links, activeLinkId]);
+  }, [links, activeLinkId, debouncedSearch]);
 
   // Reset preview state when a different link is selected
   useEffect(() => {
@@ -760,8 +625,8 @@ export default function StashAccessPage() {
 
 
   const activeLink = useMemo(
-    () => (activeLinkId ? links.find((l) => l.id === activeLinkId) ?? null : null),
-    [links, activeLinkId]
+    () => (activeLinkId ? (links.find((l) => l.id === activeLinkId) ?? activeLinkData) : null),
+    [links, activeLinkId, activeLinkData]
   );
 
   const getScreenshotSrc = (link: LinkType | null) => {
@@ -827,7 +692,7 @@ export default function StashAccessPage() {
     );
     observer.observe(el);
     return () => observer.disconnect();
-  }, [hasNextPage, isFetchingNextPage, fetchNextPage, links.length]);
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
   // Select-all: eagerly fetch all remaining pages, then select everything
   useEffect(() => {
@@ -924,7 +789,7 @@ export default function StashAccessPage() {
 
   const addLinkMutation = useMutation({
     mutationFn: async (url: string) => {
-      const res = await linkApi.addLink(stashId!, accessToken!, { url });
+      const res = await linkApi.addLink(stashId!, accessToken!, { url, folderId: activeFolderId });
       return res;
     },
     onSuccess: () => {
@@ -942,7 +807,12 @@ export default function StashAccessPage() {
   });
 
   const batchDeleteMutation = useMutation({
-    mutationFn: (ids: string[]) => linkApi.batchDeleteLinks(stashId!, accessToken!, ids),
+    mutationFn: async (ids: string[]) => {
+      const CHUNK = 100;
+      for (let i = 0; i < ids.length; i += CHUNK) {
+        await linkApi.batchDeleteLinks(stashId!, accessToken!, ids.slice(i, i + CHUNK));
+      }
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['links', stashId] });
       setSelectedLinkIds(new Set());
@@ -977,9 +847,12 @@ export default function StashAccessPage() {
         const lo = Math.min(lastCheckedIndex, index);
         const hi = Math.max(lastCheckedIndex, index);
         const rangeIds = links.slice(lo, hi + 1).map((l) => l.id);
+        // Use the anchor item (not the clicked item) to decide whether to add or remove,
+        // so the direction is consistent regardless of where in the range you click.
+        const anchorId = links[lastCheckedIndex]?.id;
         setSelectedLinkIds((prev) => {
           const next = new Set(prev);
-          if (prev.has(linkId)) {
+          if (anchorId && prev.has(anchorId)) {
             rangeIds.forEach((id) => next.delete(id));
           } else {
             rangeIds.forEach((id) => next.add(id));
@@ -1002,12 +875,13 @@ export default function StashAccessPage() {
   const handleMasterCheckboxClick = useCallback(() => {
     if (allVisibleSelected) {
       setSelectedLinkIds(new Set());
+      setSelectingAll(false);
       setLastCheckedIndex(null);
     } else {
-      setSelectedLinkIds(new Set(links.map((l) => l.id)));
+      setSelectingAll(true);
       setLastCheckedIndex(null);
     }
-  }, [allVisibleSelected, links]);
+  }, [allVisibleSelected]);
 
   const handleAddLink = (e: React.FormEvent) => {
     e.preventDefault();
@@ -1035,6 +909,11 @@ export default function StashAccessPage() {
   // bulk import, screenshot modal) so we don't intercept intentional text editing.
   // Cross-origin iframes never bubble paste events to the parent, so those are
   // naturally excluded.
+  // Keep a ref so the paste handler always calls the latest mutation instance
+  // without re-registering the listener on every render.
+  const addLinkMutationRef = useRef(addLinkMutation);
+  addLinkMutationRef.current = addLinkMutation;
+
   useEffect(() => {
     const handleGlobalPaste = (e: ClipboardEvent) => {
       if (stashSettingsOpen || bulkImportOpen || screenshotModalOpen) return;
@@ -1047,11 +926,11 @@ export default function StashAccessPage() {
       const pasted = e.clipboardData?.getData('text')?.trim();
       if (!pasted || validateUrl(pasted)) return;
       e.preventDefault();
-      addLinkMutation.mutate(pasted);
+      addLinkMutationRef.current.mutate(pasted);
     };
     document.addEventListener('paste', handleGlobalPaste);
     return () => document.removeEventListener('paste', handleGlobalPaste);
-  }, [addLinkMutation, stashSettingsOpen, bulkImportOpen, screenshotModalOpen]);
+  }, [stashSettingsOpen, bulkImportOpen, screenshotModalOpen]);
 
   const handleBatchDelete = useCallback(() => {
     if (!selectedLinkIds.size) return;
@@ -1122,6 +1001,8 @@ export default function StashAccessPage() {
         scrollItemIntoView(nextIndex);
         if (e.shiftKey) {
           setSelectedLinkIds((prev) => new Set([...prev, nextLink.id]));
+        } else {
+          setSelectedLinkIds(new Set([nextLink.id]));
         }
       } else if (e.code === 'ArrowUp') {
         e.preventDefault();
@@ -1131,6 +1012,8 @@ export default function StashAccessPage() {
         scrollItemIntoView(prevIndex);
         if (e.shiftKey) {
           setSelectedLinkIds((prev) => new Set([...prev, prevLink.id]));
+        } else {
+          setSelectedLinkIds(new Set([prevLink.id]));
         }
       } else if (e.code === 'Space') {
         e.preventDefault();
@@ -1153,24 +1036,29 @@ export default function StashAccessPage() {
     [links, activeLinkId, selectedLinkIds, handleCheckboxClick, handleBatchDelete, scrollItemIntoView]
   );
 
-  // Ctrl/Cmd+A: select/deselect all loaded links
+  // Ctrl/Cmd+A: select/deselect all links — only in search/list mode.
+  // In tree mode, FolderTreePane handles Ctrl+A via onSelectAll (fetches all pages).
+  const selectAllStateRef = useRef({ links, allVisibleSelected, isSearching });
+  selectAllStateRef.current = { links, allVisibleSelected, isSearching };
+
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement;
       if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) return;
       const ctrlOrCmd = /mac/i.test(navigator.platform) ? e.metaKey : e.ctrlKey;
-      if (ctrlOrCmd && e.key === 'a') {
-        e.preventDefault();
-        if (allVisibleSelected) {
-          setSelectedLinkIds(new Set());
-        } else {
-          setSelectedLinkIds(new Set(links.map((l) => l.id)));
-        }
+      if (!ctrlOrCmd || e.key !== 'a') return;
+      const { links: l, allVisibleSelected: all, isSearching: searching } = selectAllStateRef.current;
+      if (!searching) return; // tree mode handles its own Ctrl+A
+      e.preventDefault();
+      if (all) {
+        setSelectedLinkIds(new Set());
+      } else {
+        setSelectedLinkIds(new Set(l.map((link) => link.id)));
       }
     };
     document.addEventListener('keydown', onKeyDown);
     return () => document.removeEventListener('keydown', onKeyDown);
-  }, [links, allVisibleSelected]);
+  }, []); // stable: reads from ref at call time
 
   // ─── Walkthrough ─────────────────────────────────────────────────────────────
 
@@ -1482,65 +1370,103 @@ export default function StashAccessPage() {
           onKeyDown={handleListKeyDown}
           className="flex-1 min-h-0 overflow-y-auto sidebar-scroll focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500/40"
         >
-          {linksLoading ? (
-            <div className="flex items-center justify-center h-full">
-              <div className="w-6 h-6 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
-            </div>
-          ) : links.length === 0 ? (
-            <div id="lp-empty-state" className="flex flex-col items-center justify-center h-full text-center px-6 pb-8">
-              <div className="w-12 h-12 bg-slate-200 dark:bg-slate-800 rounded-xl flex items-center justify-center mb-3">
-                <PouchIcon className="w-6 h-6 text-slate-400 dark:text-slate-600" strokeWidth={1.5} />
+          {isSearching ? (
+            /* Search mode: flat list across all folders */
+            linksLoading ? (
+              <div className="flex items-center justify-center h-full">
+                <div className="w-6 h-6 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
               </div>
-              <p className="text-slate-400 dark:text-slate-500 text-sm">
-                {isSearching ? 'No links match your search' : canWrite ? 'No links yet — paste one below' : 'No links have been added yet'}
-              </p>
-              {!isSearching && canWrite && features.demoButton && stashId && accessToken && (
-                <p className="text-slate-400 dark:text-slate-500 text-sm mt-1">
-                  Or <DemoButton stashId={stashId} accessToken={accessToken} variant="inline" />
-                </p>
-              )}
-            </div>
-          ) : (
-            <>
-              <DndContext
-                sensors={sensors}
-                collisionDetection={closestCenter}
-                modifiers={[restrictToVerticalAxis, restrictToParentElement]}
-                onDragStart={handleDragStart}
-                onDragEnd={handleDragEnd}
-              >
-                <SortableContext
-                  items={links.map((l) => l.id)}
-                  strategy={verticalListSortingStrategy}
-                >
-                  {links.map((link, index) => (
-                    <SortableLinkItem
-                      key={link.id}
-                      link={link}
-                      index={index}
-                      isSelected={selectedLinkIds.has(link.id)}
-                      activeLinkId={activeLinkId}
-                      draggingId={draggingId}
-                      isSearching={isSearching}
-                      dragDisabled={!canWrite}
-                      onItemClick={handleItemClick}
-                      onCheckboxClick={handleCheckboxClick}
-                    />
-                  ))}
-                </SortableContext>
-                {/* DragOverlay renders as a portal; restrictToParentElement keeps it inside the sidebar */}
-                <DragOverlay dropAnimation={null}>
-                  {draggingId ? <DragPreview links={selectedLinks} /> : null}
-                </DragOverlay>
-              </DndContext>
-              {/* Sentinel observed by IntersectionObserver against the viewport */}
-              <div ref={sentinelRef} className="h-px" />
-              {isFetchingNextPage && (
-                <div className="flex items-center justify-center py-3">
-                  <div className="w-4 h-4 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+            ) : links.length === 0 ? (
+              <div id="lp-empty-state" className="flex flex-col items-center justify-center h-full text-center px-6 pb-8">
+                <div className="w-12 h-12 bg-slate-200 dark:bg-slate-800 rounded-xl flex items-center justify-center mb-3">
+                  <PouchIcon className="w-6 h-6 text-slate-400 dark:text-slate-600" strokeWidth={1.5} />
                 </div>
-              )}
-            </>
+                <p className="text-slate-400 dark:text-slate-500 text-sm">
+                  {isSearching ? 'No links match your search' : canWrite ? 'No links yet — paste one below' : 'No links have been added yet'}
+                </p>
+                {!isSearching && canWrite && features.demoButton && stashId && accessToken && (
+                  <p className="text-slate-400 dark:text-slate-500 text-sm mt-1">
+                    Or <DemoButton stashId={stashId} accessToken={accessToken} variant="inline" />
+                  </p>
+                )}
+              </div>
+            ) : (
+              <>
+                <DndContext
+                  sensors={sensors}
+                  collisionDetection={closestCenter}
+                  modifiers={[restrictToVerticalAxis, restrictToParentElement]}
+                  onDragStart={handleDragStart}
+                  onDragEnd={handleDragEnd}
+                >
+                  <SortableContext
+                    items={links.map((l) => l.id)}
+                    strategy={verticalListSortingStrategy}
+                  >
+                    {links.map((link, index) => (
+                      <SortableLinkItem
+                        key={link.id}
+                        link={link}
+                        index={index}
+                        isSelected={selectedLinkIds.has(link.id)}
+                        activeLinkId={activeLinkId}
+                        draggingId={draggingId}
+                        isSearching={isSearching}
+                        dragDisabled={!canWrite}
+                        onItemClick={handleItemClick}
+                        onCheckboxClick={handleCheckboxClick}
+                      />
+                    ))}
+                  </SortableContext>
+                  <DragOverlay dropAnimation={null}>
+                    {draggingId ? <DragPreview links={selectedLinks} /> : null}
+                  </DragOverlay>
+                </DndContext>
+                <div ref={sentinelRef} className="h-px" />
+                {isFetchingNextPage && (
+                  <div className="flex items-center justify-center py-3">
+                    <div className="w-4 h-4 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+                  </div>
+                )}
+              </>
+            )
+          ) : (
+            /* Folder tree mode */
+            stashId && accessToken ? (
+              <FolderTreePane
+                stashId={stashId}
+                accessToken={accessToken}
+                folders={folders}
+                activeFolderId={activeFolderId}
+                activeLinkId={activeLinkId}
+                selectedLinkIds={selectedLinkIds}
+                onSelectionChange={setSelectedLinkIds}
+                onSelectAll={() => setSelectingAll(true)}
+                isReadOnly={!canWrite}
+                onFolderSelect={setActiveFolderId}
+                onLinkActivate={(linkId, link) => {
+                  setActiveLinkId(linkId);
+                  setActiveLinkData(link ?? null);
+                  if (linkId) setMobilePane('preview');
+                }}
+                onFolderDeleted={() => setActiveFolderId(null)}
+                emptyState={
+                  <div id="lp-empty-state" className="flex flex-col items-center justify-center h-full text-center px-6 pb-8">
+                    <div className="w-12 h-12 bg-slate-200 dark:bg-slate-800 rounded-xl flex items-center justify-center mb-3">
+                      <PouchIcon className="w-6 h-6 text-slate-400 dark:text-slate-600" strokeWidth={1.5} />
+                    </div>
+                    <p className="text-slate-400 dark:text-slate-500 text-sm">
+                      {canWrite ? 'No links yet — paste one below' : 'No links have been added yet'}
+                    </p>
+                    {canWrite && features.demoButton && (
+                      <p className="text-slate-400 dark:text-slate-500 text-sm mt-1">
+                        Or <DemoButton stashId={stashId} accessToken={accessToken} variant="inline" />
+                      </p>
+                    )}
+                  </div>
+                }
+              />
+            ) : null
           )}
         </div>
 

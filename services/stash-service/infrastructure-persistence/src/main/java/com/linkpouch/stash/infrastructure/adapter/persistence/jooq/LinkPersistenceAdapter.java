@@ -85,8 +85,60 @@ public class LinkPersistenceAdapter implements LinkRepository {
     }
 
     @Override
-    public void shiftPositionsDown(final UUID stashId) {
-        shiftPositionsDownBy(stashId, 1);
+    public List<Link> findByStashIdNullFolderPaged(final UUID stashId, final int page, final int size) {
+        return dsl.selectFrom(LINKS)
+                .where(LINKS.STASH_ID.eq(stashId))
+                .and(LINKS.FOLDER_ID.isNull())
+                .orderBy(LINKS.POSITION.asc())
+                .limit(size)
+                .offset((long) page * size)
+                .fetch()
+                .map(this::mapIn);
+    }
+
+    @Override
+    public long countByStashIdNullFolder(final UUID stashId) {
+        final Long count = dsl.selectCount()
+                .from(LINKS)
+                .where(LINKS.STASH_ID.eq(stashId))
+                .and(LINKS.FOLDER_ID.isNull())
+                .fetchOne(0, Long.class);
+        return count != null ? count : 0L;
+    }
+
+    @Override
+    public List<Link> findByStashIdAndFolderIdPaged(
+            final UUID stashId, final UUID folderId, final int page, final int size) {
+        return dsl.selectFrom(LINKS)
+                .where(LINKS.STASH_ID.eq(stashId))
+                .and(LINKS.FOLDER_ID.eq(folderId))
+                .orderBy(LINKS.POSITION.asc())
+                .limit(size)
+                .offset((long) page * size)
+                .fetch()
+                .map(this::mapIn);
+    }
+
+    @Override
+    public long countByStashIdAndFolderId(final UUID stashId, final UUID folderId) {
+        final Long count = dsl.selectCount()
+                .from(LINKS)
+                .where(LINKS.STASH_ID.eq(stashId))
+                .and(LINKS.FOLDER_ID.eq(folderId))
+                .fetchOne(0, Long.class);
+        return count != null ? count : 0L;
+    }
+
+    @Override
+    public void shiftPositionsDown(final UUID stashId, final UUID folderId) {
+        final var query =
+                dsl.update(LINKS).set(LINKS.POSITION, LINKS.POSITION.add(1)).where(LINKS.STASH_ID.eq(stashId));
+
+        if (folderId == null) {
+            query.and(LINKS.FOLDER_ID.isNull()).execute();
+        } else {
+            query.and(LINKS.FOLDER_ID.eq(folderId)).execute();
+        }
     }
 
     @Override
@@ -174,6 +226,7 @@ public class LinkPersistenceAdapter implements LinkRepository {
                                 .toLocalDateTime()
                         : null,
                 pos != null ? pos : 0,
+                record.get(LINKS.FOLDER_ID),
                 parseLinkStatus(record.get("status", String.class)));
     }
 

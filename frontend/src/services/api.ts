@@ -1,6 +1,7 @@
 import axios from 'axios';
 import {
   Stash,
+  Folder,
   Link,
   PagedLinkResponse,
   CreateStashRequest,
@@ -9,6 +10,10 @@ import {
   EmbeddabilityCheckResponse,
   BulkImportRequest,
   BulkImportResponse,
+  CreateFolderRequest,
+  RenameFolderRequest,
+  MoveFolderRequest,
+  MoveLinkToFolderRequest,
 } from '../types';
 
 export const api = axios.create({
@@ -127,10 +132,27 @@ export const linkApi = {
       headers: bearerHeader(accessToken),
     }),
 
-  listLinks: (stashId: string, accessToken: string, search?: string, page = 0, size = 20) =>
+  listLinks: (
+    stashId: string,
+    accessToken: string,
+    search?: string,
+    page = 0,
+    size = 20,
+    folderId?: string | null | 'root',
+  ) =>
     api.get<PagedLinkResponse>(`/stashes/${stashId}/links`, {
       headers: bearerHeader(accessToken),
-      params: { search, page, size },
+      params: {
+        search,
+        page,
+        size,
+        // 'root' sentinel → empty string → root-level links only
+        // string UUID → specific folder
+        // undefined/null → all links (no folder filter)
+        ...(folderId !== undefined && folderId !== null
+          ? { folderId: folderId === 'root' ? '' : folderId }
+          : {}),
+      },
     }),
 
   deleteLink: (stashId: string, accessToken: string, linkId: string) =>
@@ -171,6 +193,38 @@ export const linkApi = {
   /** Returns a screenshot URL that embeds the JWT as a query param for <img src> usage. */
   screenshotUrl: (stashId: string, linkId: string, accessToken: string) =>
     `/api/stashes/${stashId}/links/${linkId}/screenshot?token=${encodeURIComponent(accessToken)}`,
+};
+
+export const folderApi = {
+  listFolders: (stashId: string, accessToken: string) =>
+    api.get<Folder[]>(`/stashes/${stashId}/folders`, {
+      headers: bearerHeader(accessToken),
+    }),
+
+  createFolder: (stashId: string, accessToken: string, data: CreateFolderRequest) =>
+    api.post<Folder>(`/stashes/${stashId}/folders`, data, {
+      headers: bearerHeader(accessToken),
+    }),
+
+  renameFolder: (stashId: string, accessToken: string, folderId: string, data: RenameFolderRequest) =>
+    api.patch<Folder>(`/stashes/${stashId}/folders/${folderId}`, data, {
+      headers: bearerHeader(accessToken),
+    }),
+
+  moveFolder: (stashId: string, accessToken: string, folderId: string, data: MoveFolderRequest) =>
+    api.put(`/stashes/${stashId}/folders/${folderId}/move`, data, {
+      headers: bearerHeader(accessToken),
+    }),
+
+  deleteFolder: (stashId: string, accessToken: string, folderId: string) =>
+    api.delete(`/stashes/${stashId}/folders/${folderId}`, {
+      headers: bearerHeader(accessToken),
+    }),
+
+  moveLinkToFolder: (stashId: string, accessToken: string, linkId: string, data: MoveLinkToFolderRequest) =>
+    api.patch(`/stashes/${stashId}/links/${linkId}/folder`, data, {
+      headers: bearerHeader(accessToken),
+    }),
 };
 
 export const utilsApi = {
