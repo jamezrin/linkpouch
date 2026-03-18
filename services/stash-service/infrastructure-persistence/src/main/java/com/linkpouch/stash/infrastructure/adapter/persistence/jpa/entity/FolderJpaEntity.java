@@ -11,12 +11,12 @@ import org.hibernate.annotations.UpdateTimestamp;
 import lombok.*;
 
 @Entity
-@Table(name = "links")
+@Table(name = "folders")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class LinkJpaEntity {
+public class FolderJpaEntity {
 
     @Id
     @Column(columnDefinition = "UUID")
@@ -28,38 +28,18 @@ public class LinkJpaEntity {
     @ToString.Exclude
     private StashJpaEntity stash;
 
+    /**
+     * Stored as a plain UUID column to avoid lazy-loading a self-referential tree.
+     * No @ManyToOne self-reference here — folders are fetched as a flat list and assembled in memory.
+     */
+    @Column(name = "parent_folder_id", columnDefinition = "UUID")
+    private UUID parentFolderId;
+
     @Column(nullable = false)
-    private String url;
+    private String name;
 
-    @Column
-    private String title;
-
-    @Column(columnDefinition = "TEXT")
-    private String description;
-
-    @Column(name = "favicon_url")
-    private String faviconUrl;
-
-    @Column(name = "page_content", columnDefinition = "TEXT")
-    private String pageContent;
-
-    @Column(name = "final_url")
-    private String finalUrl;
-
-    @Column(name = "screenshot_key")
-    private String screenshotKey;
-
-    @Column(name = "screenshot_generated_at")
-    private LocalDateTime screenshotGeneratedAt;
-
-    @Column(name = "position", nullable = false)
+    @Column(nullable = false)
     private int position;
-
-    @Column(name = "folder_id", columnDefinition = "UUID")
-    private UUID folderId;
-
-    @Column(nullable = false)
-    private String status;
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)

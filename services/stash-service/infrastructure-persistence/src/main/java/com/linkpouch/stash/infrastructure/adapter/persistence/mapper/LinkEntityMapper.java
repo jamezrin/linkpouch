@@ -25,6 +25,7 @@ public interface LinkEntityMapper {
     @Mapping(target = "createdAt", source = "createdAt")
     @Mapping(target = "updatedAt", source = "updatedAt")
     @Mapping(target = "position", source = "position")
+    @Mapping(target = "folderId", source = "folderId")
     @Mapping(target = "status", source = "status")
     Link mapIn(LinkJpaEntity entity);
 
@@ -43,6 +44,7 @@ public interface LinkEntityMapper {
     @Mapping(target = "createdAt", source = "createdAt")
     @Mapping(target = "updatedAt", source = "updatedAt")
     @Mapping(target = "position", source = "position")
+    @Mapping(target = "folderId", source = "folderId")
     @Mapping(target = "status", source = "status")
     LinkJpaEntity mapOut(Link link);
 
@@ -59,6 +61,7 @@ public interface LinkEntityMapper {
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
     @Mapping(target = "position", source = "position")
+    @Mapping(target = "folderId", source = "folderId")
     @Mapping(target = "status", source = "status")
     void updateEntity(Link link, @MappingTarget LinkJpaEntity entity);
 }

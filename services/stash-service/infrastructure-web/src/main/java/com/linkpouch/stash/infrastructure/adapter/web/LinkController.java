@@ -28,6 +28,7 @@ import com.linkpouch.stash.domain.port.in.DeleteLinksBatchCommand;
 import com.linkpouch.stash.domain.port.in.DeleteLinksBatchUseCase;
 import com.linkpouch.stash.domain.port.in.FindLinkByIdQuery;
 import com.linkpouch.stash.domain.port.in.FindStashByIdQuery;
+import com.linkpouch.stash.domain.port.in.ListLinksCommand;
 import com.linkpouch.stash.domain.port.in.ListLinksQuery;
 import com.linkpouch.stash.domain.port.in.PutBatchLinkScreenshotUseCase;
 import com.linkpouch.stash.domain.port.in.ReorderLinksCommand;
@@ -106,7 +107,11 @@ public class LinkController implements LinksApi {
 
         final String url =
                 addLinkRequestDTO.getUrl() != null ? addLinkRequestDTO.getUrl().toString() : null;
-        final var link = addLinkUseCase.execute(new AddLinkCommand(stashId, url));
+        final UUID folderId = addLinkRequestDTO.getFolderId() != null
+                        && addLinkRequestDTO.getFolderId().isPresent()
+                ? addLinkRequestDTO.getFolderId().get()
+                : null;
+        final var link = addLinkUseCase.execute(new AddLinkCommand(stashId, url, folderId));
         return ResponseEntity.status(HttpStatus.CREATED).body(toResponse(link));
     }
 
@@ -131,8 +136,20 @@ public class LinkController implements LinksApi {
 
     @Override
     public ResponseEntity<PagedLinkResponseDTO> listLinks(
-            final UUID stashId, final String search, final Integer page, final Integer size) {
-        final var pagedResult = listLinksQuery.execute(stashId, search, page, size);
+            final UUID stashId, final String search, final Integer page, final Integer size, final String folderId) {
+        final ListLinksCommand command;
+        if (folderId != null) {
+            // folderId param present: filter by folder (empty string → root, UUID string → specific folder)
+            if (folderId.isEmpty()) {
+                command = ListLinksCommand.forRoot(stashId, page != null ? page : 0, size != null ? size : 20);
+            } else {
+                command = ListLinksCommand.forFolder(
+                        stashId, UUID.fromString(folderId), page != null ? page : 0, size != null ? size : 20);
+            }
+        } else {
+            command = ListLinksCommand.forStash(stashId, search, page != null ? page : 0, size != null ? size : 20);
+        }
+        final var pagedResult = listLinksQuery.execute(command);
 
         final PagedLinkResponseDTO response = new PagedLinkResponseDTO();
         response.setContent(pagedResult.content().stream().map(this::toResponse).toList());
