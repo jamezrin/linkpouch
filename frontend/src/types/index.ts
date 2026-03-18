@@ -10,6 +10,16 @@ export interface Stash {
   signedUrl?: string;
 }
 
+export interface Folder {
+  id: string;
+  stashId: string;
+  parentFolderId?: string | null;
+  name: string;
+  position: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface Link {
   id: string;
   stashId: string;
@@ -22,6 +32,7 @@ export interface Link {
   createdAt: string;
   updatedAt: string;
   position?: number;
+  folderId?: string | null;
   status?: 'PENDING' | 'INDEXED' | 'FAILED';
 }
 
@@ -42,6 +53,25 @@ export interface AddLinkRequest {
   url: string;
   title?: string;
   description?: string;
+  folderId?: string | null;
+}
+
+export interface CreateFolderRequest {
+  name: string;
+  parentFolderId?: string | null;
+}
+
+export interface RenameFolderRequest {
+  name: string;
+}
+
+export interface MoveFolderRequest {
+  newParentFolderId?: string | null;
+  insertAfterId?: string | null;
+}
+
+export interface MoveLinkToFolderRequest {
+  folderId?: string | null;
 }
 
 export interface AccessTokenResponse {

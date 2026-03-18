@@ -5,9 +5,11 @@ import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
+import java.util.UUID;
 
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
+import org.openapitools.jackson.nullable.JsonNullable;
 
 import com.linkpouch.stash.api.model.*;
 import com.linkpouch.stash.domain.model.*;
@@ -26,7 +28,10 @@ public interface ApiDtoMapper {
 
     default AddLinkCommand mapIn(AddLinkRequestDTO dto) {
         final URI uri = dto.getUrl();
-        return new AddLinkCommand(null, uri != null ? uri.toString() : null);
+        final UUID folderId = dto.getFolderId() != null && dto.getFolderId().isPresent()
+                ? dto.getFolderId().get()
+                : null;
+        return new AddLinkCommand(null, uri != null ? uri.toString() : null, folderId);
     }
 
     // ==================== STASH RESPONSE MAPPERS ====================
@@ -55,10 +60,24 @@ public interface ApiDtoMapper {
     @Mapping(target = "createdAt", source = "createdAt")
     @Mapping(target = "updatedAt", source = "updatedAt")
     @Mapping(target = "position", source = "position")
+    @Mapping(target = "folderId", source = "folderId")
     @Mapping(target = "status", source = "status")
     LinkResponseDTO mapOut(Link link);
 
     List<LinkResponseDTO> mapOutLinks(List<Link> links);
+
+    // ==================== FOLDER RESPONSE MAPPERS ====================
+
+    @Mapping(target = "id", source = "id")
+    @Mapping(target = "stashId", source = "stashId")
+    @Mapping(target = "parentFolderId", source = "parentFolderId")
+    @Mapping(target = "name", source = "name")
+    @Mapping(target = "position", source = "position")
+    @Mapping(target = "createdAt", source = "createdAt")
+    @Mapping(target = "updatedAt", source = "updatedAt")
+    FolderResponseDTO mapOut(Folder folder);
+
+    List<FolderResponseDTO> mapOutFolders(List<Folder> folders);
 
     // ==================== EMBEDDABILITY RESPONSE MAPPER ====================
 
@@ -96,6 +115,14 @@ public interface ApiDtoMapper {
 
     default String linkStatusToString(LinkStatus status) {
         return status != null ? status.name() : LinkStatus.PENDING.name();
+    }
+
+    default String folderNameToString(FolderName name) {
+        return name != null ? name.getValue() : null;
+    }
+
+    default JsonNullable<UUID> uuidToJsonNullable(UUID value) {
+        return JsonNullable.of(value);
     }
 
     default String stashLinkPermissionsToString(StashLinkPermissions permissions) {

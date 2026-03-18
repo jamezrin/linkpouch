@@ -24,7 +24,10 @@ import com.linkpouch.stash.domain.port.in.AddLinksBatchUseCase;
 import com.linkpouch.stash.domain.port.in.DeleteLinkUseCase;
 import com.linkpouch.stash.domain.port.in.DeleteLinksBatchCommand;
 import com.linkpouch.stash.domain.port.in.DeleteLinksBatchUseCase;
+import com.linkpouch.stash.domain.port.in.ListLinksCommand;
 import com.linkpouch.stash.domain.port.in.ListLinksQuery;
+import com.linkpouch.stash.domain.port.in.MoveLinkToFolderCommand;
+import com.linkpouch.stash.domain.port.in.MoveLinkToFolderUseCase;
 import com.linkpouch.stash.domain.port.in.PagedResult;
 import com.linkpouch.stash.domain.port.in.PutBatchLinkScreenshotUseCase;
 import com.linkpouch.stash.domain.port.in.ReorderLinksCommand;
@@ -63,6 +66,7 @@ public class LinkManagementService
                 UpdateLinkScreenshotUseCase,
                 UpdateLinkStatusUseCase,
                 ReorderLinksUseCase,
+                MoveLinkToFolderUseCase,
                 ListLinksQuery {
 
     private final LinkRepository linkRepository;
@@ -80,8 +84,8 @@ public class LinkManagementService
                 .findByIdWithLinks(command.stashId())
                 .orElseThrow(() -> new NotFoundException("Stash not found: " + command.stashId()));
 
-        linkRepository.shiftPositionsDown(command.stashId());
-        final Link link = Link.create(command.stashId(), command.url());
+        linkRepository.shiftPositionsDown(command.stashId(), command.folderId());
+        final Link link = Link.create(command.stashId(), command.url(), command.folderId(), 0);
         stash.addLink(link);
         final Stash saved = stashRepository.save(stash);
 
@@ -392,11 +396,42 @@ public class LinkManagementService
         linkRepository.reorderLinks(command.stashId(), command.movedLinkIds(), command.insertAfterId());
     }
 
+    // ==================== MoveLinkToFolderUseCase ====================
+
+    @Override
+    @Transactional
+    public void execute(final MoveLinkToFolderCommand command) {
+        final Link link = linkRepository
+                .findById(command.linkId())
+                .orElseThrow(() -> new NotFoundException("Link not found: " + command.linkId()));
+
+        if (!link.getStashId().equals(command.stashId())) {
+            throw new com.linkpouch.stash.domain.exception.ForbiddenException("Link does not belong to this stash");
+        }
+
+        final Stash stash = stashRepository
+                .findByIdWithLinks(link.getStashId())
+                .orElseThrow(() -> new NotFoundException("Stash not found: " + link.getStashId()));
+
+        final Link domainLink = stash.getLinks().stream()
+                .filter(l -> l.getId().equals(command.linkId()))
+                .findFirst()
+                .orElseThrow(() -> new NotFoundException("Link not found in stash: " + command.linkId()));
+
+        domainLink.moveToFolder(command.targetFolderId());
+        stashRepository.save(stash);
+    }
+
     // ==================== ListLinksQuery ====================
 
     @Override
     @Transactional(readOnly = true)
-    public PagedResult<Link> execute(final UUID stashId, final String search, final int page, final int size) {
+    public PagedResult<Link> execute(final ListLinksCommand command) {
+        final UUID stashId = command.stashId();
+        final String search = command.search();
+        final int page = command.page();
+        final int size = command.size();
+
         if (page < 0) {
             throw new IllegalArgumentException("page must be >= 0");
         }
@@ -407,6 +442,7 @@ public class LinkManagementService
             throw new IllegalArgumentException("size must be <= 100");
         }
 
+        // Search mode: full-text across entire stash, ignores folder filter
         if (search != null && !search.isEmpty()) {
             final List<Link> results = linkRepository.searchByStashIdAndQuery(stashId, search);
             final int totalElements = results.size();
@@ -418,6 +454,24 @@ public class LinkManagementService
             return new PagedResult<>(paginatedLinks, totalElements, totalPages, size, page);
         }
 
+        if (command.filterByFolder()) {
+            if (command.folderId() == null) {
+                // Root-level links only
+                final long totalElements = linkRepository.countByStashIdNullFolder(stashId);
+                final int totalPages = (int) Math.ceil((double) totalElements / size);
+                final List<Link> links = linkRepository.findByStashIdNullFolderPaged(stashId, page, size);
+                return new PagedResult<>(links, (int) totalElements, totalPages, size, page);
+            } else {
+                // Specific folder
+                final long totalElements = linkRepository.countByStashIdAndFolderId(stashId, command.folderId());
+                final int totalPages = (int) Math.ceil((double) totalElements / size);
+                final List<Link> links =
+                        linkRepository.findByStashIdAndFolderIdPaged(stashId, command.folderId(), page, size);
+                return new PagedResult<>(links, (int) totalElements, totalPages, size, page);
+            }
+        }
+
+        // Stash-wide (no folder filter)
         final long totalElements = linkRepository.countByStashId(stashId);
         final int totalPages = (int) Math.ceil((double) totalElements / size);
         final List<Link> links = linkRepository.findByStashIdPaged(stashId, page, size);
