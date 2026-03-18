@@ -7,7 +7,7 @@ Ideas and planned improvements. Not in any particular order.
 ## Organization & Structure
 
 - **Collections & tags** — Organise links into nested collections or tag them freely — group research, projects, and reading lists.
-- **Nested folders** — Organize your collection into a hierarchy of folders, as deep as you need. Group research projects, reading lists, and references without collapsing everything into a single flat list.
+- ~~**Nested folders**~~ — ✅ Done. Folders are live: create, rename, nest, drag-and-drop, keyboard navigation, and recursive delete with S3 cleanup.
 - **Advanced pouch management** — Fork a pouch to remix a shared collection as your own, duplicate one of your own pouches for a fresh starting point, or permanently delete a pouch when you no longer need it. Full control over your data, including a clear confirmation flow before anything irreversible happens.
 
 ## AI & Intelligence
