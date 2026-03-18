@@ -27,6 +27,7 @@ public class Link {
     private ScreenshotKey screenshotKey;
     private LocalDateTime screenshotGeneratedAt;
     private int position;
+    private UUID folderId;
     private LinkStatus status;
 
     public Link(
@@ -43,6 +44,7 @@ public class Link {
             final ScreenshotKey screenshotKey,
             final LocalDateTime screenshotGeneratedAt,
             final int position,
+            final UUID folderId,
             final LinkStatus status) {
         this.id = id != null ? id : UUID.randomUUID();
         this.stashId = stashId;
@@ -57,14 +59,19 @@ public class Link {
         this.screenshotKey = screenshotKey;
         this.screenshotGeneratedAt = screenshotGeneratedAt;
         this.position = position;
+        this.folderId = folderId;
         this.status = status != null ? status : LinkStatus.PENDING;
     }
 
     public static Link create(final UUID stashId, final String url) {
-        return create(stashId, url, 0);
+        return create(stashId, url, null, 0);
     }
 
     public static Link create(final UUID stashId, final String url, final int position) {
+        return create(stashId, url, null, position);
+    }
+
+    public static Link create(final UUID stashId, final String url, final UUID folderId, final int position) {
         return new Link(
                 null,
                 stashId,
@@ -79,7 +86,13 @@ public class Link {
                 null,
                 null,
                 position,
+                folderId,
                 LinkStatus.PENDING);
+    }
+
+    public void moveToFolder(final UUID folderId) {
+        this.folderId = folderId;
+        this.updatedAt = LocalDateTime.now(ZoneOffset.UTC);
     }
 
     public void updateMetadata(

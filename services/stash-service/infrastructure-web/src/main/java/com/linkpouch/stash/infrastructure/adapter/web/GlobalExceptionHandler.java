@@ -7,6 +7,7 @@ import jakarta.servlet.http.HttpServletRequest;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
@@ -32,6 +33,16 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponseDTO> handleBadRequest(
             final IllegalArgumentException ex, final HttpServletRequest request) {
         return buildResponse(HttpStatus.BAD_REQUEST, ex.getMessage(), null, request.getRequestURI());
+    }
+
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<ErrorResponseDTO> handleValidation(
+            final MethodArgumentNotValidException ex, final HttpServletRequest request) {
+        final String message = ex.getBindingResult().getFieldErrors().stream()
+                .map(fe -> fe.getField() + ": " + fe.getDefaultMessage())
+                .findFirst()
+                .orElse("Validation failed");
+        return buildResponse(HttpStatus.BAD_REQUEST, message, null, request.getRequestURI());
     }
 
     @ExceptionHandler(PasswordRequiredException.class)
