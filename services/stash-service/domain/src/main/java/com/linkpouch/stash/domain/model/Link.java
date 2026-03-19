@@ -29,6 +29,8 @@ public class Link {
     private int position;
     private UUID folderId;
     private LinkStatus status;
+    private String aiSummary;
+    private AiSummaryStatus aiSummaryStatus;
 
     public Link(
             final UUID id,
@@ -45,7 +47,9 @@ public class Link {
             final LocalDateTime screenshotGeneratedAt,
             final int position,
             final UUID folderId,
-            final LinkStatus status) {
+            final LinkStatus status,
+            final String aiSummary,
+            final AiSummaryStatus aiSummaryStatus) {
         this.id = id != null ? id : UUID.randomUUID();
         this.stashId = stashId;
         this.createdAt = createdAt != null ? createdAt : LocalDateTime.now(ZoneOffset.UTC);
@@ -61,6 +65,8 @@ public class Link {
         this.position = position;
         this.folderId = folderId;
         this.status = status != null ? status : LinkStatus.PENDING;
+        this.aiSummary = aiSummary;
+        this.aiSummaryStatus = aiSummaryStatus != null ? aiSummaryStatus : AiSummaryStatus.SKIPPED;
     }
 
     public static Link create(final UUID stashId, final String url) {
@@ -87,7 +93,9 @@ public class Link {
                 null,
                 position,
                 folderId,
-                LinkStatus.PENDING);
+                LinkStatus.PENDING,
+                null,
+                AiSummaryStatus.PENDING);
     }
 
     public void moveToFolder(final UUID folderId) {
@@ -127,6 +135,27 @@ public class Link {
 
     public void markFailed() {
         this.status = LinkStatus.FAILED;
+        this.updatedAt = LocalDateTime.now(ZoneOffset.UTC);
+    }
+
+    public void markAiSummaryGenerating() {
+        this.aiSummaryStatus = AiSummaryStatus.GENERATING;
+        this.updatedAt = LocalDateTime.now(ZoneOffset.UTC);
+    }
+
+    public void updateAiSummary(final String summary) {
+        this.aiSummary = summary;
+        this.aiSummaryStatus = AiSummaryStatus.COMPLETED;
+        this.updatedAt = LocalDateTime.now(ZoneOffset.UTC);
+    }
+
+    public void markAiSummaryFailed() {
+        this.aiSummaryStatus = AiSummaryStatus.FAILED;
+        this.updatedAt = LocalDateTime.now(ZoneOffset.UTC);
+    }
+
+    public void markAiSummarySkipped() {
+        this.aiSummaryStatus = AiSummaryStatus.SKIPPED;
         this.updatedAt = LocalDateTime.now(ZoneOffset.UTC);
     }
 }

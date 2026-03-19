@@ -36,6 +36,7 @@ import com.linkpouch.stash.domain.port.in.UpdateLinkMetadataCommand;
 import com.linkpouch.stash.domain.port.in.UpdateLinkMetadataUseCase;
 import com.linkpouch.stash.domain.port.in.UpdateLinkScreenshotUseCase;
 import com.linkpouch.stash.domain.port.in.UpdateLinkStatusUseCase;
+import com.linkpouch.stash.domain.port.outbound.AiSummarizationPort;
 import com.linkpouch.stash.domain.port.outbound.EventPublisher;
 import com.linkpouch.stash.domain.port.outbound.LinkRepository;
 import com.linkpouch.stash.domain.port.outbound.LinkStatusBroadcaster;
@@ -74,6 +75,7 @@ public class LinkManagementService
     private final EventPublisher eventPublisher;
     private final LinkStatusBroadcaster linkStatusBroadcaster;
     private final ScreenshotStorage screenshotStorage;
+    private final AiSummarizationPort aiSummarizationPort;
 
     // ==================== AddLinkUseCase ====================
 
@@ -284,6 +286,7 @@ public class LinkManagementService
                 .orElse(domainLink);
 
         linkStatusBroadcaster.broadcastLinkUpdated(savedLink.getStashId(), savedLink);
+        aiSummarizationPort.requestSummarization(savedLink.getId(), savedLink.getStashId(), savedLink.getPageContent());
         return savedLink;
     }
 

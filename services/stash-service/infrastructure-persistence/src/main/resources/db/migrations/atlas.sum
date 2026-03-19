@@ -1,4 +1,4 @@
-h1:/CQeqxBaF74e7qR6uphxrEzgpYLb8dB96t6N8RHuqcU=
+h1:bC9aroMk783p8pNMLzRRvOU+lppsKajs5lMqAbgVp7o=
 1_create_stashes_table.sql h1:FnqKvUfR9C02MUZINXrh02hwzN/wSLzWnuWqO6dxt64=
 2_create_links_table.sql h1:e1nSMwKhwbnEv5Tt8XEnxOCECptkSmx/+MU56ZFAbmQ=
 3_create_search_indexes.sql h1:NzdsWysdUo/BIc0qYzyz7gwpENTZsyLUHdUrhiY5smw=
@@ -11,3 +11,5 @@ h1:/CQeqxBaF74e7qR6uphxrEzgpYLb8dB96t6N8RHuqcU=
 9z_add_signature_refreshed_at.sql h1:dPEQ5XexsErHIaRM3Juh/HJRGGjXmDgHI5gufyvQbYw=
 9za_add_stash_version.sql h1:lbGh9LzLZyo3oJd2bnlupbs9adNVlB4V1liCPwn3MyU=
 9zb_create_folders_table.sql h1:yUv85GGTLhBtvMXJj3yzP7FgrEwT/+P6jHiypiMAz+Y=
+9zc_add_ai_summary_to_links.sql h1:SKu8he67PbFhMg9DGKrcGvksbwhU8RDz3zoaP29Bmd4=
+9zd_create_account_ai_settings.sql h1:4ZxjqpXQW64KBuvXMHwrdfZoM1e0D5On5dcG6RHk8pk=

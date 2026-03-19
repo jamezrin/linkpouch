@@ -34,6 +34,8 @@ export interface Link {
   position?: number;
   folderId?: string | null;
   status?: 'PENDING' | 'INDEXED' | 'FAILED';
+  aiSummary?: string | null;
+  aiSummaryStatus?: 'PENDING' | 'GENERATING' | 'COMPLETED' | 'FAILED' | 'SKIPPED';
 }
 
 export interface PagedLinkResponse {

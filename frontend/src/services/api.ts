@@ -15,6 +15,7 @@ import {
   MoveFolderRequest,
   MoveLinkToFolderRequest,
 } from '../types';
+import { AiSettingsResponse, UpsertAiSettingsRequest, AiProvider } from '../types/aiSettings';
 
 export const api = axios.create({
   baseURL: '/api',
@@ -230,4 +231,21 @@ export const folderApi = {
 export const utilsApi = {
   checkEmbeddable: (url: string) =>
     api.get<EmbeddabilityCheckResponse>('/embeddable-check', { params: { url } }),
+};
+
+export const accountApi = {
+  getAiSettings: (accountJwt: string) =>
+    api.get<AiSettingsResponse[]>('/account/ai-settings', {
+      headers: { Authorization: `Bearer ${accountJwt}` },
+    }),
+
+  upsertAiSettings: (accountJwt: string, provider: AiProvider, data: UpsertAiSettingsRequest) =>
+    api.put<AiSettingsResponse>(`/account/ai-settings/${provider}`, data, {
+      headers: { Authorization: `Bearer ${accountJwt}` },
+    }),
+
+  deleteAiSettings: (accountJwt: string, provider: AiProvider) =>
+    api.delete(`/account/ai-settings/${provider}`, {
+      headers: { Authorization: `Bearer ${accountJwt}` },
+    }),
 };

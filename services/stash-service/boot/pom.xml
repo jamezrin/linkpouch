@@ -59,6 +59,12 @@
             <version>${project.version}</version>
         </dependency>
 
+        <dependency>
+            <groupId>com.linkpouch</groupId>
+            <artifactId>infrastructure-ai</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
         <!-- OAuth2 Client -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

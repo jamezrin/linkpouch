@@ -61,6 +61,12 @@ public class LinkJpaEntity {
     @Column(nullable = false)
     private String status;
 
+    @Column(name = "ai_summary", columnDefinition = "TEXT")
+    private String aiSummary;
+
+    @Column(name = "ai_summary_status", nullable = false)
+    private String aiSummaryStatus;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;

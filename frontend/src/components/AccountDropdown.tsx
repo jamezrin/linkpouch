@@ -5,6 +5,7 @@ import { accountApi } from '../services/accountApi';
 import { OAuthProviderName } from '../types/account';
 import StashesModal from './StashesModal';
 import SignInModal from './SignInModal';
+import { AiSettingsModal } from './AiSettingsModal';
 
 const PROVIDER_LABELS: Record<OAuthProviderName, string> = {
   github: 'GitHub',
@@ -25,6 +26,7 @@ export default function AccountDropdown() {
   const [open, setOpen] = useState(false);
   const [stashesOpen, setStashesOpen] = useState(false);
   const [signInOpen, setSignInOpen] = useState(false);
+  const [aiSettingsOpen, setAiSettingsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const { data: account } = useQuery({
@@ -140,6 +142,15 @@ export default function AccountDropdown() {
                 </svg>
                 Your pouches
               </button>
+              <button
+                onClick={() => { setAiSettingsOpen(true); setOpen(false); }}
+                className="flex items-center gap-2.5 w-full px-4 py-2 text-[13px] text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+              >
+                <svg className="w-4 h-4 text-slate-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                </svg>
+                AI Settings
+              </button>
             </div>
 
             <div className="border-t border-slate-100 dark:border-slate-800 py-1">
@@ -159,6 +170,9 @@ export default function AccountDropdown() {
     </div>
 
     {stashesOpen && <StashesModal onClose={() => setStashesOpen(false)} />}
+    {aiSettingsOpen && accountToken && (
+      <AiSettingsModal accountToken={accountToken} onClose={() => setAiSettingsOpen(false)} />
+    )}
     </>
   );
 }

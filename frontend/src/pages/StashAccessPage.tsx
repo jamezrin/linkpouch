@@ -37,10 +37,12 @@ import { accountApi } from '../services/accountApi';
 import SignInModal from '../components/SignInModal';
 import { FolderTreePane } from '../components/FolderTreePane';
 import { LinkItem as LinkItemComponent } from '../components/LinkItem';
+import { AiSummaryPane } from '../components/AiSummaryPane';
+import { AiSettingsModal } from '../components/AiSettingsModal';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type PreviewMode = 'live' | 'archive';
+type PreviewMode = 'live' | 'archive' | 'ai-summary';
 
 // ─── Icons ───────────────────────────────────────────────────────────────────
 
@@ -228,6 +230,8 @@ export default function StashAccessPage() {
   const [links, setLinks] = useState<LinkType[]>([]);
   const [screenshotModalOpen, setScreenshotModalOpen] = useState(false);
   const [previewMode, setPreviewMode] = useState<PreviewMode>('live');
+  const [userChoseTab, setUserChoseTab] = useState(false);
+  const [aiSettingsOpen, setAiSettingsOpen] = useState(false);
   const [liveLoading, setLiveLoading] = useState(false);
   const [archiveLoading, setArchiveLoading] = useState(false);
   const [showArchiveSuggestion, setShowArchiveSuggestion] = useState(false);
@@ -606,6 +610,7 @@ export default function StashAccessPage() {
   useEffect(() => {
     setScreenshotModalOpen(false);
     setPreviewMode('live');
+    setUserChoseTab(false);
     setLiveLoading(true);
     setArchiveLoading(false);
     setShowArchiveSuggestion(false);
@@ -628,6 +633,14 @@ export default function StashAccessPage() {
     () => (activeLinkId ? (links.find((l) => l.id === activeLinkId) ?? activeLinkData) : null),
     [links, activeLinkId, activeLinkData]
   );
+
+  // Auto-switch to AI Summary tab when summary completes (unless user already chose a tab)
+  useEffect(() => {
+    if (!activeLink) return;
+    if (activeLink.aiSummaryStatus === 'COMPLETED' && !userChoseTab) {
+      setPreviewMode('ai-summary');
+    }
+  }, [activeLink?.aiSummaryStatus, activeLinkId, userChoseTab]);
 
   const getScreenshotSrc = (link: LinkType | null) => {
     if (!link?.screenshotUrl || !accessToken) return null;
@@ -962,6 +975,7 @@ export default function StashAccessPage() {
       blockTimerRef.current = null;
     }
     setPreviewMode('archive');
+    setUserChoseTab(true);
     setArchiveLoading(true);
     setShowArchiveSuggestion(false);
   }, []);
@@ -972,6 +986,7 @@ export default function StashAccessPage() {
       blockTimerRef.current = null;
     }
     setPreviewMode('live');
+    setUserChoseTab(true);
     setLiveLoading(true);
     setShowArchiveSuggestion(false);
     blockTimerRef.current = setTimeout(() => setShowArchiveSuggestion(true), 6000);
@@ -1600,7 +1615,7 @@ export default function StashAccessPage() {
                 </div>
               )}
 
-              {/* Live / Archive toggle — desktop only (shown in row 2 on mobile) */}
+              {/* Live / Archive / AI Summary toggle — desktop only (shown in row 2 on mobile) */}
               <div id="lp-live-archive-toggle" className="hidden md:flex text-[11px] font-medium flex-shrink-0">
                 <button
                   onClick={switchToLive}
@@ -1621,7 +1636,7 @@ export default function StashAccessPage() {
                     setArchiveLoading(true);
                   }}
                   nullLabel={previewMode === 'archive' ? 'Latest' : 'Archive'}
-                  triggerClassName={`px-2.5 py-1 rounded-r-md border border-slate-200 dark:border-slate-700 transition-colors flex items-center gap-1 ${
+                  triggerClassName={`px-2.5 py-1 border border-slate-200 dark:border-slate-700 border-r-0 transition-colors flex items-center gap-1 ${
                     previewMode === 'archive'
                       ? 'bg-indigo-600 text-white'
                       : 'bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'
@@ -1631,6 +1646,19 @@ export default function StashAccessPage() {
                   }}
                   fetchEnabled={previewMode === 'archive'}
                 />
+                <button
+                  onClick={() => { setPreviewMode('ai-summary'); setUserChoseTab(true); }}
+                  className={`px-2.5 py-1 rounded-r-md border border-slate-200 dark:border-slate-700 transition-colors flex items-center gap-1 ${
+                    previewMode === 'ai-summary'
+                      ? 'bg-indigo-600 text-white'
+                      : 'bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'
+                  }`}
+                >
+                  AI Summary
+                  {activeLink.aiSummaryStatus === 'GENERATING' && (
+                    <span className="inline-block w-2.5 h-2.5 border border-current border-t-transparent rounded-full animate-spin ml-0.5" />
+                  )}
+                </button>
               </div>
 
               {/* Screenshot thumbnail — desktop only (shown in row 2 on mobile) */}
@@ -1713,7 +1741,7 @@ export default function StashAccessPage() {
                     </button>
                   </div>
                 )}
-                {/* Live / Archive toggle */}
+                {/* Live / Archive / AI Summary toggle */}
                 <div className="flex text-[11px] font-medium flex-shrink-0">
                   <button
                     onClick={switchToLive}
@@ -1731,7 +1759,7 @@ export default function StashAccessPage() {
                     selectedTimestamp={previewMode === 'archive' ? selectedArchiveTimestamp : null}
                     onSelect={(ts) => { setSelectedArchiveTimestamp(ts); setArchiveLoading(true); }}
                     nullLabel={previewMode === 'archive' ? 'Latest' : 'Archive'}
-                    triggerClassName={`px-2.5 py-1 rounded-r-md border border-slate-200 dark:border-slate-700 transition-colors flex items-center gap-1 ${
+                    triggerClassName={`px-2.5 py-1 border border-slate-200 dark:border-slate-700 border-r-0 transition-colors flex items-center gap-1 ${
                       previewMode === 'archive'
                         ? 'bg-indigo-600 text-white'
                         : 'bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'
@@ -1739,6 +1767,19 @@ export default function StashAccessPage() {
                     onOpen={() => { if (previewMode !== 'archive') switchToArchive(); }}
                     fetchEnabled={previewMode === 'archive'}
                   />
+                  <button
+                    onClick={() => { setPreviewMode('ai-summary'); setUserChoseTab(true); }}
+                    className={`px-2.5 py-1 rounded-r-md border border-slate-200 dark:border-slate-700 transition-colors flex items-center gap-1 ${
+                      previewMode === 'ai-summary'
+                        ? 'bg-indigo-600 text-white'
+                        : 'bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'
+                    }`}
+                  >
+                    AI
+                    {activeLink.aiSummaryStatus === 'GENERATING' && (
+                      <span className="inline-block w-2 h-2 border border-current border-t-transparent rounded-full animate-spin" />
+                    )}
+                  </button>
                 </div>
                 <div className="flex-1" />
                 {/* Screenshot thumbnail */}
@@ -1776,9 +1817,11 @@ export default function StashAccessPage() {
               </div>{/* end Row 2 */}
             </div>{/* end header outer wrapper */}
 
-            {/* iframe area */}
+            {/* iframe / AI summary area */}
             <div id="lp-preview-iframe" className="flex-1 overflow-hidden relative">
-              {previewMode === 'live' ? (
+              {previewMode === 'ai-summary' ? (
+                <AiSummaryPane link={activeLink} onOpenSettings={() => setAiSettingsOpen(true)} />
+              ) : previewMode === 'live' ? (
                 <>
                   {liveLoading && (
                     <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-900 z-10">
@@ -1932,6 +1975,10 @@ export default function StashAccessPage() {
     </div>
 
     {signInOpen && <SignInModal onClose={() => setSignInOpen(false)} />}
+
+    {aiSettingsOpen && accountToken && (
+      <AiSettingsModal accountToken={accountToken} onClose={() => setAiSettingsOpen(false)} />
+    )}
 
     {bulkImportOpen && stashId && accessToken && (
       <BulkImportModal

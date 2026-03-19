@@ -137,6 +137,21 @@ spec:
             secretKeyRef:
               name: stash-service-secret
               key: TWITTER_CLIENT_SECRET
+        - name: LINKPOUCH_AI_ENCRYPTION_KEY
+          valueFrom:
+            secretKeyRef:
+              name: stash-service-secret
+              key: LINKPOUCH_AI_ENCRYPTION_KEY
+        - name: LINKPOUCH_AI_INCLUDED_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: stash-service-secret
+              key: LINKPOUCH_AI_INCLUDED_API_KEY
+        - name: LINKPOUCH_AI_INCLUDED_MODEL
+          valueFrom:
+            secretKeyRef:
+              name: stash-service-secret
+              key: LINKPOUCH_AI_INCLUDED_MODEL
         resources:
           requests:
             memory: "512Mi"

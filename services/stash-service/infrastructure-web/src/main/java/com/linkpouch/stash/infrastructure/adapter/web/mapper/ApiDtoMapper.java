@@ -13,6 +13,7 @@ import org.openapitools.jackson.nullable.JsonNullable;
 
 import com.linkpouch.stash.api.model.*;
 import com.linkpouch.stash.domain.model.*;
+import com.linkpouch.stash.domain.model.AiSummaryStatus;
 import com.linkpouch.stash.domain.model.StashLinkPermissions;
 import com.linkpouch.stash.domain.port.in.AddLinkCommand;
 import com.linkpouch.stash.domain.port.in.CreateStashCommand;
@@ -62,6 +63,8 @@ public interface ApiDtoMapper {
     @Mapping(target = "position", source = "position")
     @Mapping(target = "folderId", source = "folderId")
     @Mapping(target = "status", source = "status")
+    @Mapping(target = "aiSummary", source = "aiSummary")
+    @Mapping(target = "aiSummaryStatus", source = "aiSummaryStatus")
     LinkResponseDTO mapOut(Link link);
 
     List<LinkResponseDTO> mapOutLinks(List<Link> links);
@@ -131,5 +134,9 @@ public interface ApiDtoMapper {
 
     default String stashVisibilityToString(StashVisibility visibility) {
         return visibility != null ? visibility.name() : StashVisibility.SHARED.name();
+    }
+
+    default String aiSummaryStatusToString(AiSummaryStatus status) {
+        return status != null ? status.name() : AiSummaryStatus.PENDING.name();
     }
 }

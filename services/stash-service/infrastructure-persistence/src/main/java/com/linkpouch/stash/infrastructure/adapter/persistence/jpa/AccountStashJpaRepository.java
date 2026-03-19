@@ -24,4 +24,7 @@ public interface AccountStashJpaRepository extends JpaRepository<AccountStashJpa
 
     @Query("SELECT a.id.accountId FROM AccountStashJpaEntity a WHERE a.id.stashId = :stashId")
     Optional<UUID> findClaimerAccountId(@Param("stashId") UUID stashId);
+
+    @Query("SELECT a.id.accountId FROM AccountStashJpaEntity a WHERE a.id.stashId = :stashId ORDER BY a.claimedAt ASC")
+    List<UUID> findAccountIdsByStashId(@Param("stashId") UUID stashId);
 }
