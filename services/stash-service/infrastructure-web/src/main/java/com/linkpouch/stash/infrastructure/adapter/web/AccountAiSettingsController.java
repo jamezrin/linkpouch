@@ -1,7 +1,6 @@
 package com.linkpouch.stash.infrastructure.adapter.web;
 
 import java.util.List;
-import java.util.UUID;
 
 import jakarta.servlet.http.HttpServletRequest;
 
@@ -34,9 +33,8 @@ public class AccountAiSettingsController implements AccountAiSettingsApi {
     public ResponseEntity<List<AiSettingsResponseDTO>> getAiSettings() {
         final AccountClaims claims = getClaims();
         final List<AccountAiSettings> settings = getAccountAiSettingsQuery.execute(claims.accountId());
-        final List<AiSettingsResponseDTO> response = settings.stream()
-                .map(this::toDto)
-                .toList();
+        final List<AiSettingsResponseDTO> response =
+                settings.stream().map(this::toDto).toList();
         return ResponseEntity.ok(response);
     }
 
@@ -59,7 +57,8 @@ public class AccountAiSettingsController implements AccountAiSettingsApi {
 
     private AiSettingsResponseDTO toDto(final AccountAiSettings settings) {
         return new AiSettingsResponseDTO()
-                .provider(AiSettingsResponseDTO.ProviderEnum.fromValue(settings.getProvider().name()))
+                .provider(AiSettingsResponseDTO.ProviderEnum.fromValue(
+                        settings.getProvider().name()))
                 .model(settings.getModel())
                 .enabled(settings.isEnabled())
                 .hasApiKey(settings.getApiKey() != null && !settings.getApiKey().isBlank());

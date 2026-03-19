@@ -20,9 +20,7 @@ public class OpenCodeAiAdapter implements AiProviderAdapter {
     private final RestClient restClient;
 
     public OpenCodeAiAdapter() {
-        this.restClient = RestClient.builder()
-                .baseUrl(OPENCODE_BASE_URL)
-                .build();
+        this.restClient = RestClient.builder().baseUrl(OPENCODE_BASE_URL).build();
     }
 
     @Override

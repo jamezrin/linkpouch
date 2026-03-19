@@ -25,7 +25,8 @@ public class AccountAiSettingsPersistenceAdapter implements AccountAiSettingsRep
     @Override
     public AccountAiSettings save(final AccountAiSettings settings) {
         final AccountAiSettingsJpaEntity entity = jpaRepository
-                .findByAccountIdAndProvider(settings.getAccountId(), settings.getProvider().name())
+                .findByAccountIdAndProvider(
+                        settings.getAccountId(), settings.getProvider().name())
                 .map(existing -> {
                     existing.setApiKey(settings.getApiKey());
                     existing.setModel(settings.getModel());
@@ -49,7 +50,9 @@ public class AccountAiSettingsPersistenceAdapter implements AccountAiSettingsRep
 
     @Override
     public Optional<AccountAiSettings> findByAccountIdAndProvider(final UUID accountId, final AiProvider provider) {
-        return jpaRepository.findByAccountIdAndProvider(accountId, provider.name()).map(mapper::mapIn);
+        return jpaRepository
+                .findByAccountIdAndProvider(accountId, provider.name())
+                .map(mapper::mapIn);
     }
 
     @Override

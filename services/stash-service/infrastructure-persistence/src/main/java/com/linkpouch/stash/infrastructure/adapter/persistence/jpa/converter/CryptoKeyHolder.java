@@ -2,10 +2,10 @@ package com.linkpouch.stash.infrastructure.adapter.persistence.jpa.converter;
 
 import java.util.Base64;
 
+import jakarta.annotation.PostConstruct;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
-
-import jakarta.annotation.PostConstruct;
 
 import lombok.extern.slf4j.Slf4j;
 

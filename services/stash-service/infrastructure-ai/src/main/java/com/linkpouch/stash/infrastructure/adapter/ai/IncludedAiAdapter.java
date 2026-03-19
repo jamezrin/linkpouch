@@ -1,8 +1,8 @@
 package com.linkpouch.stash.infrastructure.adapter.ai;
 
-import com.linkpouch.stash.domain.model.AiProvider;
-
 import org.springframework.stereotype.Component;
+
+import com.linkpouch.stash.domain.model.AiProvider;
 
 import lombok.RequiredArgsConstructor;
 

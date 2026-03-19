@@ -20,8 +20,8 @@ public class AiProviderRegistry {
     private final Map<AiProvider, AiProviderAdapter> adapters;
 
     public AiProviderRegistry(final List<AiProviderAdapter> adapters) {
-        this.adapters = adapters.stream()
-                .collect(Collectors.toMap(AiProviderAdapter::supportedProvider, Function.identity()));
+        this.adapters =
+                adapters.stream().collect(Collectors.toMap(AiProviderAdapter::supportedProvider, Function.identity()));
         log.info("Registered AI provider adapters: {}", this.adapters.keySet());
     }
 

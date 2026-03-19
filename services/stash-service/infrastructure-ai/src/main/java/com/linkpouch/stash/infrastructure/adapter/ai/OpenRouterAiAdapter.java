@@ -31,9 +31,7 @@ public class OpenRouterAiAdapter implements AiProviderAdapter {
     private final RestClient restClient;
 
     public OpenRouterAiAdapter() {
-        this.restClient = RestClient.builder()
-                .baseUrl(OPENROUTER_BASE_URL)
-                .build();
+        this.restClient = RestClient.builder().baseUrl(OPENROUTER_BASE_URL).build();
     }
 
     @Override

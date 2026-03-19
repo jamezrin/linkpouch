@@ -18,8 +18,7 @@ public class AiProviderPortImpl implements AiProviderPort {
     @Override
     public String generateSummary(
             final AccountAiSettings settings, final String systemPrompt, final String pageContent) {
-        final AiProviderAdapter adapter = registry
-                .findAdapter(settings.getProvider())
+        final AiProviderAdapter adapter = registry.findAdapter(settings.getProvider())
                 .orElseThrow(() -> new IllegalArgumentException(
                         "No AI adapter registered for provider: " + settings.getProvider()));
         return adapter.generateSummary(settings.getApiKey(), settings.getModel(), systemPrompt, pageContent);
