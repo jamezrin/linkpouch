@@ -24,9 +24,9 @@ const PROVIDER_META: Record<AiProvider, ProviderMeta> = {
     requiresApiKey: false,
     isNone: true,
   },
-  INCLUDED: {
-    label: 'OpenRouter Free',
-    description: 'Uses the Linkpouch-provided OpenRouter key. No API key required.',
+  OPENROUTER_INCLUDED: {
+    label: 'OpenRouter (free models only)',
+    description: 'Uses the Linkpouch-provided OpenRouter key. Limited to free-tier models. No API key required.',
     requiresApiKey: false,
     fixedModel: 'openrouter/free',
   },
@@ -53,7 +53,7 @@ const PROVIDER_META: Record<AiProvider, ProviderMeta> = {
 };
 
 const FALLBACK_MODELS: Record<Exclude<AiProvider, 'NONE'>, string[]> = {
-  INCLUDED: ['openrouter/free'],
+  OPENROUTER_INCLUDED: ['openrouter/free'],
   OPENROUTER: ['google/gemini-flash-1.5', 'google/gemini-flash-2.0', 'mistralai/mistral-7b-instruct'],
   OPENAI: ['gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo'],
   ANTHROPIC: ['claude-opus-4-6', 'claude-sonnet-4-6', 'claude-haiku-4-5-20251001'],
@@ -227,7 +227,7 @@ export function AiSettingsModal({ accountToken, onClose }: AiSettingsModalProps)
     }
   };
 
-  const providers: AiProvider[] = ['NONE', 'INCLUDED', 'OPENROUTER', 'OPENAI', 'ANTHROPIC', 'OPENCODE'];
+  const providers: AiProvider[] = ['NONE', 'OPENROUTER_INCLUDED', 'OPENROUTER', 'OPENAI', 'ANTHROPIC', 'OPENCODE'];
 
   const availableModels =
     modelsQuery.data && modelsQuery.data.length > 0

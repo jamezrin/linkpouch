@@ -506,7 +506,7 @@ components:
           type: string
           enum:
             - NONE
-            - INCLUDED
+            - OPENROUTER_INCLUDED
             - OPENROUTER
             - OPENAI
             - ANTHROPIC
@@ -531,7 +531,7 @@ components:
           type: string
           enum:
             - NONE
-            - INCLUDED
+            - OPENROUTER_INCLUDED
             - OPENROUTER
             - OPENAI
             - ANTHROPIC
@@ -539,7 +539,7 @@ components:
         apiKey:
           type: string
           nullable: true
-          description: API key for the provider (null preserves an existing key; omit for INCLUDED)
+          description: API key for the provider (null preserves an existing key; omit for OPENROUTER_INCLUDED)
         model:
           type: string
           nullable: true
@@ -1777,7 +1777,7 @@ paths:
           schema:
             type: string
             enum:
-              - INCLUDED
+              - OPENROUTER_INCLUDED
               - OPENROUTER
               - OPENAI
               - ANTHROPIC
@@ -1787,7 +1787,7 @@ paths:
           required: false
           schema:
             type: string
-          description: API key to use for fetching models (ignored for INCLUDED/OPENROUTER public list)
+          description: API key to use for fetching models (ignored for OPENROUTER_INCLUDED/OPENROUTER public list)
       responses:
         '200':
           description: List of available model IDs

@@ -85,7 +85,7 @@ public class AccountAiSettingsController implements AccountAiSettingsApi {
                     .build();
             return switch (provider) {
                 case NONE -> List.of();
-                case INCLUDED, OPENROUTER -> fetchOpenRouterModels(client);
+                case OPENROUTER_INCLUDED, OPENROUTER -> fetchOpenRouterModels(client);
                 case OPENAI -> fetchOpenAiModels(client, apiKey);
                 case ANTHROPIC -> fetchAnthropicModels(client, apiKey);
                 case OPENCODE -> fetchOpenCodeModels(client, apiKey);

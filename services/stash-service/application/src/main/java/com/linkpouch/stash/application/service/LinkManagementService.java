@@ -84,11 +84,20 @@ public class LinkManagementService
             for a bookmarking app. Your goal is to help the user quickly recall why they saved this \
             page and extract maximum value from it.
 
+            This is a single one-shot request — produce the complete, final summary in one response. \
+            Do not ask questions, request clarification, or suggest follow-ups.
+
             Produce a thorough markdown summary using the following structure (adapt or omit sections \
             that don't apply to the content):
 
             ## Overview
             A concise 2–3 sentence paragraph explaining what this page is, who it's for, and why it matters.
+
+            {{PAGE_SCREENSHOT}}
+
+            ### Visual Structure
+            A brief description of the page's visual layout: what is shown above the fold, the major \
+            content areas, navigation elements, and how the page is organised at a glance.
 
             ## Key Takeaways
             A bulleted list of the 5–8 most important points, insights, or facts a reader should remember.
@@ -109,7 +118,8 @@ public class LinkManagementService
             - Preserve technical accuracy; never simplify at the cost of correctness
             - If the page has no meaningful content (login wall, 404, paywall, etc.) say so in one sentence
             - Output ONLY the markdown — no preamble, no meta-commentary, no closing remarks
-            - Do NOT wrap the output in a markdown code block\
+            - Do NOT wrap the output in a markdown code block
+            - Include the token {{PAGE_SCREENSHOT}} exactly once in your output, at the position shown above\
             """;
 
     private final LinkRepository linkRepository;
@@ -508,9 +518,9 @@ public class LinkManagementService
                     ? settings.getCustomPrompt()
                     : systemPrompt;
             final String resolvedApiKey =
-                    settings.getProvider() == AiProvider.INCLUDED ? includedApiKey : settings.getApiKey();
+                    settings.getProvider() == AiProvider.OPENROUTER_INCLUDED ? includedApiKey : settings.getApiKey();
             final String resolvedModel =
-                    settings.getProvider() == AiProvider.INCLUDED ? includedModel : settings.getModel();
+                    settings.getProvider() == AiProvider.OPENROUTER_INCLUDED ? includedModel : settings.getModel();
             aiSummaryRequestPublisher.publishRequest(
                     link.getId(),
                     link.getStashId(),
@@ -551,9 +561,9 @@ public class LinkManagementService
 
         // For INCLUDED provider, use server-side API key and model
         final String resolvedApiKey =
-                settings.getProvider() == AiProvider.INCLUDED ? includedApiKey : settings.getApiKey();
+                settings.getProvider() == AiProvider.OPENROUTER_INCLUDED ? includedApiKey : settings.getApiKey();
         final String resolvedModel =
-                settings.getProvider() == AiProvider.INCLUDED ? includedModel : settings.getModel();
+                settings.getProvider() == AiProvider.OPENROUTER_INCLUDED ? includedModel : settings.getModel();
 
         aiSummaryRequestPublisher.publishRequest(
                 savedLink.getId(),

@@ -1,4 +1,4 @@
-export type AiProvider = 'NONE' | 'INCLUDED' | 'OPENROUTER' | 'OPENAI' | 'ANTHROPIC' | 'OPENCODE';
+export type AiProvider = 'NONE' | 'OPENROUTER_INCLUDED' | 'OPENROUTER' | 'OPENAI' | 'ANTHROPIC' | 'OPENCODE';
 
 export interface AiSettingsResponse {
   provider: AiProvider;
