@@ -1639,8 +1639,7 @@ export default function StashAccessPage() {
               <div id="lp-live-archive-toggle" className="hidden md:flex text-[11px] font-medium flex-shrink-0">
                 <button
                   onClick={switchToLive}
-                  disabled={liveFailed}
-                  className={`px-2.5 py-1 rounded-l-md border border-slate-200 dark:border-slate-700 border-r-0 transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
+                  className={`px-2.5 py-1 rounded-l-md border border-slate-200 dark:border-slate-700 border-r-0 transition-colors ${
                     previewMode === 'live'
                       ? 'bg-indigo-600 text-white'
                       : 'bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'
@@ -1768,8 +1767,7 @@ export default function StashAccessPage() {
                 <div className="flex text-[11px] font-medium flex-shrink-0">
                   <button
                     onClick={switchToLive}
-                    disabled={liveFailed}
-                    className={`px-2.5 py-1 rounded-l-md border border-slate-200 dark:border-slate-700 border-r-0 transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
+                    className={`px-2.5 py-1 rounded-l-md border border-slate-200 dark:border-slate-700 border-r-0 transition-colors ${
                       previewMode === 'live'
                         ? 'bg-indigo-600 text-white'
                         : 'bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'
