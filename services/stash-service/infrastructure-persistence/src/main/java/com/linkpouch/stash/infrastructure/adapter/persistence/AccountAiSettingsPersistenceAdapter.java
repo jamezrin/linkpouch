@@ -31,6 +31,7 @@ public class AccountAiSettingsPersistenceAdapter implements AccountAiSettingsRep
                     existing.setApiKey(settings.getApiKey());
                     existing.setModel(settings.getModel());
                     existing.setEnabled(settings.isEnabled());
+                    existing.setCustomPrompt(settings.getCustomPrompt());
                     return existing;
                 })
                 .orElseGet(() -> {

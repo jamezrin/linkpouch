@@ -65,6 +65,10 @@ public interface ApiDtoMapper {
     @Mapping(target = "status", source = "status")
     @Mapping(target = "aiSummary", source = "aiSummary")
     @Mapping(target = "aiSummaryStatus", source = "aiSummaryStatus")
+    @Mapping(target = "aiSummaryModel", source = "aiSummaryModel")
+    @Mapping(target = "aiSummaryInputTokens", source = "aiSummaryInputTokens")
+    @Mapping(target = "aiSummaryOutputTokens", source = "aiSummaryOutputTokens")
+    @Mapping(target = "aiSummaryElapsedMs", source = "aiSummaryElapsedMs")
     LinkResponseDTO mapOut(Link link);
 
     List<LinkResponseDTO> mapOutLinks(List<Link> links);
@@ -125,6 +129,14 @@ public interface ApiDtoMapper {
     }
 
     default JsonNullable<UUID> uuidToJsonNullable(UUID value) {
+        return JsonNullable.of(value);
+    }
+
+    default JsonNullable<String> stringToJsonNullable(String value) {
+        return JsonNullable.of(value);
+    }
+
+    default JsonNullable<Integer> integerToJsonNullable(Integer value) {
         return JsonNullable.of(value);
     }
 

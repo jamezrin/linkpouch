@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { accountApi } from '../services/api';
-import { AiSettingsResponse, AiProvider, UpsertAiSettingsRequest } from '../types/aiSettings';
+import { AiProvider, AiProviderOrNone, UpsertAiSettingsRequest } from '../types/aiSettings';
 import { useScrollLock } from '../hooks/useScrollLock';
 
 interface AiSettingsModalProps {
@@ -9,41 +9,66 @@ interface AiSettingsModalProps {
   onClose: () => void;
 }
 
-const PROVIDER_INFO: Record<AiProvider, { label: string; description: string; showApiKey: boolean }> = {
+interface ProviderMeta {
+  label: string;
+  description: string;
+  requiresApiKey: boolean;
+  fixedModel?: string;
+  isNone?: boolean;
+}
+
+const PROVIDER_META: Record<AiProviderOrNone, ProviderMeta> = {
+  NONE: {
+    label: 'Disabled',
+    description: 'AI features are turned off. No summaries will be generated for your links.',
+    requiresApiKey: false,
+    isNone: true,
+  },
   INCLUDED: {
-    label: 'Included (free)',
+    label: 'OpenRouter Free',
     description: 'Uses the Linkpouch-provided OpenRouter key. No API key required.',
-    showApiKey: false,
+    requiresApiKey: false,
+    fixedModel: 'openrouter/free',
   },
   OPENROUTER: {
-    label: 'OpenRouter',
+    label: 'OpenRouter BYOK',
     description: 'Bring your own OpenRouter key to access hundreds of models.',
-    showApiKey: true,
+    requiresApiKey: true,
   },
   OPENAI: {
-    label: 'OpenAI',
-    description: 'Use your OpenAI API key (GPT-4o, o1, etc.).',
-    showApiKey: true,
+    label: 'OpenAI BYOK',
+    description: 'Use your OpenAI API key (GPT-4o, etc.).',
+    requiresApiKey: true,
+  },
+  ANTHROPIC: {
+    label: 'Anthropic BYOK',
+    description: 'Use your Anthropic API key (Claude models).',
+    requiresApiKey: true,
   },
   OPENCODE: {
-    label: 'OpenCode',
+    label: 'OpenCode BYOK',
     description: 'Use your OpenCode API key.',
-    showApiKey: true,
+    requiresApiKey: true,
   },
 };
 
-const DEFAULT_MODELS: Record<AiProvider, string> = {
-  INCLUDED: 'google/gemini-flash-1.5',
-  OPENROUTER: 'google/gemini-flash-1.5',
-  OPENAI: 'gpt-4o-mini',
-  OPENCODE: 'claude-3-5-haiku',
+const FALLBACK_MODELS: Record<AiProvider, string[]> = {
+  INCLUDED: ['openrouter/free'],
+  OPENROUTER: ['google/gemini-flash-1.5', 'google/gemini-flash-2.0', 'mistralai/mistral-7b-instruct'],
+  OPENAI: ['gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo'],
+  ANTHROPIC: ['claude-opus-4-6', 'claude-sonnet-4-6', 'claude-haiku-4-5-20251001'],
+  OPENCODE: ['opencode/opencode-a1', 'opencode/opencode-a1-mini'],
 };
 
-interface ProviderFormState {
-  model: string;
+type WizardStep = 1 | 2 | 3 | 4;
+
+interface WizardState {
+  provider: AiProviderOrNone | null;
   apiKey: string;
-  enabled: boolean;
-  dirty: boolean;
+  useExistingKey: boolean;
+  model: string;
+  useCustomPrompt: boolean;
+  customPrompt: string;
 }
 
 export function AiSettingsModal({ accountToken, onClose }: AiSettingsModalProps) {
@@ -55,77 +80,203 @@ export function AiSettingsModal({ accountToken, onClose }: AiSettingsModalProps)
     queryFn: () => accountApi.getAiSettings(accountToken).then((r) => r.data),
   });
 
-  const [formStates, setFormStates] = useState<Record<AiProvider, ProviderFormState>>(() => {
-    const providers: AiProvider[] = ['INCLUDED', 'OPENROUTER', 'OPENAI', 'OPENCODE'];
-    return Object.fromEntries(
-      providers.map((p) => [p, { model: DEFAULT_MODELS[p], apiKey: '', enabled: false, dirty: false }]),
-    ) as Record<AiProvider, ProviderFormState>;
+  const [step, setStep] = useState<WizardStep>(1);
+  const [wizard, setWizard] = useState<WizardState>({
+    provider: null,
+    apiKey: '',
+    useExistingKey: false,
+    model: '',
+    useCustomPrompt: false,
+    customPrompt: '',
   });
 
-  // Sync form states from fetched settings
-  useEffect(() => {
-    if (!settingsList) return;
-    setFormStates((prev) => {
-      const next = { ...prev };
-      for (const s of settingsList) {
-        next[s.provider] = {
-          model: s.model || DEFAULT_MODELS[s.provider],
-          apiKey: '', // never pre-populate — hasApiKey flag drives placeholder
-          enabled: s.enabled,
-          dirty: false,
-        };
-      }
-      return next;
+  const activeSettings = settingsList?.find((s) => s.enabled);
+
+  // Pre-select the currently active provider (or NONE) when settings load
+  const [preselected, setPreselected] = useState(false);
+  if (!isLoading && !preselected && !wizard.provider) {
+    if (activeSettings) {
+      const meta = PROVIDER_META[activeSettings.provider];
+      setWizard({
+        provider: activeSettings.provider,
+        apiKey: '',
+        useExistingKey: activeSettings.hasApiKey,
+        model: meta.fixedModel ?? activeSettings.model,
+        useCustomPrompt: !!(activeSettings.customPrompt),
+        customPrompt: activeSettings.customPrompt ?? '',
+      });
+    } else {
+      setWizard((prev) => ({ ...prev, provider: 'NONE' }));
+    }
+    setPreselected(true);
+  }
+
+  // Step 1: selecting a card only highlights it — does not navigate
+  const handleSelectProvider = (provider: AiProviderOrNone) => {
+    if (provider === 'NONE') {
+      setWizard({ provider: 'NONE', apiKey: '', useExistingKey: false, model: '', useCustomPrompt: false, customPrompt: '' });
+      return;
+    }
+    const existing = settingsList?.find((s) => s.provider === provider);
+    const meta = PROVIDER_META[provider];
+    const initialModel = meta.fixedModel ?? existing?.model ?? FALLBACK_MODELS[provider][0];
+    setWizard({
+      provider,
+      apiKey: '',
+      useExistingKey: existing?.hasApiKey ?? false,
+      model: initialModel,
+      useCustomPrompt: !!(existing?.customPrompt),
+      customPrompt: existing?.customPrompt ?? '',
     });
-  }, [settingsList]);
+  };
+
+  // Step 1 confirm button: disable AI for NONE, save immediately for no-key providers, advance wizard for BYOK
+  const handleStep1Confirm = () => {
+    if (!wizard.provider) return;
+    if (wizard.provider === 'NONE') {
+      if (activeSettings) {
+        disableMutation.mutate(activeSettings.provider);
+      } else {
+        onClose();
+      }
+      return;
+    }
+    const meta = PROVIDER_META[wizard.provider];
+    if (!meta.requiresApiKey) {
+      upsertMutation.mutate({
+        provider: wizard.provider,
+        payload: {
+          provider: wizard.provider,
+          model: meta.fixedModel!,
+          enabled: true,
+          apiKey: null,
+          customPrompt: null,
+        },
+      });
+      return;
+    }
+    const existing = settingsList?.find((s) => s.provider === wizard.provider);
+    if (existing?.enabled) {
+      setStep(4);
+    } else {
+      setStep(2);
+    }
+  };
+
+  // Step 2 → 3: fetch models with given key
+  const apiKeyForFetch = wizard.useExistingKey ? null : wizard.apiKey;
+
+  // wizard.provider is always a real AiProvider (not NONE) in steps 2-4
+  const realProvider = wizard.provider as AiProvider;
+
+  const modelsQuery = useQuery({
+    queryKey: ['ai-models', realProvider, apiKeyForFetch],
+    queryFn: () =>
+      accountApi
+        .fetchAiModels(accountToken, realProvider, apiKeyForFetch)
+        .then((r) => r.data.models),
+    enabled: false, // triggered manually
+    staleTime: Infinity,
+  });
+
+  const handleFetchModels = async () => {
+    const result = await modelsQuery.refetch();
+    const models = result.data ?? [];
+    const fallback = FALLBACK_MODELS[realProvider];
+    setWizard((prev) => ({
+      ...prev,
+      model: prev.model || models[0] || fallback[0],
+    }));
+    setStep(3);
+  };
 
   const upsertMutation = useMutation({
-    mutationFn: ({ provider, data }: { provider: AiProvider; data: UpsertAiSettingsRequest }) =>
-      accountApi.upsertAiSettings(accountToken, provider, data),
+    mutationFn: (data: { provider: AiProvider; payload: UpsertAiSettingsRequest }) =>
+      accountApi.upsertAiSettings(accountToken, data.provider, data.payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['ai-settings'] });
+      onClose();
     },
   });
 
-  const deleteMutation = useMutation({
+  const disableMutation = useMutation({
     mutationFn: (provider: AiProvider) => accountApi.deleteAiSettings(accountToken, provider),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['ai-settings'] });
+      onClose();
     },
   });
 
-  const getExistingSettings = (provider: AiProvider): AiSettingsResponse | undefined =>
-    settingsList?.find((s) => s.provider === provider);
-
-  const handleSave = (provider: AiProvider) => {
-    const form = formStates[provider];
-    const data: UpsertAiSettingsRequest = {
-      provider,
-      // Pass null to preserve existing key when field is empty and key is already set
-      apiKey: form.apiKey || (getExistingSettings(provider)?.hasApiKey ? null : undefined),
-      model: form.model,
-      enabled: form.enabled,
+  const handleSave = () => {
+    if (!wizard.provider || wizard.provider === 'NONE') return;
+    const payload: UpsertAiSettingsRequest = {
+      provider: realProvider,
+      model: wizard.model,
+      enabled: true,
+      apiKey: wizard.useExistingKey ? null : wizard.apiKey || null,
+      customPrompt: wizard.useCustomPrompt ? wizard.customPrompt : null,
     };
-    upsertMutation.mutate({ provider, data });
-    setFormStates((prev) => ({ ...prev, [provider]: { ...prev[provider], dirty: false } }));
+    upsertMutation.mutate({ provider: realProvider, payload });
   };
 
-  const updateField = (provider: AiProvider, field: keyof ProviderFormState, value: string | boolean) => {
-    setFormStates((prev) => ({
-      ...prev,
-      [provider]: { ...prev[provider], [field]: value, dirty: true },
-    }));
+  const goBack = () => {
+    if (step === 2) {
+      // Reset all wizard state and return to provider list
+      setWizard({ provider: null, apiKey: '', useExistingKey: false, model: '', useCustomPrompt: false, customPrompt: '' });
+      setStep(1);
+    } else if (step === 3) {
+      // Reset model selection (it was based on the key entered in step 2)
+      setWizard((prev) => ({ ...prev, model: '' }));
+      setStep(2);
+    } else if (step === 4) {
+      const existing = settingsList?.find((s) => s.provider === wizard.provider);
+      // Reset custom prompt state before going back
+      setWizard((prev) => ({ ...prev, useCustomPrompt: !!(existing?.customPrompt), customPrompt: existing?.customPrompt ?? '' }));
+      // Already-enabled provider jumped directly from step 1 → 4, so go back to step 1
+      if (existing?.enabled) {
+        setStep(1);
+      } else {
+        setStep(3);
+      }
+    }
   };
 
-  const providers: AiProvider[] = ['INCLUDED', 'OPENROUTER', 'OPENAI', 'OPENCODE'];
+  const providers: AiProviderOrNone[] = ['NONE', 'INCLUDED', 'OPENROUTER', 'OPENAI', 'ANTHROPIC', 'OPENCODE'];
+
+  const availableModels =
+    modelsQuery.data && modelsQuery.data.length > 0
+      ? modelsQuery.data
+      : (realProvider ? FALLBACK_MODELS[realProvider] : []);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative z-10 w-full max-w-lg bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col max-h-[90vh]">
+      <div className="relative z-10 w-full max-w-md bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col max-h-[90vh]">
+
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-slate-800">
-          <h2 className="text-base font-semibold text-slate-900 dark:text-white">AI Settings</h2>
+          <div className="flex items-center gap-3">
+            {step > 1 && (
+              <button
+                onClick={goBack}
+                className="w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                </svg>
+              </button>
+            )}
+            <div>
+              <h2 className="text-base font-semibold text-slate-900 dark:text-white">AI Settings</h2>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                {wizard.provider === 'NONE' || (wizard.provider && !PROVIDER_META[wizard.provider].requiresApiKey)
+                  ? 'Step 1 of 1'
+                  : wizard.provider && settingsList?.find((s) => s.provider === wizard.provider)?.enabled
+                  ? `Step ${step === 4 ? 2 : 1} of 2`
+                  : `Step ${step} of 4`}
+              </p>
+            </div>
+          </div>
           <button
             onClick={onClose}
             className="w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
@@ -137,94 +288,253 @@ export function AiSettingsModal({ accountToken, onClose }: AiSettingsModalProps)
         </div>
 
         {/* Body */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-3">
+        <div className="flex-1 overflow-y-auto p-5">
           {isLoading ? (
             <div className="flex justify-center py-8">
               <div className="w-6 h-6 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
             </div>
           ) : (
-            providers.map((provider) => {
-              const info = PROVIDER_INFO[provider];
-              const form = formStates[provider];
-              const existing = getExistingSettings(provider);
-              const isSaving = upsertMutation.isPending;
-
-              return (
-                <div
-                  key={provider}
-                  className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 p-4"
-                >
-                  <div className="flex items-center justify-between mb-2">
-                    <div>
-                      <span className="text-[13px] font-semibold text-slate-900 dark:text-white">{info.label}</span>
-                      <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">{info.description}</p>
-                    </div>
-                    {/* Enable toggle */}
-                    <button
-                      onClick={() => updateField(provider, 'enabled', !form.enabled)}
-                      className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors flex-shrink-0 ml-3 ${
-                        form.enabled ? 'bg-indigo-600' : 'bg-slate-200 dark:bg-slate-700'
-                      }`}
-                    >
-                      <span
-                        className={`inline-block h-3.5 w-3.5 rounded-full bg-white shadow transition-transform ${
-                          form.enabled ? 'translate-x-4' : 'translate-x-0.5'
+            <>
+              {/* Step 1 — Select provider */}
+              {step === 1 && (
+                <div className="space-y-2">
+                  <p className="text-[12px] text-slate-500 dark:text-slate-400 mb-3">
+                    Choose which AI provider to use. Only one provider can be active at a time.
+                  </p>
+                  {providers.map((provider) => {
+                    const meta = PROVIDER_META[provider];
+                    const isActive = provider === 'NONE' ? !activeSettings : activeSettings?.provider === provider;
+                    const isSelected = wizard.provider === provider;
+                    return (
+                      <button
+                        key={provider}
+                        onClick={() => handleSelectProvider(provider)}
+                        className={`w-full text-left rounded-xl border px-4 py-3 transition-colors ${
+                          isSelected
+                            ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20 ring-1 ring-indigo-500/30'
+                            : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800/50'
                         }`}
-                      />
-                    </button>
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="text-[13px] font-semibold text-slate-900 dark:text-white">
+                            {meta.label}
+                          </span>
+                          {isActive && (
+                            <span className="text-[10px] font-medium text-indigo-600 dark:text-indigo-400 bg-indigo-100 dark:bg-indigo-900/40 px-2 py-0.5 rounded-full">
+                              Active
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">{meta.description}</p>
+                      </button>
+                    );
+                  })}
+                  <button
+                    onClick={handleStep1Confirm}
+                    disabled={!wizard.provider || upsertMutation.isPending || disableMutation.isPending}
+                    className="w-full mt-2 text-[12px] font-medium py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white transition-colors disabled:opacity-40"
+                  >
+                    {upsertMutation.isPending || disableMutation.isPending
+                      ? 'Saving…'
+                      : wizard.provider === 'NONE'
+                      ? 'Disable AI (no additional steps required)'
+                      : wizard.provider && !PROVIDER_META[wizard.provider].requiresApiKey
+                      ? 'Finish (no additional steps required)'
+                      : 'Next →'}
+                  </button>
+                </div>
+              )}
+
+              {/* Step 2 — Enter API key */}
+              {step === 2 && wizard.provider && (
+                <div className="space-y-4">
+                  <div>
+                    <h3 className="text-[13px] font-semibold text-slate-900 dark:text-white mb-1">
+                      Enter API key for {PROVIDER_META[wizard.provider].label}
+                    </h3>
+                    <p className="text-[11px] text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 rounded-lg px-3 py-2 border border-amber-200 dark:border-amber-800">
+                      This key will be sent to our server immediately to fetch the list of available models. It will not be stored at this point.
+                    </p>
                   </div>
 
-                  {/* API Key field */}
-                  {info.showApiKey && (
-                    <div className="mb-2">
-                      <label className="text-[11px] text-slate-500 dark:text-slate-400 font-medium mb-1 block">
-                        API Key
-                      </label>
+                  {settingsList?.find((s) => s.provider === wizard.provider)?.hasApiKey && (
+                    <div className="flex items-center gap-2">
                       <input
-                        type="password"
-                        value={form.apiKey}
-                        onChange={(e) => updateField(provider, 'apiKey', e.target.value)}
-                        placeholder={existing?.hasApiKey ? '••••••••' : 'Enter API key'}
-                        className="w-full text-[12px] px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
+                        type="checkbox"
+                        id="use-existing"
+                        checked={wizard.useExistingKey}
+                        onChange={(e) =>
+                          setWizard((prev) => ({ ...prev, useExistingKey: e.target.checked, apiKey: '' }))
+                        }
+                        className="rounded"
                       />
+                      <label htmlFor="use-existing" className="text-[12px] text-slate-600 dark:text-slate-300">
+                        Use existing saved key
+                      </label>
                     </div>
                   )}
 
-                  {/* Model field */}
-                  <div className="mb-3">
+                  {!wizard.useExistingKey && (
+                    <input
+                      type="password"
+                      value={wizard.apiKey}
+                      onChange={(e) => setWizard((prev) => ({ ...prev, apiKey: e.target.value }))}
+                      placeholder="Enter API key"
+                      className="w-full text-[12px] px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
+                    />
+                  )}
+
+                  <button
+                    onClick={handleFetchModels}
+                    disabled={!wizard.useExistingKey && !wizard.apiKey}
+                    className="w-full text-[12px] font-medium py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white transition-colors disabled:opacity-50"
+                  >
+                    {modelsQuery.isFetching ? 'Fetching models…' : 'Next — fetch models'}
+                  </button>
+                  {modelsQuery.isError && (
+                    <p className="text-[11px] text-red-500">
+                      Failed to fetch models. You can still type a model name manually on the next step.
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {/* Step 3 — Select model */}
+              {step === 3 && wizard.provider && (
+                <div className="space-y-4">
+                  <h3 className="text-[13px] font-semibold text-slate-900 dark:text-white">
+                    Select model for {PROVIDER_META[wizard.provider].label}
+                  </h3>
+
+                  {modelsQuery.isFetching && (
+                    <div className="flex justify-center py-4">
+                      <div className="w-5 h-5 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+                    </div>
+                  )}
+
+                  <div>
                     <label className="text-[11px] text-slate-500 dark:text-slate-400 font-medium mb-1 block">
-                      Model
+                      Model ID (free-text allowed)
                     </label>
                     <input
                       type="text"
-                      value={form.model}
-                      onChange={(e) => updateField(provider, 'model', e.target.value)}
-                      className="w-full text-[12px] px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
+                      value={wizard.model}
+                      onChange={(e) => setWizard((prev) => ({ ...prev, model: e.target.value }))}
+                      placeholder="e.g. gpt-4o-mini"
+                      className="w-full text-[12px] px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
                     />
                   </div>
 
-                  {/* Save / Delete */}
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => handleSave(provider)}
-                      disabled={isSaving}
-                      className="flex-1 text-[12px] font-medium py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white transition-colors disabled:opacity-50"
-                    >
-                      {isSaving ? 'Saving…' : form.dirty ? 'Save changes' : 'Save'}
-                    </button>
-                    {existing && (
-                      <button
-                        onClick={() => deleteMutation.mutate(provider)}
-                        disabled={deleteMutation.isPending}
-                        className="text-[12px] font-medium px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors disabled:opacity-50"
-                      >
-                        Remove
-                      </button>
+                  {availableModels.length > 0 && (
+                    <div>
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400 mb-1">Suggestions:</p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {availableModels.slice(0, 12).map((m) => (
+                          <button
+                            key={m}
+                            onClick={() => setWizard((prev) => ({ ...prev, model: m }))}
+                            className={`text-[11px] px-2 py-1 rounded-md border transition-colors ${
+                              wizard.model === m
+                                ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400'
+                                : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'
+                            }`}
+                          >
+                            {m}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  <button
+                    onClick={() => setStep(4)}
+                    disabled={!wizard.model}
+                    className="w-full text-[12px] font-medium py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white transition-colors disabled:opacity-50"
+                  >
+                    Next
+                  </button>
+                </div>
+              )}
+
+              {/* Step 4 — Custom prompt + Save */}
+              {step === 4 && wizard.provider && (
+                <div className="space-y-4">
+                  <h3 className="text-[13px] font-semibold text-slate-900 dark:text-white">
+                    Confirm settings for {PROVIDER_META[wizard.provider].label}
+                  </h3>
+
+                  {/* Summary of choices */}
+                  <div className="rounded-lg border border-slate-200 dark:border-slate-700 p-3 space-y-1">
+                    <div className="flex justify-between text-[12px]">
+                      <span className="text-slate-500 dark:text-slate-400">Provider</span>
+                      <span className="text-slate-900 dark:text-white font-medium">
+                        {PROVIDER_META[wizard.provider].label}
+                      </span>
+                    </div>
+                    {!PROVIDER_META[wizard.provider].fixedModel && (
+                      <div className="flex justify-between text-[12px]">
+                        <span className="text-slate-500 dark:text-slate-400">Model</span>
+                        <span className="text-slate-900 dark:text-white font-medium">{wizard.model}</span>
+                      </div>
+                    )}
+                    {PROVIDER_META[wizard.provider].requiresApiKey && (
+                      <div className="flex justify-between text-[12px]">
+                        <span className="text-slate-500 dark:text-slate-400">API Key</span>
+                        <span className="text-slate-500 dark:text-slate-400">
+                          {wizard.useExistingKey ? 'Using existing key' : '••••••••'}
+                        </span>
+                      </div>
                     )}
                   </div>
+
+                  {/* Active provider warning */}
+                  {activeSettings && activeSettings.provider !== wizard.provider && (
+                    <p className="text-[11px] text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 rounded-lg px-3 py-2 border border-amber-200 dark:border-amber-800">
+                      Enabling this will deactivate {PROVIDER_META[activeSettings.provider].label}.
+                    </p>
+                  )}
+
+                  {/* Custom prompt */}
+                  <div>
+                    <div className="flex items-center gap-2 mb-2">
+                      <input
+                        type="checkbox"
+                        id="custom-prompt"
+                        checked={wizard.useCustomPrompt}
+                        onChange={(e) =>
+                          setWizard((prev) => ({ ...prev, useCustomPrompt: e.target.checked }))
+                        }
+                        className="rounded"
+                      />
+                      <label htmlFor="custom-prompt" className="text-[12px] text-slate-600 dark:text-slate-300">
+                        Use a custom system prompt
+                      </label>
+                    </div>
+                    {wizard.useCustomPrompt && (
+                      <textarea
+                        value={wizard.customPrompt}
+                        onChange={(e) => setWizard((prev) => ({ ...prev, customPrompt: e.target.value }))}
+                        rows={4}
+                        placeholder="Enter your custom system prompt for AI summarization..."
+                        className="w-full text-[12px] px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 resize-none"
+                      />
+                    )}
+                  </div>
+
+                  <button
+                    onClick={handleSave}
+                    disabled={upsertMutation.isPending}
+                    className="w-full text-[12px] font-medium py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white transition-colors disabled:opacity-50"
+                  >
+                    {upsertMutation.isPending ? 'Saving…' : 'Enable & Save'}
+                  </button>
+
+                  {upsertMutation.isError && (
+                    <p className="text-[11px] text-red-500">Failed to save settings. Please try again.</p>
+                  )}
                 </div>
-              );
-            })
+              )}
+            </>
           )}
         </div>
       </div>

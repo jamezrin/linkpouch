@@ -29,6 +29,7 @@ class Settings(BaseSettings):
     # Redis Streams
     link_stream_key: str = Field(default="linkpouch:events:link")
     screenshot_stream_key: str = Field(default="linkpouch:events:screenshot")
+    ai_summary_stream_key: str = Field(default="linkpouch:events:ai-summary")
     consumer_group: str = Field(default="indexer-workers")
     consumer_name: str = Field(default_factory=socket.gethostname)
     

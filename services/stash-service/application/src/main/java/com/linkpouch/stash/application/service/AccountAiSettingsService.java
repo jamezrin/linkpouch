@@ -33,6 +33,17 @@ public class AccountAiSettingsService
     @Override
     @Transactional
     public AccountAiSettings execute(final UpsertAccountAiSettingsCommand command) {
+        // Enforce single active provider: disable all others when enabling this one
+        if (command.enabled()) {
+            final List<AccountAiSettings> all = repository.findAllByAccountId(command.accountId());
+            for (final AccountAiSettings other : all) {
+                if (!other.getProvider().equals(command.provider()) && other.isEnabled()) {
+                    other.disable();
+                    repository.save(other);
+                }
+            }
+        }
+
         final Optional<AccountAiSettings> existing =
                 repository.findByAccountIdAndProvider(command.accountId(), command.provider());
 
@@ -40,12 +51,17 @@ public class AccountAiSettingsService
             final AccountAiSettings settings = existing.get();
             // Preserve existing api_key when null is passed (masked on client)
             final String apiKey = command.apiKey() != null ? command.apiKey() : settings.getApiKey();
-            settings.update(apiKey, command.model(), command.enabled());
+            settings.update(apiKey, command.model(), command.enabled(), command.customPrompt());
             return repository.save(settings);
         }
 
         final AccountAiSettings settings = AccountAiSettings.create(
-                command.accountId(), command.provider(), command.apiKey(), command.model(), command.enabled());
+                command.accountId(),
+                command.provider(),
+                command.apiKey(),
+                command.model(),
+                command.enabled(),
+                command.customPrompt());
         return repository.save(settings);
     }
 

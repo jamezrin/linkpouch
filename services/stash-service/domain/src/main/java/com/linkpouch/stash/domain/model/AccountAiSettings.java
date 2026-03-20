@@ -16,6 +16,7 @@ public class AccountAiSettings {
     private String apiKey;
     private String model;
     private boolean enabled;
+    private String customPrompt;
 
     public AccountAiSettings(
             final UUID id,
@@ -23,13 +24,15 @@ public class AccountAiSettings {
             final AiProvider provider,
             final String apiKey,
             final String model,
-            final boolean enabled) {
+            final boolean enabled,
+            final String customPrompt) {
         this.id = id != null ? id : UUID.randomUUID();
         this.accountId = accountId;
         this.provider = provider;
         this.apiKey = apiKey;
         this.model = model;
         this.enabled = enabled;
+        this.customPrompt = customPrompt;
     }
 
     public static AccountAiSettings create(
@@ -37,13 +40,19 @@ public class AccountAiSettings {
             final AiProvider provider,
             final String apiKey,
             final String model,
-            final boolean enabled) {
-        return new AccountAiSettings(null, accountId, provider, apiKey, model, enabled);
+            final boolean enabled,
+            final String customPrompt) {
+        return new AccountAiSettings(null, accountId, provider, apiKey, model, enabled, customPrompt);
     }
 
-    public void update(final String apiKey, final String model, final boolean enabled) {
+    public void update(final String apiKey, final String model, final boolean enabled, final String customPrompt) {
         this.apiKey = apiKey;
         this.model = model;
         this.enabled = enabled;
+        this.customPrompt = customPrompt;
+    }
+
+    public void disable() {
+        this.enabled = false;
     }
 }

@@ -16,6 +16,7 @@ import com.linkpouch.stash.api.model.*;
 import com.linkpouch.stash.domain.exception.ForbiddenException;
 import com.linkpouch.stash.domain.exception.NotFoundException;
 import com.linkpouch.stash.domain.exception.UnauthorizedException;
+import com.linkpouch.stash.domain.model.AiSummaryStatus;
 import com.linkpouch.stash.domain.model.Link;
 import com.linkpouch.stash.domain.model.LinkStatus;
 import com.linkpouch.stash.domain.model.Stash;
@@ -23,6 +24,8 @@ import com.linkpouch.stash.domain.port.in.AddLinkCommand;
 import com.linkpouch.stash.domain.port.in.AddLinkUseCase;
 import com.linkpouch.stash.domain.port.in.AddLinksBatchCommand;
 import com.linkpouch.stash.domain.port.in.AddLinksBatchUseCase;
+import com.linkpouch.stash.domain.port.in.BatchReindexLinksCommand;
+import com.linkpouch.stash.domain.port.in.BatchReindexLinksUseCase;
 import com.linkpouch.stash.domain.port.in.DeleteLinkUseCase;
 import com.linkpouch.stash.domain.port.in.DeleteLinksBatchCommand;
 import com.linkpouch.stash.domain.port.in.DeleteLinksBatchUseCase;
@@ -30,10 +33,13 @@ import com.linkpouch.stash.domain.port.in.FindLinkByIdQuery;
 import com.linkpouch.stash.domain.port.in.FindStashByIdQuery;
 import com.linkpouch.stash.domain.port.in.ListLinksCommand;
 import com.linkpouch.stash.domain.port.in.ListLinksQuery;
-import com.linkpouch.stash.domain.port.in.PutBatchLinkScreenshotUseCase;
+import com.linkpouch.stash.domain.port.in.ReindexLinkCommand;
+import com.linkpouch.stash.domain.port.in.ReindexLinkUseCase;
 import com.linkpouch.stash.domain.port.in.ReorderLinksCommand;
 import com.linkpouch.stash.domain.port.in.ReorderLinksUseCase;
 import com.linkpouch.stash.domain.port.in.RequestScreenshotRefreshUseCase;
+import com.linkpouch.stash.domain.port.in.UpdateAiSummaryCommand;
+import com.linkpouch.stash.domain.port.in.UpdateAiSummaryUseCase;
 import com.linkpouch.stash.domain.port.in.UpdateLinkMetadataCommand;
 import com.linkpouch.stash.domain.port.in.UpdateLinkMetadataUseCase;
 import com.linkpouch.stash.domain.port.in.UpdateLinkScreenshotUseCase;
@@ -47,11 +53,13 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class LinkController implements LinksApi {
 
+    private final UpdateAiSummaryUseCase updateAiSummaryUseCase;
+    private final BatchReindexLinksUseCase batchReindexLinksUseCase;
+    private final ReindexLinkUseCase reindexLinkUseCase;
     private final AddLinkUseCase addLinkUseCase;
     private final AddLinksBatchUseCase addLinksBatchUseCase;
     private final DeleteLinkUseCase deleteLinkUseCase;
     private final DeleteLinksBatchUseCase deleteLinksBatchUseCase;
-    private final PutBatchLinkScreenshotUseCase putBatchLinkScreenshotUseCase;
     private final UpdateLinkMetadataUseCase updateLinkMetadataUseCase;
     private final UpdateLinkScreenshotUseCase updateLinkScreenshotUseCase;
     private final UpdateLinkStatusUseCase updateLinkStatusUseCase;
@@ -181,6 +189,25 @@ public class LinkController implements LinksApi {
     }
 
     @Override
+    public ResponseEntity<Void> reindexLink(final UUID stashId, final UUID linkId) {
+        final var stash = findStashByIdQuery
+                .execute(stashId)
+                .orElseThrow(() -> new NotFoundException("Stash not found: " + stashId));
+
+        requireWriteAccess(stash);
+
+        final var link =
+                findLinkByIdQuery.execute(linkId).orElseThrow(() -> new NotFoundException("Link not found: " + linkId));
+
+        if (!link.getStashId().equals(stashId)) {
+            throw new ForbiddenException("Link does not belong to this stash");
+        }
+
+        reindexLinkUseCase.execute(new ReindexLinkCommand(linkId, stashId));
+        return ResponseEntity.accepted().build();
+    }
+
+    @Override
     public ResponseEntity<Void> deleteLinksBatch(
             final UUID stashId, final DeleteLinksBatchRequestDTO deleteLinksBatchRequestDTO) {
         final var stash = findStashByIdQuery
@@ -195,16 +222,54 @@ public class LinkController implements LinksApi {
     }
 
     @Override
-    public ResponseEntity<Void> putBatchLinkScreenshot(
-            final UUID stashId, final PutBatchLinkScreenshotRequestDTO putBatchLinkScreenshotRequestDTO) {
+    public ResponseEntity<Void> batchReindexLinks(
+            final UUID stashId, final BatchReindexLinksRequestDTO batchReindexLinksRequestDTO) {
         final var stash = findStashByIdQuery
                 .execute(stashId)
                 .orElseThrow(() -> new NotFoundException("Stash not found: " + stashId));
 
         requireWriteAccess(stash);
 
-        putBatchLinkScreenshotUseCase.execute(stashId, List.copyOf(putBatchLinkScreenshotRequestDTO.getLinkIds()));
+        batchReindexLinksUseCase.execute(
+                new BatchReindexLinksCommand(stashId, List.copyOf(batchReindexLinksRequestDTO.getLinkIds())));
         return ResponseEntity.accepted().build();
+    }
+
+    @Override
+    public ResponseEntity<Void> updateLinkAiSummary(
+            final UUID linkId,
+            final String xIndexerSecret,
+            final com.linkpouch.stash.api.model.UpdateLinkAiSummaryRequestDTO dto) {
+        if (!indexerCallbackSecret.equals(xIndexerSecret)) {
+            throw new UnauthorizedException("Invalid indexer secret");
+        }
+        final AiSummaryStatus status =
+                "COMPLETED".equals(dto.getStatus().getValue()) ? AiSummaryStatus.COMPLETED : AiSummaryStatus.FAILED;
+        final String summary = dto.getSummary() != null && dto.getSummary().isPresent()
+                ? dto.getSummary().get()
+                : null;
+        final String model = dto.getModel() != null && dto.getModel().isPresent()
+                ? dto.getModel().get()
+                : null;
+        final Integer inputTokens =
+                dto.getInputTokens() != null && dto.getInputTokens().isPresent()
+                        ? dto.getInputTokens().get()
+                        : null;
+        final Integer outputTokens =
+                dto.getOutputTokens() != null && dto.getOutputTokens().isPresent()
+                        ? dto.getOutputTokens().get()
+                        : null;
+        final Integer elapsedMs =
+                dto.getElapsedMs() != null && dto.getElapsedMs().isPresent()
+                        ? dto.getElapsedMs().get()
+                        : null;
+
+        final var link =
+                findLinkByIdQuery.execute(linkId).orElseThrow(() -> new NotFoundException("Link not found: " + linkId));
+
+        updateAiSummaryUseCase.execute(new UpdateAiSummaryCommand(
+                linkId, link.getStashId(), summary, status, model, inputTokens, outputTokens, elapsedMs));
+        return ResponseEntity.noContent().build();
     }
 
     @Override

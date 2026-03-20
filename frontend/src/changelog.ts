@@ -4,9 +4,23 @@ export interface ChangelogEntry {
   items: string[];
 }
 
-export const LATEST_VERSION = 5;
+export const LATEST_VERSION = 6;
 
 export const changelog: ChangelogEntry[] = [
+  {
+    version: 6,
+    date: new Date('2026-03-20'),
+    items: [
+      'AI Summary — every link now gets an AI-generated structured summary with key takeaways, main content, and notable details',
+      'Link preview now has three modes: Live, Archive snapshot, and AI Summary — switch between them with the tab bar',
+      'Organise links into nested folders — create, rename, move, and delete folders from the sidebar',
+      'Revisit button — re-fetches the screenshot and refreshes the AI summary for a link in one click',
+      'AI provider settings — sign in and connect your own API key (OpenRouter, OpenAI, Anthropic, or OpenCode) or use the free built-in provider; only one provider is active at a time',
+      'Preview mode preference is remembered — if you switch to AI Summary, the next link you open will start in AI Summary too',
+      'Non-embeddable sites no longer silently redirect to archive view — instead you see a clear message explaining why and buttons to switch to Archive or AI Summary',
+      'Bulk import now supports nested folder targeting — imported links land in the selected folder',
+    ],
+  },
   {
     version: 5,
     date: new Date('2026-03-15'),

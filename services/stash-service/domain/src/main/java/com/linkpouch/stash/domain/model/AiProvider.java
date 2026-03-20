@@ -4,5 +4,6 @@ public enum AiProvider {
     INCLUDED,
     OPENROUTER,
     OPENAI,
+    ANTHROPIC,
     OPENCODE
 }

@@ -67,6 +67,18 @@ public class LinkJpaEntity {
     @Column(name = "ai_summary_status", nullable = false)
     private String aiSummaryStatus;
 
+    @Column(name = "ai_summary_model")
+    private String aiSummaryModel;
+
+    @Column(name = "ai_summary_input_tokens")
+    private Integer aiSummaryInputTokens;
+
+    @Column(name = "ai_summary_output_tokens")
+    private Integer aiSummaryOutputTokens;
+
+    @Column(name = "ai_summary_elapsed_ms")
+    private Integer aiSummaryElapsedMs;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;

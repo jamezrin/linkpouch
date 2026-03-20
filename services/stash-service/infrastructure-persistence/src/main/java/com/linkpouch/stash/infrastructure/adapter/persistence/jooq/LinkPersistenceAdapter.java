@@ -230,7 +230,11 @@ public class LinkPersistenceAdapter implements LinkRepository {
                 record.get(LINKS.FOLDER_ID),
                 parseLinkStatus(record.get("status", String.class)),
                 record.get("ai_summary", String.class),
-                parseAiSummaryStatus(record.get("ai_summary_status", String.class)));
+                parseAiSummaryStatus(record.get("ai_summary_status", String.class)),
+                record.get("ai_summary_model", String.class),
+                record.get("ai_summary_input_tokens", Integer.class),
+                record.get("ai_summary_output_tokens", Integer.class),
+                record.get("ai_summary_elapsed_ms", Integer.class));
     }
 
     private static LinkStatus parseLinkStatus(final String value) {

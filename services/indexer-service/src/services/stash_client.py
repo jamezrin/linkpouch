@@ -92,6 +92,51 @@ class StashServiceClient:
             )
             raise
 
+    async def update_ai_summary(
+        self,
+        link_id: str,
+        status: str,
+        summary: str | None,
+        model: str | None = None,
+        input_tokens: int | None = None,
+        output_tokens: int | None = None,
+        elapsed_ms: int | None = None,
+    ) -> None:
+        """Notify Stash Service of the AI summary result."""
+        try:
+            payload: dict = {"status": status}
+            if summary is not None:
+                payload["summary"] = summary
+            if model is not None:
+                payload["model"] = model
+            if input_tokens is not None:
+                payload["inputTokens"] = input_tokens
+            if output_tokens is not None:
+                payload["outputTokens"] = output_tokens
+            if elapsed_ms is not None:
+                payload["elapsedMs"] = elapsed_ms
+
+            response = await self.client.patch(
+                f"/links/{link_id}/ai-summary",
+                json=payload,
+            )
+            response.raise_for_status()
+
+            logger.info(
+                "AI summary updated",
+                link_id=link_id,
+                status=status,
+            )
+
+        except Exception as e:
+            logger.error(
+                "Failed to update AI summary",
+                link_id=link_id,
+                status=status,
+                error=str(e),
+            )
+            raise
+
     async def update_screenshot(
         self,
         link_id: str,

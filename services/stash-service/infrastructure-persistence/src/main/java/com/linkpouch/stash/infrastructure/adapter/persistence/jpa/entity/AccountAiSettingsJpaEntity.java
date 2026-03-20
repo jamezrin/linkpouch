@@ -40,6 +40,9 @@ public class AccountAiSettingsJpaEntity {
     @Column(nullable = false)
     private boolean enabled;
 
+    @Column(name = "custom_prompt", columnDefinition = "TEXT")
+    private String customPrompt;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private OffsetDateTime createdAt;

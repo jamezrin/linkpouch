@@ -8,6 +8,7 @@ import structlog
 from redis.asyncio import Redis
 
 from src.config.settings import Settings
+from src.services.ai_client import get_provider
 from src.services.scraper import LinkScraper
 from src.services.stash_client import StashServiceClient
 from src.services.storage_service import ScreenshotStorageService
@@ -60,6 +61,7 @@ class RedisStreamConsumer:
         streams = [
             self.settings.link_stream_key,
             self.settings.screenshot_stream_key,
+            self.settings.ai_summary_stream_key,
         ]
         
         for stream in streams:
@@ -82,6 +84,7 @@ class RedisStreamConsumer:
         streams = {
             self.settings.link_stream_key: self._handle_link_event,
             self.settings.screenshot_stream_key: self._handle_screenshot_event,
+            self.settings.ai_summary_stream_key: self._handle_ai_summary_event,
         }
         # Tracks the XAUTOCLAIM cursor per stream (start from oldest pending on boot)
         autoclaim_cursors: dict[str, str] = {key: "0-0" for key in streams}
@@ -227,6 +230,71 @@ class RedisStreamConsumer:
                     )
                     raise e
     
+    async def _handle_ai_summary_event(self, data: dict) -> None:
+        """Handle ai.summary.requested event."""
+        event_type = data.get("eventType")
+        link_id = data.get("linkId")
+        provider = data.get("provider")
+
+        logger.info(
+            "Handling AI summary event",
+            event_type=event_type,
+            link_id=link_id,
+            provider=provider,
+        )
+
+        if event_type != "ai.summary.requested":
+            logger.warning("Unexpected event type in AI summary stream", event_type=event_type)
+            return
+
+        if not link_id or not provider:
+            logger.warning("Missing linkId or provider in AI summary event", link_id=link_id)
+            return
+
+        api_key = data.get("apiKey", "")
+        model = data.get("model", "")
+        system_prompt = data.get("systemPrompt", "")
+        page_content = data.get("pageContent", "")
+
+        try:
+            result = await get_provider(provider).generate_summary(
+                api_key=api_key,
+                model=model,
+                system_prompt=system_prompt,
+                page_content=page_content,
+            )
+            await self.stash_client.update_ai_summary(
+                link_id=link_id,
+                status="COMPLETED",
+                summary=result["summary"],
+                model=result.get("model", model),
+                input_tokens=result.get("input_tokens"),
+                output_tokens=result.get("output_tokens"),
+                elapsed_ms=result.get("elapsed_ms"),
+            )
+            logger.info("AI summary generated successfully", link_id=link_id, provider=provider)
+        except Exception as e:
+            logger.error(
+                "AI summary generation failed",
+                link_id=link_id,
+                provider=provider,
+                error=str(e),
+                exc_info=True,
+            )
+            try:
+                await self.stash_client.update_ai_summary(
+                    link_id=link_id,
+                    status="FAILED",
+                    summary=None,
+                )
+            except Exception as cb_err:
+                logger.error(
+                    "Failed to send FAILED callback for AI summary",
+                    link_id=link_id,
+                    error=str(cb_err),
+                )
+            raise e
+
     async def _handle_screenshot_event(self, data: dict) -> None:
         """Handle screenshot.refresh.requested event."""
         event_type = data.get("eventType")

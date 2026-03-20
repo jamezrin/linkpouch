@@ -1,4 +1,4 @@
-h1:bC9aroMk783p8pNMLzRRvOU+lppsKajs5lMqAbgVp7o=
+h1:yo6qQDbb9CNrF2ZE0fFARpIgAqqYjPqut+Nh5kC3c6A=
 1_create_stashes_table.sql h1:FnqKvUfR9C02MUZINXrh02hwzN/wSLzWnuWqO6dxt64=
 2_create_links_table.sql h1:e1nSMwKhwbnEv5Tt8XEnxOCECptkSmx/+MU56ZFAbmQ=
 3_create_search_indexes.sql h1:NzdsWysdUo/BIc0qYzyz7gwpENTZsyLUHdUrhiY5smw=
@@ -13,3 +13,5 @@ h1:bC9aroMk783p8pNMLzRRvOU+lppsKajs5lMqAbgVp7o=
 9zb_create_folders_table.sql h1:yUv85GGTLhBtvMXJj3yzP7FgrEwT/+P6jHiypiMAz+Y=
 9zc_add_ai_summary_to_links.sql h1:SKu8he67PbFhMg9DGKrcGvksbwhU8RDz3zoaP29Bmd4=
 9zd_create_account_ai_settings.sql h1:4ZxjqpXQW64KBuvXMHwrdfZoM1e0D5On5dcG6RHk8pk=
+9ze_update_account_ai_settings.sql h1:r5lGrQtPV0iP8WYcsbANd7HBLrEtWUbIXAIDVg53yD0=
+9zf_add_ai_summary_metadata.sql h1:wkzhOZY1GV2H/SaxFUIQTsbvp8Pcxngh+GEAbsYdh84=

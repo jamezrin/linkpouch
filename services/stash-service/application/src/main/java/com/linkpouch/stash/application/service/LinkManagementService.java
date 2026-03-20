@@ -7,12 +7,15 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.linkpouch.stash.application.annotation.UseCase;
 import com.linkpouch.stash.domain.event.LinkAddedEvent;
 import com.linkpouch.stash.domain.event.ScreenshotRefreshRequestedEvent;
 import com.linkpouch.stash.domain.exception.NotFoundException;
+import com.linkpouch.stash.domain.model.AccountAiSettings;
+import com.linkpouch.stash.domain.model.AiProvider;
 import com.linkpouch.stash.domain.model.Link;
 import com.linkpouch.stash.domain.model.LinkStatus;
 import com.linkpouch.stash.domain.model.Stash;
@@ -21,6 +24,8 @@ import com.linkpouch.stash.domain.port.in.AddLinkCommand;
 import com.linkpouch.stash.domain.port.in.AddLinkUseCase;
 import com.linkpouch.stash.domain.port.in.AddLinksBatchCommand;
 import com.linkpouch.stash.domain.port.in.AddLinksBatchUseCase;
+import com.linkpouch.stash.domain.port.in.BatchReindexLinksCommand;
+import com.linkpouch.stash.domain.port.in.BatchReindexLinksUseCase;
 import com.linkpouch.stash.domain.port.in.DeleteLinkUseCase;
 import com.linkpouch.stash.domain.port.in.DeleteLinksBatchCommand;
 import com.linkpouch.stash.domain.port.in.DeleteLinksBatchUseCase;
@@ -29,14 +34,17 @@ import com.linkpouch.stash.domain.port.in.ListLinksQuery;
 import com.linkpouch.stash.domain.port.in.MoveLinkToFolderCommand;
 import com.linkpouch.stash.domain.port.in.MoveLinkToFolderUseCase;
 import com.linkpouch.stash.domain.port.in.PagedResult;
-import com.linkpouch.stash.domain.port.in.PutBatchLinkScreenshotUseCase;
+import com.linkpouch.stash.domain.port.in.ReindexLinkCommand;
+import com.linkpouch.stash.domain.port.in.ReindexLinkUseCase;
 import com.linkpouch.stash.domain.port.in.ReorderLinksCommand;
 import com.linkpouch.stash.domain.port.in.ReorderLinksUseCase;
 import com.linkpouch.stash.domain.port.in.UpdateLinkMetadataCommand;
 import com.linkpouch.stash.domain.port.in.UpdateLinkMetadataUseCase;
 import com.linkpouch.stash.domain.port.in.UpdateLinkScreenshotUseCase;
 import com.linkpouch.stash.domain.port.in.UpdateLinkStatusUseCase;
-import com.linkpouch.stash.domain.port.outbound.AiSummarizationPort;
+import com.linkpouch.stash.domain.port.outbound.AccountAiSettingsRepository;
+import com.linkpouch.stash.domain.port.outbound.AccountRepository;
+import com.linkpouch.stash.domain.port.outbound.AiSummaryRequestPublisher;
 import com.linkpouch.stash.domain.port.outbound.EventPublisher;
 import com.linkpouch.stash.domain.port.outbound.LinkRepository;
 import com.linkpouch.stash.domain.port.outbound.LinkStatusBroadcaster;
@@ -62,7 +70,8 @@ public class LinkManagementService
                 AddLinksBatchUseCase,
                 DeleteLinkUseCase,
                 DeleteLinksBatchUseCase,
-                PutBatchLinkScreenshotUseCase,
+                BatchReindexLinksUseCase,
+                ReindexLinkUseCase,
                 UpdateLinkMetadataUseCase,
                 UpdateLinkScreenshotUseCase,
                 UpdateLinkStatusUseCase,
@@ -70,12 +79,49 @@ public class LinkManagementService
                 MoveLinkToFolderUseCase,
                 ListLinksQuery {
 
+    private static final String DEFAULT_SYSTEM_PROMPT =
+            "You are a research assistant that creates comprehensive, well-structured summaries of web pages"
+                    + " for a bookmarking app. Your goal is to help the user quickly recall why they saved this"
+                    + " page and extract maximum value from it.\n\n"
+                    + "Produce a thorough markdown summary using the following structure (adapt or omit sections"
+                    + " that don't apply to the content):\n\n"
+                    + "## Overview\n"
+                    + "A concise 2–3 sentence paragraph explaining what this page is, who it's for, and why it matters.\n\n"
+                    + "## Key Takeaways\n"
+                    + "A bulleted list of the 5–8 most important points, insights, or facts a reader should remember.\n\n"
+                    + "## Main Content\n"
+                    + "The primary information organised into logical sub-sections using ### headings. Use:\n"
+                    + "- Bullet lists for features, steps, or enumerations\n"
+                    + "- **Bold** for important terms, names, values, or warnings\n"
+                    + "- Tables for comparisons, specifications, or structured data\n"
+                    + "- Fenced code blocks (with language tag) for any code, commands, config, or technical syntax\n\n"
+                    + "## Notable Details\n"
+                    + "Interesting facts, statistics, caveats, edge cases, or anything else worth remembering that"
+                    + " didn't fit above.\n\n"
+                    + "Rules:\n"
+                    + "- Write in clear, neutral prose — strip marketing fluff\n"
+                    + "- Preserve technical accuracy; never simplify at the cost of correctness\n"
+                    + "- If the page has no meaningful content (login wall, 404, paywall, etc.) say so in one sentence\n"
+                    + "- Output ONLY the markdown — no preamble, no meta-commentary, no closing remarks\n"
+                    + "- Do NOT wrap the output in a markdown code block";
+
     private final LinkRepository linkRepository;
     private final StashRepository stashRepository;
     private final EventPublisher eventPublisher;
     private final LinkStatusBroadcaster linkStatusBroadcaster;
     private final ScreenshotStorage screenshotStorage;
-    private final AiSummarizationPort aiSummarizationPort;
+    private final AccountRepository accountRepository;
+    private final AccountAiSettingsRepository accountAiSettingsRepository;
+    private final AiSummaryRequestPublisher aiSummaryRequestPublisher;
+
+    @Value("${linkpouch.ai.system-prompt:" + DEFAULT_SYSTEM_PROMPT + "}")
+    private String systemPrompt;
+
+    @Value("${linkpouch.ai.included-api-key:}")
+    private String includedApiKey;
+
+    @Value("${linkpouch.ai.included-model:google/gemini-flash-1.5}")
+    private String includedModel;
 
     // ==================== AddLinkUseCase ====================
 
@@ -220,38 +266,44 @@ public class LinkManagementService
         }
     }
 
-    // ==================== PutBatchLinkScreenshotUseCase ====================
+    // ==================== BatchReindexLinksUseCase ====================
 
     @Override
     @Transactional
-    public void execute(final UUID stashId, final List<UUID> linkIds) {
+    public void execute(final BatchReindexLinksCommand command) {
         final Stash stash = stashRepository
-                .findByIdWithLinks(stashId)
-                .orElseThrow(() -> new NotFoundException("Stash not found: " + stashId));
+                .findByIdWithLinks(command.stashId())
+                .orElseThrow(() -> new NotFoundException("Stash not found: " + command.stashId()));
 
         final List<Link> targetLinks = new ArrayList<>();
-        for (final UUID linkId : linkIds) {
+        for (final UUID linkId : command.linkIds()) {
             final Link domainLink = stash.getLinks().stream()
                     .filter(l -> l.getId().equals(linkId))
                     .findFirst()
                     .orElseThrow(() -> new NotFoundException("Link not found in stash: " + linkId));
-            domainLink.markScreenshotRefreshPending();
             targetLinks.add(domainLink);
         }
 
-        final Stash saved = stashRepository.save(stash);
-
-        for (final Link targetLink : targetLinks) {
-            final Link savedLink = saved.getLinks().stream()
-                    .filter(l -> l.getId().equals(targetLink.getId()))
-                    .findFirst()
-                    .orElse(targetLink);
-            linkStatusBroadcaster.broadcastLinkUpdated(savedLink.getStashId(), savedLink);
-            eventPublisher.publishScreenshotRefreshRequested(new ScreenshotRefreshRequestedEvent(
-                    savedLink.getId(),
-                    savedLink.getStashId(),
-                    savedLink.getUrl().getValue()));
+        for (final Link link : targetLinks) {
+            reindexLink(link, stash);
         }
+    }
+
+    // ==================== ReindexLinkUseCase ====================
+
+    @Override
+    @Transactional
+    public void execute(final ReindexLinkCommand command) {
+        final Stash stash = stashRepository
+                .findByIdWithLinks(command.stashId())
+                .orElseThrow(() -> new NotFoundException("Stash not found: " + command.stashId()));
+
+        final Link link = stash.getLinks().stream()
+                .filter(l -> l.getId().equals(command.linkId()))
+                .findFirst()
+                .orElseThrow(() -> new NotFoundException("Link not found in stash: " + command.linkId()));
+
+        reindexLink(link, stash);
     }
 
     // ==================== UpdateLinkMetadataUseCase ====================
@@ -286,7 +338,7 @@ public class LinkManagementService
                 .orElse(domainLink);
 
         linkStatusBroadcaster.broadcastLinkUpdated(savedLink.getStashId(), savedLink);
-        aiSummarizationPort.requestSummarization(savedLink.getId(), savedLink.getStashId(), savedLink.getPageContent());
+        triggerAiSummary(savedLink, saved);
         return savedLink;
     }
 
@@ -423,6 +475,100 @@ public class LinkManagementService
 
         domainLink.moveToFolder(command.targetFolderId());
         stashRepository.save(stash);
+    }
+
+    // ==================== Reindex helper ====================
+
+    private void reindexLink(final Link link, final Stash stash) {
+        link.markScreenshotRefreshPending();
+        final Optional<AccountAiSettings> settingsOpt = resolveAiSettings(link.getStashId());
+        if (settingsOpt.isEmpty()) {
+            link.markAiSummarySkipped();
+        } else {
+            link.markAiSummaryGenerating();
+        }
+
+        stashRepository.save(stash);
+        linkStatusBroadcaster.broadcastLinkUpdated(link.getStashId(), link);
+
+        eventPublisher.publishScreenshotRefreshRequested(new ScreenshotRefreshRequestedEvent(
+                link.getId(), link.getStashId(), link.getUrl().getValue()));
+
+        if (settingsOpt.isPresent()) {
+            final AccountAiSettings settings = settingsOpt.get();
+            final String effectivePrompt = settings.getCustomPrompt() != null
+                            && !settings.getCustomPrompt().isBlank()
+                    ? settings.getCustomPrompt()
+                    : systemPrompt;
+            final String resolvedApiKey =
+                    settings.getProvider() == AiProvider.INCLUDED ? includedApiKey : settings.getApiKey();
+            final String resolvedModel =
+                    settings.getProvider() == AiProvider.INCLUDED ? includedModel : settings.getModel();
+            aiSummaryRequestPublisher.publishRequest(
+                    link.getId(),
+                    link.getStashId(),
+                    link.getPageContent(),
+                    settings.getProvider(),
+                    resolvedApiKey,
+                    resolvedModel,
+                    effectivePrompt);
+        }
+    }
+
+    // ==================== AI Summary helpers ====================
+
+    private void triggerAiSummary(final Link savedLink, final Stash stash) {
+        final Optional<AccountAiSettings> settingsOpt = resolveAiSettings(savedLink.getStashId());
+        if (settingsOpt.isEmpty()) {
+            log.debug(
+                    "No enabled AI settings for stash {} — skipping AI summary for link {}",
+                    savedLink.getStashId(),
+                    savedLink.getId());
+            // Mark as skipped in a separate transaction via a non-transactional call
+            savedLink.markAiSummarySkipped();
+            // save again via stash (we already have the stash loaded — just re-save to persist status)
+            stashRepository.save(stash);
+            linkStatusBroadcaster.broadcastLinkUpdated(savedLink.getStashId(), savedLink);
+            return;
+        }
+
+        final AccountAiSettings settings = settingsOpt.get();
+        savedLink.markAiSummaryGenerating();
+        stashRepository.save(stash);
+        linkStatusBroadcaster.broadcastLinkUpdated(savedLink.getStashId(), savedLink);
+
+        final String effectivePrompt = settings.getCustomPrompt() != null
+                        && !settings.getCustomPrompt().isBlank()
+                ? settings.getCustomPrompt()
+                : systemPrompt;
+
+        // For INCLUDED provider, use server-side API key and model
+        final String resolvedApiKey =
+                settings.getProvider() == AiProvider.INCLUDED ? includedApiKey : settings.getApiKey();
+        final String resolvedModel =
+                settings.getProvider() == AiProvider.INCLUDED ? includedModel : settings.getModel();
+
+        aiSummaryRequestPublisher.publishRequest(
+                savedLink.getId(),
+                savedLink.getStashId(),
+                savedLink.getPageContent(),
+                settings.getProvider(),
+                resolvedApiKey,
+                resolvedModel,
+                effectivePrompt);
+    }
+
+    private Optional<AccountAiSettings> resolveAiSettings(final UUID stashId) {
+        final List<UUID> accountIds = accountRepository.findAccountIdsByStashId(stashId);
+        for (final UUID accountId : accountIds) {
+            final List<AccountAiSettings> allSettings = accountAiSettingsRepository.findAllByAccountId(accountId);
+            final Optional<AccountAiSettings> enabled =
+                    allSettings.stream().filter(AccountAiSettings::isEnabled).findFirst();
+            if (enabled.isPresent()) {
+                return enabled;
+            }
+        }
+        return Optional.empty();
     }
 
     // ==================== ListLinksQuery ====================

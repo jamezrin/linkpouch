@@ -31,6 +31,10 @@ public class Link {
     private LinkStatus status;
     private String aiSummary;
     private AiSummaryStatus aiSummaryStatus;
+    private String aiSummaryModel;
+    private Integer aiSummaryInputTokens;
+    private Integer aiSummaryOutputTokens;
+    private Integer aiSummaryElapsedMs;
 
     public Link(
             final UUID id,
@@ -49,7 +53,11 @@ public class Link {
             final UUID folderId,
             final LinkStatus status,
             final String aiSummary,
-            final AiSummaryStatus aiSummaryStatus) {
+            final AiSummaryStatus aiSummaryStatus,
+            final String aiSummaryModel,
+            final Integer aiSummaryInputTokens,
+            final Integer aiSummaryOutputTokens,
+            final Integer aiSummaryElapsedMs) {
         this.id = id != null ? id : UUID.randomUUID();
         this.stashId = stashId;
         this.createdAt = createdAt != null ? createdAt : LocalDateTime.now(ZoneOffset.UTC);
@@ -67,6 +75,10 @@ public class Link {
         this.status = status != null ? status : LinkStatus.PENDING;
         this.aiSummary = aiSummary;
         this.aiSummaryStatus = aiSummaryStatus != null ? aiSummaryStatus : AiSummaryStatus.SKIPPED;
+        this.aiSummaryModel = aiSummaryModel;
+        this.aiSummaryInputTokens = aiSummaryInputTokens;
+        this.aiSummaryOutputTokens = aiSummaryOutputTokens;
+        this.aiSummaryElapsedMs = aiSummaryElapsedMs;
     }
 
     public static Link create(final UUID stashId, final String url) {
@@ -95,7 +107,11 @@ public class Link {
                 folderId,
                 LinkStatus.PENDING,
                 null,
-                AiSummaryStatus.PENDING);
+                AiSummaryStatus.PENDING,
+                null,
+                null,
+                null,
+                null);
     }
 
     public void moveToFolder(final UUID folderId) {
@@ -143,9 +159,18 @@ public class Link {
         this.updatedAt = LocalDateTime.now(ZoneOffset.UTC);
     }
 
-    public void updateAiSummary(final String summary) {
+    public void updateAiSummary(
+            final String summary,
+            final String model,
+            final Integer inputTokens,
+            final Integer outputTokens,
+            final Integer elapsedMs) {
         this.aiSummary = summary;
         this.aiSummaryStatus = AiSummaryStatus.COMPLETED;
+        this.aiSummaryModel = model;
+        this.aiSummaryInputTokens = inputTokens;
+        this.aiSummaryOutputTokens = outputTokens;
+        this.aiSummaryElapsedMs = elapsedMs;
         this.updatedAt = LocalDateTime.now(ZoneOffset.UTC);
     }
 
