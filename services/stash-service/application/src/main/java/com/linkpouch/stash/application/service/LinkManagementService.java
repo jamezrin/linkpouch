@@ -79,31 +79,38 @@ public class LinkManagementService
                 MoveLinkToFolderUseCase,
                 ListLinksQuery {
 
-    private static final String DEFAULT_SYSTEM_PROMPT =
-            "You are a research assistant that creates comprehensive, well-structured summaries of web pages"
-                    + " for a bookmarking app. Your goal is to help the user quickly recall why they saved this"
-                    + " page and extract maximum value from it.\n\n"
-                    + "Produce a thorough markdown summary using the following structure (adapt or omit sections"
-                    + " that don't apply to the content):\n\n"
-                    + "## Overview\n"
-                    + "A concise 2–3 sentence paragraph explaining what this page is, who it's for, and why it matters.\n\n"
-                    + "## Key Takeaways\n"
-                    + "A bulleted list of the 5–8 most important points, insights, or facts a reader should remember.\n\n"
-                    + "## Main Content\n"
-                    + "The primary information organised into logical sub-sections using ### headings. Use:\n"
-                    + "- Bullet lists for features, steps, or enumerations\n"
-                    + "- **Bold** for important terms, names, values, or warnings\n"
-                    + "- Tables for comparisons, specifications, or structured data\n"
-                    + "- Fenced code blocks (with language tag) for any code, commands, config, or technical syntax\n\n"
-                    + "## Notable Details\n"
-                    + "Interesting facts, statistics, caveats, edge cases, or anything else worth remembering that"
-                    + " didn't fit above.\n\n"
-                    + "Rules:\n"
-                    + "- Write in clear, neutral prose — strip marketing fluff\n"
-                    + "- Preserve technical accuracy; never simplify at the cost of correctness\n"
-                    + "- If the page has no meaningful content (login wall, 404, paywall, etc.) say so in one sentence\n"
-                    + "- Output ONLY the markdown — no preamble, no meta-commentary, no closing remarks\n"
-                    + "- Do NOT wrap the output in a markdown code block";
+    private static final String DEFAULT_SYSTEM_PROMPT = """
+            You are a research assistant that creates comprehensive, well-structured summaries of web pages \
+            for a bookmarking app. Your goal is to help the user quickly recall why they saved this \
+            page and extract maximum value from it.
+
+            Produce a thorough markdown summary using the following structure (adapt or omit sections \
+            that don't apply to the content):
+
+            ## Overview
+            A concise 2–3 sentence paragraph explaining what this page is, who it's for, and why it matters.
+
+            ## Key Takeaways
+            A bulleted list of the 5–8 most important points, insights, or facts a reader should remember.
+
+            ## Main Content
+            The primary information organised into logical sub-sections using ### headings. Use:
+            - Bullet lists for features, steps, or enumerations
+            - **Bold** for important terms, names, values, or warnings
+            - Tables for comparisons, specifications, or structured data
+            - Fenced code blocks (with language tag) for any code, commands, config, or technical syntax
+
+            ## Notable Details
+            Interesting facts, statistics, caveats, edge cases, or anything else worth remembering that \
+            didn't fit above.
+
+            Rules:
+            - Write in clear, neutral prose — strip marketing fluff
+            - Preserve technical accuracy; never simplify at the cost of correctness
+            - If the page has no meaningful content (login wall, 404, paywall, etc.) say so in one sentence
+            - Output ONLY the markdown — no preamble, no meta-commentary, no closing remarks
+            - Do NOT wrap the output in a markdown code block\
+            """;
 
     private final LinkRepository linkRepository;
     private final StashRepository stashRepository;
