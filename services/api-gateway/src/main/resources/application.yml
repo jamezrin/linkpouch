@@ -103,6 +103,9 @@ spring:
         # Wayback Machine CDX API proxy (avoids CORS restrictions)
         - id: wayback-cdx-proxy
           uri: https://web.archive.org
+          metadata:
+            response-timeout: 30000
+            connect-timeout: 3000
           predicates:
             - Path=/api/wayback/cdx
           filters:
