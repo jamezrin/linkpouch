@@ -15,7 +15,6 @@ public interface AccountAiSettingsEntityMapper {
     @Mapping(target = "provider", source = "provider")
     @Mapping(target = "apiKey", source = "apiKey")
     @Mapping(target = "model", source = "model")
-    @Mapping(target = "enabled", source = "enabled")
     @Mapping(target = "customPrompt", source = "customPrompt")
     AccountAiSettings mapIn(AccountAiSettingsJpaEntity entity);
 
@@ -24,7 +23,6 @@ public interface AccountAiSettingsEntityMapper {
     @Mapping(target = "provider", source = "provider")
     @Mapping(target = "apiKey", source = "apiKey")
     @Mapping(target = "model", source = "model")
-    @Mapping(target = "enabled", source = "enabled")
     @Mapping(target = "customPrompt", source = "customPrompt")
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)

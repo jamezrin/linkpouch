@@ -1,10 +1,8 @@
-export type AiProvider = 'INCLUDED' | 'OPENROUTER' | 'OPENAI' | 'ANTHROPIC' | 'OPENCODE';
-export type AiProviderOrNone = AiProvider | 'NONE';
+export type AiProvider = 'NONE' | 'INCLUDED' | 'OPENROUTER' | 'OPENAI' | 'ANTHROPIC' | 'OPENCODE';
 
 export interface AiSettingsResponse {
   provider: AiProvider;
-  model: string;
-  enabled: boolean;
+  model?: string | null;
   hasApiKey: boolean;
   customPrompt?: string | null;
 }
@@ -12,7 +10,6 @@ export interface AiSettingsResponse {
 export interface UpsertAiSettingsRequest {
   provider: AiProvider;
   apiKey?: string | null;
-  model: string;
-  enabled: boolean;
+  model?: string | null;
   customPrompt?: string | null;
 }

@@ -6,6 +6,7 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.util.List;
+import java.util.Optional;
 
 import jakarta.servlet.http.HttpServletRequest;
 
@@ -20,10 +21,10 @@ import com.linkpouch.stash.api.controller.AccountAiSettingsApi;
 import com.linkpouch.stash.api.model.AiModelsResponseDTO;
 import com.linkpouch.stash.api.model.AiSettingsResponseDTO;
 import com.linkpouch.stash.api.model.UpsertAiSettingsRequestDTO;
+import com.linkpouch.stash.domain.exception.NotFoundException;
 import com.linkpouch.stash.domain.exception.UnauthorizedException;
 import com.linkpouch.stash.domain.model.AccountAiSettings;
 import com.linkpouch.stash.domain.model.AiProvider;
-import com.linkpouch.stash.domain.port.in.DeleteAccountAiSettingsUseCase;
 import com.linkpouch.stash.domain.port.in.GetAccountAiSettingsQuery;
 import com.linkpouch.stash.domain.port.in.UpsertAccountAiSettingsCommand;
 import com.linkpouch.stash.domain.port.in.UpsertAccountAiSettingsUseCase;
@@ -39,39 +40,31 @@ public class AccountAiSettingsController implements AccountAiSettingsApi {
 
     private final GetAccountAiSettingsQuery getAccountAiSettingsQuery;
     private final UpsertAccountAiSettingsUseCase upsertAccountAiSettingsUseCase;
-    private final DeleteAccountAiSettingsUseCase deleteAccountAiSettingsUseCase;
     private final ObjectMapper objectMapper;
     private final HttpServletRequest httpRequest;
 
     @Override
-    public ResponseEntity<List<AiSettingsResponseDTO>> getAiSettings() {
+    public ResponseEntity<AiSettingsResponseDTO> getAiSettings() {
         final AccountClaims claims = getClaims();
-        final List<AccountAiSettings> settings = getAccountAiSettingsQuery.execute(claims.accountId());
-        final List<AiSettingsResponseDTO> response =
-                settings.stream().map(this::toDto).toList();
-        return ResponseEntity.ok(response);
+        final Optional<AccountAiSettings> settings = getAccountAiSettingsQuery.execute(claims.accountId());
+        return settings.map(s -> ResponseEntity.ok(toDto(s)))
+                .orElseThrow(() -> new NotFoundException("No AI settings configured"));
     }
 
     @Override
-    public ResponseEntity<AiSettingsResponseDTO> upsertAiSettings(
-            final String provider, final UpsertAiSettingsRequestDTO body) {
+    public ResponseEntity<AiSettingsResponseDTO> upsertAiSettings(final UpsertAiSettingsRequestDTO body) {
         final AccountClaims claims = getClaims();
-        final AiProvider aiProvider = AiProvider.valueOf(provider);
+        final AiProvider aiProvider = AiProvider.valueOf(body.getProvider().name());
         final JsonNullable<String> apiKeyNullable = body.getApiKey();
         final String apiKey = apiKeyNullable != null && apiKeyNullable.isPresent() ? apiKeyNullable.get() : null;
         final JsonNullable<String> customPromptNullable = body.getCustomPrompt();
         final String customPrompt =
                 customPromptNullable != null && customPromptNullable.isPresent() ? customPromptNullable.get() : null;
-        final AccountAiSettings saved = upsertAccountAiSettingsUseCase.execute(new UpsertAccountAiSettingsCommand(
-                claims.accountId(), aiProvider, apiKey, body.getModel(), body.getEnabled(), customPrompt));
+        final JsonNullable<String> modelNullable = body.getModel();
+        final String model = modelNullable != null && modelNullable.isPresent() ? modelNullable.get() : null;
+        final AccountAiSettings saved = upsertAccountAiSettingsUseCase.execute(
+                new UpsertAccountAiSettingsCommand(claims.accountId(), aiProvider, apiKey, model, customPrompt));
         return ResponseEntity.ok(toDto(saved));
-    }
-
-    @Override
-    public ResponseEntity<Void> deleteAiSettings(final String provider) {
-        final AccountClaims claims = getClaims();
-        deleteAccountAiSettingsUseCase.execute(claims.accountId(), AiProvider.valueOf(provider));
-        return ResponseEntity.noContent().build();
     }
 
     @Override
@@ -91,6 +84,7 @@ public class AccountAiSettingsController implements AccountAiSettingsApi {
                     .connectTimeout(Duration.ofSeconds(5))
                     .build();
             return switch (provider) {
+                case NONE -> List.of();
                 case INCLUDED, OPENROUTER -> fetchOpenRouterModels(client);
                 case OPENAI -> fetchOpenAiModels(client, apiKey);
                 case ANTHROPIC -> fetchAnthropicModels(client, apiKey);
@@ -169,7 +163,6 @@ public class AccountAiSettingsController implements AccountAiSettingsApi {
                 .provider(AiSettingsResponseDTO.ProviderEnum.fromValue(
                         settings.getProvider().name()))
                 .model(settings.getModel())
-                .enabled(settings.isEnabled())
                 .hasApiKey(settings.getApiKey() != null && !settings.getApiKey().isBlank());
         if (settings.getCustomPrompt() != null) {
             dto.customPrompt(settings.getCustomPrompt());

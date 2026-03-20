@@ -240,17 +240,12 @@ export const utilsApi = {
 
 export const accountApi = {
   getAiSettings: (accountJwt: string) =>
-    api.get<AiSettingsResponse[]>('/account/ai-settings', {
+    api.get<AiSettingsResponse>('/account/ai-settings', {
       headers: { Authorization: `Bearer ${accountJwt}` },
     }),
 
-  upsertAiSettings: (accountJwt: string, provider: AiProvider, data: UpsertAiSettingsRequest) =>
-    api.put<AiSettingsResponse>(`/account/ai-settings/${provider}`, data, {
-      headers: { Authorization: `Bearer ${accountJwt}` },
-    }),
-
-  deleteAiSettings: (accountJwt: string, provider: AiProvider) =>
-    api.delete(`/account/ai-settings/${provider}`, {
+  upsertAiSettings: (accountJwt: string, data: UpsertAiSettingsRequest) =>
+    api.put<AiSettingsResponse>('/account/ai-settings', data, {
       headers: { Authorization: `Bearer ${accountJwt}` },
     }),
 

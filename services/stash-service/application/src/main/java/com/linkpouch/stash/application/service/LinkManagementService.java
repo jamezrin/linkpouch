@@ -561,11 +561,9 @@ public class LinkManagementService
     private Optional<AccountAiSettings> resolveAiSettings(final UUID stashId) {
         final List<UUID> accountIds = accountRepository.findAccountIdsByStashId(stashId);
         for (final UUID accountId : accountIds) {
-            final List<AccountAiSettings> allSettings = accountAiSettingsRepository.findAllByAccountId(accountId);
-            final Optional<AccountAiSettings> enabled =
-                    allSettings.stream().filter(AccountAiSettings::isEnabled).findFirst();
-            if (enabled.isPresent()) {
-                return enabled;
+            final Optional<AccountAiSettings> settings = accountAiSettingsRepository.findByAccountId(accountId);
+            if (settings.isPresent() && settings.get().getProvider() != AiProvider.NONE) {
+                return settings;
             }
         }
         return Optional.empty();

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { accountApi } from '../services/api';
-import { AiProvider, AiProviderOrNone, UpsertAiSettingsRequest } from '../types/aiSettings';
+import { AiProvider, UpsertAiSettingsRequest } from '../types/aiSettings';
 import { useScrollLock } from '../hooks/useScrollLock';
 
 interface AiSettingsModalProps {
@@ -17,7 +17,7 @@ interface ProviderMeta {
   isNone?: boolean;
 }
 
-const PROVIDER_META: Record<AiProviderOrNone, ProviderMeta> = {
+const PROVIDER_META: Record<AiProvider, ProviderMeta> = {
   NONE: {
     label: 'Disabled',
     description: 'AI features are turned off. No summaries will be generated for your links.',
@@ -52,7 +52,7 @@ const PROVIDER_META: Record<AiProviderOrNone, ProviderMeta> = {
   },
 };
 
-const FALLBACK_MODELS: Record<AiProvider, string[]> = {
+const FALLBACK_MODELS: Record<Exclude<AiProvider, 'NONE'>, string[]> = {
   INCLUDED: ['openrouter/free'],
   OPENROUTER: ['google/gemini-flash-1.5', 'google/gemini-flash-2.0', 'mistralai/mistral-7b-instruct'],
   OPENAI: ['gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo'],
@@ -63,7 +63,7 @@ const FALLBACK_MODELS: Record<AiProvider, string[]> = {
 type WizardStep = 1 | 2 | 3 | 4;
 
 interface WizardState {
-  provider: AiProviderOrNone | null;
+  provider: AiProvider | null;
   apiKey: string;
   useExistingKey: boolean;
   model: string;
@@ -75,9 +75,13 @@ export function AiSettingsModal({ accountToken, onClose }: AiSettingsModalProps)
   useScrollLock();
   const queryClient = useQueryClient();
 
-  const { data: settingsList, isLoading } = useQuery({
+  const { data: settings, isLoading } = useQuery({
     queryKey: ['ai-settings'],
-    queryFn: () => accountApi.getAiSettings(accountToken).then((r) => r.data),
+    queryFn: () =>
+      accountApi.getAiSettings(accountToken).then((r) => r.data).catch((err) => {
+        if (err?.response?.status === 404) return null;
+        throw err;
+      }),
   });
 
   const [step, setStep] = useState<WizardStep>(1);
@@ -90,20 +94,18 @@ export function AiSettingsModal({ accountToken, onClose }: AiSettingsModalProps)
     customPrompt: '',
   });
 
-  const activeSettings = settingsList?.find((s) => s.enabled);
-
   // Pre-select the currently active provider (or NONE) when settings load
   const [preselected, setPreselected] = useState(false);
   if (!isLoading && !preselected && !wizard.provider) {
-    if (activeSettings) {
-      const meta = PROVIDER_META[activeSettings.provider];
+    if (settings && settings.provider !== 'NONE') {
+      const meta = PROVIDER_META[settings.provider];
       setWizard({
-        provider: activeSettings.provider,
+        provider: settings.provider,
         apiKey: '',
-        useExistingKey: activeSettings.hasApiKey,
-        model: meta.fixedModel ?? activeSettings.model,
-        useCustomPrompt: !!(activeSettings.customPrompt),
-        customPrompt: activeSettings.customPrompt ?? '',
+        useExistingKey: settings.hasApiKey,
+        model: meta.fixedModel ?? settings.model ?? '',
+        useCustomPrompt: !!(settings.customPrompt),
+        customPrompt: settings.customPrompt ?? '',
       });
     } else {
       setWizard((prev) => ({ ...prev, provider: 'NONE' }));
@@ -112,21 +114,20 @@ export function AiSettingsModal({ accountToken, onClose }: AiSettingsModalProps)
   }
 
   // Step 1: selecting a card only highlights it — does not navigate
-  const handleSelectProvider = (provider: AiProviderOrNone) => {
+  const handleSelectProvider = (provider: AiProvider) => {
     if (provider === 'NONE') {
       setWizard({ provider: 'NONE', apiKey: '', useExistingKey: false, model: '', useCustomPrompt: false, customPrompt: '' });
       return;
     }
-    const existing = settingsList?.find((s) => s.provider === provider);
     const meta = PROVIDER_META[provider];
-    const initialModel = meta.fixedModel ?? existing?.model ?? FALLBACK_MODELS[provider][0];
+    const initialModel = meta.fixedModel ?? settings?.model ?? FALLBACK_MODELS[provider][0];
     setWizard({
       provider,
       apiKey: '',
-      useExistingKey: existing?.hasApiKey ?? false,
+      useExistingKey: settings?.provider === provider && (settings?.hasApiKey ?? false),
       model: initialModel,
-      useCustomPrompt: !!(existing?.customPrompt),
-      customPrompt: existing?.customPrompt ?? '',
+      useCustomPrompt: !!(settings?.provider === provider && settings?.customPrompt),
+      customPrompt: (settings?.provider === provider ? settings?.customPrompt : null) ?? '',
     });
   };
 
@@ -134,29 +135,20 @@ export function AiSettingsModal({ accountToken, onClose }: AiSettingsModalProps)
   const handleStep1Confirm = () => {
     if (!wizard.provider) return;
     if (wizard.provider === 'NONE') {
-      if (activeSettings) {
-        disableMutation.mutate(activeSettings.provider);
-      } else {
-        onClose();
-      }
+      upsertMutation.mutate({ provider: 'NONE', model: null, apiKey: null, customPrompt: null });
       return;
     }
     const meta = PROVIDER_META[wizard.provider];
     if (!meta.requiresApiKey) {
       upsertMutation.mutate({
         provider: wizard.provider,
-        payload: {
-          provider: wizard.provider,
-          model: meta.fixedModel!,
-          enabled: true,
-          apiKey: null,
-          customPrompt: null,
-        },
+        model: meta.fixedModel!,
+        apiKey: null,
+        customPrompt: null,
       });
       return;
     }
-    const existing = settingsList?.find((s) => s.provider === wizard.provider);
-    if (existing?.enabled) {
+    if (settings?.provider === wizard.provider) {
       setStep(4);
     } else {
       setStep(2);
@@ -167,7 +159,7 @@ export function AiSettingsModal({ accountToken, onClose }: AiSettingsModalProps)
   const apiKeyForFetch = wizard.useExistingKey ? null : wizard.apiKey;
 
   // wizard.provider is always a real AiProvider (not NONE) in steps 2-4
-  const realProvider = wizard.provider as AiProvider;
+  const realProvider = wizard.provider as Exclude<AiProvider, 'NONE'>;
 
   const modelsQuery = useQuery({
     queryKey: ['ai-models', realProvider, apiKeyForFetch],
@@ -191,16 +183,8 @@ export function AiSettingsModal({ accountToken, onClose }: AiSettingsModalProps)
   };
 
   const upsertMutation = useMutation({
-    mutationFn: (data: { provider: AiProvider; payload: UpsertAiSettingsRequest }) =>
-      accountApi.upsertAiSettings(accountToken, data.provider, data.payload),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['ai-settings'] });
-      onClose();
-    },
-  });
-
-  const disableMutation = useMutation({
-    mutationFn: (provider: AiProvider) => accountApi.deleteAiSettings(accountToken, provider),
+    mutationFn: (payload: UpsertAiSettingsRequest) =>
+      accountApi.upsertAiSettings(accountToken, payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['ai-settings'] });
       onClose();
@@ -212,11 +196,10 @@ export function AiSettingsModal({ accountToken, onClose }: AiSettingsModalProps)
     const payload: UpsertAiSettingsRequest = {
       provider: realProvider,
       model: wizard.model,
-      enabled: true,
       apiKey: wizard.useExistingKey ? null : wizard.apiKey || null,
       customPrompt: wizard.useCustomPrompt ? wizard.customPrompt : null,
     };
-    upsertMutation.mutate({ provider: realProvider, payload });
+    upsertMutation.mutate(payload);
   };
 
   const goBack = () => {
@@ -229,11 +212,14 @@ export function AiSettingsModal({ accountToken, onClose }: AiSettingsModalProps)
       setWizard((prev) => ({ ...prev, model: '' }));
       setStep(2);
     } else if (step === 4) {
-      const existing = settingsList?.find((s) => s.provider === wizard.provider);
       // Reset custom prompt state before going back
-      setWizard((prev) => ({ ...prev, useCustomPrompt: !!(existing?.customPrompt), customPrompt: existing?.customPrompt ?? '' }));
-      // Already-enabled provider jumped directly from step 1 → 4, so go back to step 1
-      if (existing?.enabled) {
+      setWizard((prev) => ({
+        ...prev,
+        useCustomPrompt: !!(settings?.provider === wizard.provider && settings?.customPrompt),
+        customPrompt: (settings?.provider === wizard.provider ? settings?.customPrompt : null) ?? '',
+      }));
+      // Already-active provider jumped directly from step 1 → 4, so go back to step 1
+      if (settings?.provider === wizard.provider) {
         setStep(1);
       } else {
         setStep(3);
@@ -241,7 +227,7 @@ export function AiSettingsModal({ accountToken, onClose }: AiSettingsModalProps)
     }
   };
 
-  const providers: AiProviderOrNone[] = ['NONE', 'INCLUDED', 'OPENROUTER', 'OPENAI', 'ANTHROPIC', 'OPENCODE'];
+  const providers: AiProvider[] = ['NONE', 'INCLUDED', 'OPENROUTER', 'OPENAI', 'ANTHROPIC', 'OPENCODE'];
 
   const availableModels =
     modelsQuery.data && modelsQuery.data.length > 0
@@ -271,7 +257,7 @@ export function AiSettingsModal({ accountToken, onClose }: AiSettingsModalProps)
               <p className="text-[11px] text-slate-500 dark:text-slate-400">
                 {wizard.provider === 'NONE' || (wizard.provider && !PROVIDER_META[wizard.provider].requiresApiKey)
                   ? 'Step 1 of 1'
-                  : wizard.provider && settingsList?.find((s) => s.provider === wizard.provider)?.enabled
+                  : wizard.provider && settings?.provider === wizard.provider
                   ? `Step ${step === 4 ? 2 : 1} of 2`
                   : `Step ${step} of 4`}
               </p>
@@ -303,7 +289,9 @@ export function AiSettingsModal({ accountToken, onClose }: AiSettingsModalProps)
                   </p>
                   {providers.map((provider) => {
                     const meta = PROVIDER_META[provider];
-                    const isActive = provider === 'NONE' ? !activeSettings : activeSettings?.provider === provider;
+                    const isActive = provider === 'NONE'
+                      ? !settings || settings.provider === 'NONE'
+                      : settings?.provider === provider;
                     const isSelected = wizard.provider === provider;
                     return (
                       <button
@@ -331,10 +319,10 @@ export function AiSettingsModal({ accountToken, onClose }: AiSettingsModalProps)
                   })}
                   <button
                     onClick={handleStep1Confirm}
-                    disabled={!wizard.provider || upsertMutation.isPending || disableMutation.isPending}
+                    disabled={!wizard.provider || upsertMutation.isPending}
                     className="w-full mt-2 text-[12px] font-medium py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white transition-colors disabled:opacity-40"
                   >
-                    {upsertMutation.isPending || disableMutation.isPending
+                    {upsertMutation.isPending
                       ? 'Saving…'
                       : wizard.provider === 'NONE'
                       ? 'Disable AI (no additional steps required)'
@@ -357,7 +345,7 @@ export function AiSettingsModal({ accountToken, onClose }: AiSettingsModalProps)
                     </p>
                   </div>
 
-                  {settingsList?.find((s) => s.provider === wizard.provider)?.hasApiKey && (
+                  {settings?.provider === wizard.provider && settings?.hasApiKey && (
                     <div className="flex items-center gap-2">
                       <input
                         type="checkbox"
@@ -488,9 +476,9 @@ export function AiSettingsModal({ accountToken, onClose }: AiSettingsModalProps)
                   </div>
 
                   {/* Active provider warning */}
-                  {activeSettings && activeSettings.provider !== wizard.provider && (
+                  {settings != null && settings.provider !== 'NONE' && settings.provider !== wizard.provider && (
                     <p className="text-[11px] text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 rounded-lg px-3 py-2 border border-amber-200 dark:border-amber-800">
-                      Enabling this will deactivate {PROVIDER_META[activeSettings.provider].label}.
+                      Enabling this will deactivate {PROVIDER_META[settings.provider].label}.
                     </p>
                   )}
 

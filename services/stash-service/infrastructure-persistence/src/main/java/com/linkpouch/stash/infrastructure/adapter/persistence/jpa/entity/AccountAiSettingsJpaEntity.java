@@ -34,11 +34,8 @@ public class AccountAiSettingsJpaEntity {
     @Column(name = "api_key", columnDefinition = "TEXT")
     private String apiKey;
 
-    @Column(nullable = false)
+    @Column
     private String model;
-
-    @Column(nullable = false)
-    private boolean enabled;
 
     @Column(name = "custom_prompt", columnDefinition = "TEXT")
     private String customPrompt;

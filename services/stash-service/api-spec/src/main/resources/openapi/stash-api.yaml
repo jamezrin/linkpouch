@@ -505,6 +505,7 @@ components:
         provider:
           type: string
           enum:
+            - NONE
             - INCLUDED
             - OPENROUTER
             - OPENAI
@@ -512,8 +513,7 @@ components:
             - OPENCODE
         model:
           type: string
-        enabled:
-          type: boolean
+          nullable: true
         hasApiKey:
           type: boolean
           description: True when an encrypted API key is stored (never returns the raw key)
@@ -526,12 +526,11 @@ components:
       type: object
       required:
         - provider
-        - model
-        - enabled
       properties:
         provider:
           type: string
           enum:
+            - NONE
             - INCLUDED
             - OPENROUTER
             - OPENAI
@@ -543,8 +542,7 @@ components:
           description: API key for the provider (null preserves an existing key; omit for INCLUDED)
         model:
           type: string
-        enabled:
-          type: boolean
+          nullable: true
         customPrompt:
           type: string
           nullable: true
@@ -1712,7 +1710,7 @@ paths:
 
   /account/ai-settings:
     get:
-      summary: List all AI settings for the authenticated account
+      summary: Get AI settings for the authenticated account
       operationId: getAiSettings
       tags:
         - AccountAiSettings
@@ -1720,13 +1718,43 @@ paths:
         - bearerAuth: []
       responses:
         '200':
-          description: List of AI settings per provider
+          description: AI settings for the account
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/AiSettingsResponse'
+                $ref: '#/components/schemas/AiSettingsResponse'
+        '404':
+          description: No AI settings have been configured yet
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Invalid or missing account token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    put:
+      summary: Create or update AI settings (use provider NONE to disable)
+      operationId: upsertAiSettings
+      tags:
+        - AccountAiSettings
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpsertAiSettingsRequest'
+      responses:
+        '200':
+          description: AI settings saved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AiSettingsResponse'
         '401':
           description: Invalid or missing account token
           content:
@@ -1773,62 +1801,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-        '401':
-          description: Invalid or missing account token
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-
-  /account/ai-settings/{provider}:
-    parameters:
-      - name: provider
-        in: path
-        required: true
-        schema:
-          type: string
-          enum:
-            - INCLUDED
-            - OPENROUTER
-            - OPENAI
-            - ANTHROPIC
-            - OPENCODE
-    put:
-      summary: Create or update AI settings for a provider
-      operationId: upsertAiSettings
-      tags:
-        - AccountAiSettings
-      security:
-        - bearerAuth: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/UpsertAiSettingsRequest'
-      responses:
-        '200':
-          description: AI settings saved
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AiSettingsResponse'
-        '401':
-          description: Invalid or missing account token
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-    delete:
-      summary: Delete AI settings for a provider
-      operationId: deleteAiSettings
-      tags:
-        - AccountAiSettings
-      security:
-        - bearerAuth: []
-      responses:
-        '204':
-          description: AI settings deleted
         '401':
           description: Invalid or missing account token
           content:
