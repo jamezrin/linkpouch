@@ -117,7 +117,7 @@ class AnthropicProvider(AiSummaryProvider):
 
 
 _REGISTRY: dict[str, AiSummaryProvider] = {
-    "INCLUDED": OpenAiCompatibleProvider("https://openrouter.ai/api/v1"),
+    "OPENROUTER_INCLUDED": OpenAiCompatibleProvider("https://openrouter.ai/api/v1"),
     "OPENROUTER": OpenAiCompatibleProvider("https://openrouter.ai/api/v1"),
     "OPENAI": OpenAiCompatibleProvider("https://api.openai.com/v1"),
     "OPENCODE": OpenAiCompatibleProvider("https://api.opencode.ai/v1"),
