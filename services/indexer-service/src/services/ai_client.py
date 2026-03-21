@@ -44,6 +44,16 @@ class OpenAiCompatibleProvider(AiSummaryProvider):
     ) -> dict:
         truncated = _truncate(page_content)
 
+        logger.debug(
+            "OpenAI-compatible request",
+            base_url=self._base_url,
+            model=model,
+            system_prompt=system_prompt,
+            content_length=len(truncated),
+            content_truncated=len(page_content or "") > MAX_CONTENT_LENGTH,
+            page_content=truncated,
+        )
+
         start = time.monotonic()
         async with httpx.AsyncClient(timeout=_HTTPX_TIMEOUT) as client:
             response = await asyncio.wait_for(
@@ -64,11 +74,26 @@ class OpenAiCompatibleProvider(AiSummaryProvider):
             response.raise_for_status()
             data = response.json()
             usage = data.get("usage", {})
+            summary = data["choices"][0]["message"]["content"]
+            confirmed_model = data.get("model", model)
+            input_tokens = usage.get("prompt_tokens")
+            output_tokens = usage.get("completion_tokens")
+
+            logger.info(
+                "OpenAI-compatible response received",
+                base_url=self._base_url,
+                model=confirmed_model,
+                input_tokens=input_tokens,
+                output_tokens=output_tokens,
+                elapsed_ms=elapsed_ms,
+                summary=summary,
+            )
+
             return {
-                "summary": data["choices"][0]["message"]["content"],
-                "model": data.get("model", model),
-                "input_tokens": usage.get("prompt_tokens"),
-                "output_tokens": usage.get("completion_tokens"),
+                "summary": summary,
+                "model": confirmed_model,
+                "input_tokens": input_tokens,
+                "output_tokens": output_tokens,
                 "elapsed_ms": elapsed_ms,
             }
 
@@ -81,6 +106,15 @@ class AnthropicProvider(AiSummaryProvider):
         self, api_key: str, model: str, system_prompt: str, page_content: str
     ) -> dict:
         truncated = _truncate(page_content)
+
+        logger.debug(
+            "Anthropic request",
+            model=model,
+            system_prompt=system_prompt,
+            content_length=len(truncated),
+            content_truncated=len(page_content or "") > MAX_CONTENT_LENGTH,
+            page_content=truncated,
+        )
 
         start = time.monotonic()
         async with httpx.AsyncClient(timeout=_HTTPX_TIMEOUT) as client:
@@ -107,11 +141,25 @@ class AnthropicProvider(AiSummaryProvider):
             response.raise_for_status()
             data = response.json()
             usage = data.get("usage", {})
+            summary = data["content"][0]["text"]
+            confirmed_model = data.get("model", model)
+            input_tokens = usage.get("input_tokens")
+            output_tokens = usage.get("output_tokens")
+
+            logger.info(
+                "Anthropic response received",
+                model=confirmed_model,
+                input_tokens=input_tokens,
+                output_tokens=output_tokens,
+                elapsed_ms=elapsed_ms,
+                summary=summary,
+            )
+
             return {
-                "summary": data["content"][0]["text"],
-                "model": data.get("model", model),
-                "input_tokens": usage.get("input_tokens"),
-                "output_tokens": usage.get("output_tokens"),
+                "summary": summary,
+                "model": confirmed_model,
+                "input_tokens": input_tokens,
+                "output_tokens": output_tokens,
                 "elapsed_ms": elapsed_ms,
             }
 

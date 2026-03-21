@@ -256,6 +256,15 @@ class RedisStreamConsumer:
         system_prompt = data.get("systemPrompt", "")
         page_content = data.get("pageContent", "")
 
+        logger.info(
+            "AI summary request details",
+            link_id=link_id,
+            provider=provider,
+            model=model,
+            system_prompt=system_prompt,
+            page_content_length=len(page_content),
+        )
+
         try:
             result = await get_provider(provider).generate_summary(
                 api_key=api_key,
@@ -263,21 +272,35 @@ class RedisStreamConsumer:
                 system_prompt=system_prompt,
                 page_content=page_content,
             )
+            confirmed_model = result.get("model", model)
+            input_tokens = result.get("input_tokens")
+            output_tokens = result.get("output_tokens")
+            elapsed_ms = result.get("elapsed_ms")
             await self.stash_client.update_ai_summary(
                 link_id=link_id,
                 status="COMPLETED",
                 summary=result["summary"],
-                model=result.get("model", model),
-                input_tokens=result.get("input_tokens"),
-                output_tokens=result.get("output_tokens"),
-                elapsed_ms=result.get("elapsed_ms"),
+                model=confirmed_model,
+                input_tokens=input_tokens,
+                output_tokens=output_tokens,
+                elapsed_ms=elapsed_ms,
             )
-            logger.info("AI summary generated successfully", link_id=link_id, provider=provider)
+            logger.info(
+                "AI summary generated successfully",
+                link_id=link_id,
+                provider=provider,
+                model=confirmed_model,
+                input_tokens=input_tokens,
+                output_tokens=output_tokens,
+                elapsed_ms=elapsed_ms,
+                summary=result["summary"],
+            )
         except Exception as e:
             logger.error(
                 "AI summary generation failed",
                 link_id=link_id,
                 provider=provider,
+                model=model,
                 error=str(e),
                 exc_info=True,
             )
