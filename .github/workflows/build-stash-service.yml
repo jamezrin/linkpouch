@@ -110,7 +110,7 @@ jobs:
             type=sha,prefix=sha-,suffix=-amd64,format=short
 
       - name: Build and push AMD64 image
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v7
         with:
           context: services/stash-service
           file: services/stash-service/Dockerfile
@@ -153,7 +153,7 @@ jobs:
             type=sha,prefix=sha-,suffix=-arm64,format=short
 
       - name: Build and push ARM64 image
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v7
         with:
           context: services/stash-service
           file: services/stash-service/Dockerfile
