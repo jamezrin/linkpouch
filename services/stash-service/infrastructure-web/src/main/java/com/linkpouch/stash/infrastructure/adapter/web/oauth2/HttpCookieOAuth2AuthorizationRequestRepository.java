@@ -1,6 +1,8 @@
 package com.linkpouch.stash.infrastructure.adapter.web.oauth2;
 
 import java.util.Base64;
+import java.util.Map;
+import java.util.Set;
 
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
@@ -8,7 +10,8 @@ import jakarta.servlet.http.HttpServletResponse;
 
 import org.springframework.security.oauth2.client.web.AuthorizationRequestRepository;
 import org.springframework.security.oauth2.core.endpoint.OAuth2AuthorizationRequest;
-import org.springframework.util.SerializationUtils;
+
+import tools.jackson.databind.ObjectMapper;
 
 /**
  * Stores the OAuth2 authorization request in a short-lived cookie instead of the HTTP session.
@@ -22,13 +25,39 @@ public class HttpCookieOAuth2AuthorizationRequestRepository
     private static final String COOKIE_NAME = "oauth2_auth_request";
     private static final int COOKIE_MAX_AGE_SECONDS = 180;
 
+    private final ObjectMapper objectMapper;
+
+    public HttpCookieOAuth2AuthorizationRequestRepository(final ObjectMapper objectMapper) {
+        this.objectMapper = objectMapper;
+    }
+
+    private record SerializedRequest(
+            String authorizationUri,
+            String clientId,
+            String redirectUri,
+            Set<String> scopes,
+            String state,
+            Map<String, Object> additionalParameters,
+            Map<String, Object> attributes,
+            String authorizationRequestUri) {}
+
     @Override
     public OAuth2AuthorizationRequest loadAuthorizationRequest(final HttpServletRequest request) {
         final Cookie cookie = findCookie(request, COOKIE_NAME);
         if (cookie == null) return null;
         try {
             final byte[] decoded = Base64.getUrlDecoder().decode(cookie.getValue());
-            return (OAuth2AuthorizationRequest) SerializationUtils.deserialize(decoded);
+            final SerializedRequest sr = objectMapper.readValue(decoded, SerializedRequest.class);
+            return OAuth2AuthorizationRequest.authorizationCode()
+                    .authorizationUri(sr.authorizationUri())
+                    .clientId(sr.clientId())
+                    .redirectUri(sr.redirectUri())
+                    .scopes(sr.scopes())
+                    .state(sr.state())
+                    .additionalParameters(sr.additionalParameters())
+                    .attributes(sr.attributes())
+                    .authorizationRequestUri(sr.authorizationRequestUri())
+                    .build();
         } catch (Exception e) {
             return null;
         }
@@ -43,13 +72,26 @@ public class HttpCookieOAuth2AuthorizationRequestRepository
             deleteCookie(request, response, COOKIE_NAME);
             return;
         }
-        final byte[] serialized = SerializationUtils.serialize(authorizationRequest);
-        final String encoded = Base64.getUrlEncoder().withoutPadding().encodeToString(serialized);
-        final Cookie cookie = new Cookie(COOKIE_NAME, encoded);
-        cookie.setPath("/");
-        cookie.setHttpOnly(true);
-        cookie.setMaxAge(COOKIE_MAX_AGE_SECONDS);
-        response.addCookie(cookie);
+        try {
+            final SerializedRequest sr = new SerializedRequest(
+                    authorizationRequest.getAuthorizationUri(),
+                    authorizationRequest.getClientId(),
+                    authorizationRequest.getRedirectUri(),
+                    authorizationRequest.getScopes(),
+                    authorizationRequest.getState(),
+                    authorizationRequest.getAdditionalParameters(),
+                    authorizationRequest.getAttributes(),
+                    authorizationRequest.getAuthorizationRequestUri());
+            final byte[] serialized = objectMapper.writeValueAsBytes(sr);
+            final String encoded = Base64.getUrlEncoder().withoutPadding().encodeToString(serialized);
+            final Cookie cookie = new Cookie(COOKIE_NAME, encoded);
+            cookie.setPath("/");
+            cookie.setHttpOnly(true);
+            cookie.setMaxAge(COOKIE_MAX_AGE_SECONDS);
+            response.addCookie(cookie);
+        } catch (Exception e) {
+            deleteCookie(request, response, COOKIE_NAME);
+        }
     }
 
     @Override

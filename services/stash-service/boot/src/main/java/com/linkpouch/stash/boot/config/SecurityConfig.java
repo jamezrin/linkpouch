@@ -14,6 +14,7 @@ import com.linkpouch.stash.infrastructure.adapter.web.oauth2.OAuth2Authenticatio
 import com.linkpouch.stash.infrastructure.adapter.web.oauth2.OAuth2AuthenticationSuccessHandler;
 
 import lombok.RequiredArgsConstructor;
+import tools.jackson.databind.ObjectMapper;
 
 @Configuration
 @RequiredArgsConstructor
@@ -22,6 +23,7 @@ public class SecurityConfig {
     private final OAuth2AuthenticationSuccessHandler oAuth2AuthenticationSuccessHandler;
     private final OAuth2AuthenticationFailureHandler oAuth2AuthenticationFailureHandler;
     private final ClientRegistrationRepository clientRegistrationRepository;
+    private final ObjectMapper objectMapper;
 
     @Bean
     public SecurityFilterChain filterChain(final HttpSecurity http) throws Exception {
@@ -34,7 +36,7 @@ public class SecurityConfig {
                 // Spring Security is only used here for the OAuth2 login flow.
                 .authorizeHttpRequests(auth -> auth.anyRequest().permitAll())
                 .oauth2Login(oauth2 -> oauth2.authorizationEndpoint(ep -> ep.authorizationRequestRepository(
-                                        new HttpCookieOAuth2AuthorizationRequestRepository())
+                                        new HttpCookieOAuth2AuthorizationRequestRepository(objectMapper))
                                 .authorizationRequestResolver(authRequestResolver))
                         .successHandler(oAuth2AuthenticationSuccessHandler)
                         .failureHandler(oAuth2AuthenticationFailureHandler));
