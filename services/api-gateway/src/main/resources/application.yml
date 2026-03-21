@@ -5,6 +5,7 @@ spring:
     gateway:
       server:
         webflux:
+          trusted-proxies: ".*"
           default-filters:
             - DedupeResponseHeader=Access-Control-Allow-Credentials Access-Control-Allow-Origin
           globalcors:
