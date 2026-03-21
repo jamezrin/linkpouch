@@ -34,7 +34,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
         <!-- Latest Spring Boot -->
-        <spring-boot.version>3.4.3</spring-boot.version>
+        <spring-boot.version>3.5.12</spring-boot.version>
         <!-- Spring gRPC -->
         <spring-grpc.version>0.8.0</spring-grpc.version>
         <!-- gRPC and Protobuf -->
