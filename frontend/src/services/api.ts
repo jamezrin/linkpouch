@@ -251,10 +251,10 @@ export const accountApi = {
 
   fetchAiModels: (accountJwt: string, provider: AiProvider, apiKey?: string | null) =>
     api.get<AiModelsResponse>('/account/ai-settings/models', {
-      headers: { Authorization: `Bearer ${accountJwt}` },
-      params: {
-        provider,
-        ...(apiKey ? { apiKey } : {}),
+      headers: {
+        Authorization: `Bearer ${accountJwt}`,
+        ...(apiKey ? { 'X-Ai-Api-Key': apiKey } : {}),
       },
+      params: { provider },
     }),
 };

@@ -92,6 +92,17 @@ class StashServiceClient:
             )
             raise
 
+    async def get_ai_credentials(self, stash_id: str) -> str:
+        """Fetch the decrypted AI API key for the account that owns the given stash.
+        Returns an empty string if no credentials are configured."""
+        try:
+            response = await self.client.get(f"/stashes/{stash_id}/ai-credentials")
+            response.raise_for_status()
+            return response.json().get("apiKey", "")
+        except Exception as e:
+            logger.error("Failed to fetch AI credentials", stash_id=stash_id, error=str(e))
+            raise
+
     async def update_ai_summary(
         self,
         link_id: str,

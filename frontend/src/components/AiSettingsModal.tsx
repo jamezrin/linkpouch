@@ -135,8 +135,8 @@ export function AiSettingsModal({ accountToken, onClose }: AiSettingsModalProps)
   const [browserSearch, setBrowserSearch] = useState('');
 
   // Pre-select the currently active provider (or NONE) when settings load
-  const [preselected, setPreselected] = useState(false);
-  if (!isLoading && !preselected && !wizard.provider) {
+  useEffect(() => {
+    if (isLoading || wizard.provider !== null) return;
     if (settings && settings.provider !== 'NONE') {
       const meta = PROVIDER_META[settings.provider];
       setWizard({
@@ -150,8 +150,7 @@ export function AiSettingsModal({ accountToken, onClose }: AiSettingsModalProps)
     } else {
       setWizard((prev) => ({ ...prev, provider: 'NONE' }));
     }
-    setPreselected(true);
-  }
+  }, [isLoading, settings]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Step 1: selecting a card only highlights it — does not navigate
   const handleSelectProvider = (provider: AiProvider) => {
@@ -229,12 +228,14 @@ export function AiSettingsModal({ accountToken, onClose }: AiSettingsModalProps)
 
   const handleSave = () => {
     if (!wizard.provider || wizard.provider === 'NONE') return;
-    const payload: UpsertAiSettingsRequest = {
-      provider: realProvider,
-      model: wizard.model,
-      apiKey: wizard.useExistingKey ? null : wizard.apiKey || null,
-      customPrompt: wizard.provider !== 'OPENROUTER_INCLUDED' && wizard.useCustomPrompt ? wizard.customPrompt : null,
-    };
+    const payload: UpsertAiSettingsRequest = wizard.provider === 'OPENROUTER_INCLUDED'
+      ? { provider: 'OPENROUTER_INCLUDED', model: wizard.model }
+      : {
+          provider: realProvider as Exclude<AiProvider, 'NONE' | 'OPENROUTER_INCLUDED'>,
+          model: wizard.model,
+          apiKey: wizard.useExistingKey ? null : wizard.apiKey || null,
+          customPrompt: wizard.useCustomPrompt ? wizard.customPrompt : null,
+        };
     upsertMutation.mutate(payload);
   };
 
@@ -503,14 +504,17 @@ export function AiSettingsModal({ accountToken, onClose }: AiSettingsModalProps)
                                   : 'hover:bg-slate-50 dark:hover:bg-slate-800/50'
                               }`}
                             >
-                              <div style={{ fontSize: '12px', fontWeight: 500, color: isSelected ? '#4f46e5' : 'inherit', wordBreak: 'break-all' }}>
+                              <div
+                                style={{ fontSize: '12px', fontWeight: 500, wordBreak: 'break-all' }}
+                                className={isSelected ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-800 dark:text-slate-100'}
+                              >
                                 {m.id}
                               </div>
                               {m.name && m.name !== m.id && (
-                                <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '1px' }}>{m.name}</div>
+                                <div style={{ fontSize: '11px', marginTop: '1px' }} className="text-slate-500 dark:text-slate-400">{m.name}</div>
                               )}
                               {(pricing != null || m.contextLength != null) && (
-                                <div style={{ fontSize: '10px', color: '#94a3b8', marginTop: '2px' }}>
+                                <div style={{ fontSize: '10px', marginTop: '2px' }} className="text-slate-400 dark:text-slate-500">
                                   {[pricing, m.contextLength != null ? formatContext(m.contextLength) : null]
                                     .filter(Boolean).join(' · ')}
                                 </div>

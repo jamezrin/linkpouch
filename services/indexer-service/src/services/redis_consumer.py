@@ -247,11 +247,15 @@ class RedisStreamConsumer:
             logger.warning("Unexpected event type in AI summary stream", event_type=event_type)
             return
 
-        if not link_id or not provider:
-            logger.warning("Missing linkId or provider in AI summary event", link_id=link_id)
+        stash_id = data.get("stashId")
+        if not link_id or not provider or not stash_id:
+            logger.warning(
+                "Missing linkId, stashId, or provider in AI summary event",
+                link_id=link_id,
+                stash_id=stash_id,
+            )
             return
 
-        api_key = data.get("apiKey", "")
         model = data.get("model", "")
         system_prompt = data.get("systemPrompt", "")
         page_content = data.get("pageContent", "")
@@ -261,9 +265,16 @@ class RedisStreamConsumer:
             link_id=link_id,
             provider=provider,
             model=model,
-            system_prompt=system_prompt,
+            has_custom_prompt=bool(system_prompt),
             page_content_length=len(page_content),
         )
+
+        # Fetch credentials at processing time — the API key is never stored in the stream
+        api_key = await self.stash_client.get_ai_credentials(stash_id)
+        if not api_key:
+            logger.warning("No AI credentials available for stash", stash_id=stash_id, link_id=link_id)
+            await self.stash_client.update_ai_summary(link_id=link_id, status="FAILED", summary=None)
+            return
 
         try:
             result = await get_provider(provider).generate_summary(
@@ -276,10 +287,11 @@ class RedisStreamConsumer:
             input_tokens = result.get("input_tokens")
             output_tokens = result.get("output_tokens")
             elapsed_ms = result.get("elapsed_ms")
+            summary = result["summary"]
             await self.stash_client.update_ai_summary(
                 link_id=link_id,
                 status="COMPLETED",
-                summary=result["summary"],
+                summary=summary,
                 model=confirmed_model,
                 input_tokens=input_tokens,
                 output_tokens=output_tokens,
@@ -293,7 +305,7 @@ class RedisStreamConsumer:
                 input_tokens=input_tokens,
                 output_tokens=output_tokens,
                 elapsed_ms=elapsed_ms,
-                summary=result["summary"],
+                summary=summary,
             )
         except Exception as e:
             logger.error(
@@ -316,7 +328,8 @@ class RedisStreamConsumer:
                     link_id=link_id,
                     error=str(cb_err),
                 )
-            raise e
+            # Do not re-raise — ACK the message so it is not retried indefinitely.
+            # The user can trigger a fresh attempt via the Revisit button.
 
     async def _handle_screenshot_event(self, data: dict) -> None:
         """Handle screenshot.refresh.requested event."""

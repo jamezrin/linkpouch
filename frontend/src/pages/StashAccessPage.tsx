@@ -234,6 +234,7 @@ export default function StashAccessPage() {
     () => (localStorage.getItem('preferredPreviewMode') as PreviewMode) ?? 'live',
   );
   const [userChoseTab, setUserChoseTab] = useState(false);
+  const prevAiSummaryStatusRef = useRef<string | null | undefined>(undefined);
   const [aiSettingsOpen, setAiSettingsOpen] = useState(false);
   const [liveLoading, setLiveLoading] = useState(false);
   const [archiveLoading, setArchiveLoading] = useState(false);
@@ -642,10 +643,14 @@ export default function StashAccessPage() {
     [links, activeLinkId, activeLinkData]
   );
 
-  // Auto-switch to AI Summary tab when summary completes (unless user already chose a tab)
+  // Auto-switch to AI Summary tab only on the GENERATING→COMPLETED transition.
+  // Checking the previous status avoids switching back when the user has already
+  // chosen a different tab and the component re-renders with an already-completed link.
   useEffect(() => {
-    if (!activeLink) return;
-    if (activeLink.aiSummaryStatus === 'COMPLETED' && !userChoseTab) {
+    const prev = prevAiSummaryStatusRef.current;
+    const current = activeLink?.aiSummaryStatus;
+    prevAiSummaryStatusRef.current = current;
+    if (prev === 'GENERATING' && current === 'COMPLETED' && !userChoseTab) {
       setPreviewMode('ai-summary');
     }
   }, [activeLink?.aiSummaryStatus, activeLinkId, userChoseTab]);
@@ -1842,7 +1847,10 @@ export default function StashAccessPage() {
             {/* iframe / AI summary area */}
             <div id="lp-preview-iframe" className="flex-1 overflow-hidden relative">
               {previewMode === 'ai-summary' ? (
-                <AiSummaryPane link={activeLink} onOpenSettings={() => setAiSettingsOpen(true)} />
+                <AiSummaryPane
+                  link={activeLink}
+                  onOpenSettings={() => setAiSettingsOpen(true)}
+                />
               ) : previewMode === 'live' ? (
                 <>
                   {liveFailed ? (

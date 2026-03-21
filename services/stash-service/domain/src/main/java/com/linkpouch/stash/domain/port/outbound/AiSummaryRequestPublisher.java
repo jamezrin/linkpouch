@@ -8,11 +8,5 @@ public interface AiSummaryRequestPublisher {
 
     /** Publishes an AI summary request to the Redis Stream for async processing by the indexer. */
     void publishRequest(
-            UUID linkId,
-            UUID stashId,
-            String pageContent,
-            AiProvider provider,
-            String apiKey,
-            String model,
-            String systemPrompt);
+            UUID linkId, UUID stashId, String pageContent, AiProvider provider, String model, String systemPrompt);
 }

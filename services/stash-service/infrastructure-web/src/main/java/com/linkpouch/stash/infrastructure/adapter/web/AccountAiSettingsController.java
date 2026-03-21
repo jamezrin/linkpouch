@@ -6,12 +6,18 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 
 import jakarta.servlet.http.HttpServletRequest;
 
 import org.openapitools.jackson.nullable.JsonNullable;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -29,6 +35,7 @@ import com.linkpouch.stash.domain.model.AiProvider;
 import com.linkpouch.stash.domain.port.in.GetAccountAiSettingsQuery;
 import com.linkpouch.stash.domain.port.in.UpsertAccountAiSettingsCommand;
 import com.linkpouch.stash.domain.port.in.UpsertAccountAiSettingsUseCase;
+import com.linkpouch.stash.domain.port.outbound.AccountRepository;
 import com.linkpouch.stash.domain.service.AccountClaims;
 
 import lombok.RequiredArgsConstructor;
@@ -41,8 +48,15 @@ public class AccountAiSettingsController implements AccountAiSettingsApi {
 
     private final GetAccountAiSettingsQuery getAccountAiSettingsQuery;
     private final UpsertAccountAiSettingsUseCase upsertAccountAiSettingsUseCase;
+    private final AccountRepository accountRepository;
     private final ObjectMapper objectMapper;
     private final HttpServletRequest httpRequest;
+
+    @Value("${linkpouch.ai.included-api-key:}")
+    private String includedApiKey;
+
+    @Value("${linkpouch.indexer.callback-secret}")
+    private String indexerCallbackSecret;
 
     @Override
     public ResponseEntity<AiSettingsResponseDTO> getAiSettings() {
@@ -69,14 +83,40 @@ public class AccountAiSettingsController implements AccountAiSettingsApi {
     }
 
     @Override
-    public ResponseEntity<AiModelsResponseDTO> getAiModels(final String provider, final String apiKey) {
+    public ResponseEntity<AiModelsResponseDTO> getAiModels(final String provider, final String xAiApiKey) {
         // Ensure authenticated
         getClaims();
 
         final AiProvider aiProvider = AiProvider.valueOf(provider);
-        final List<AiModelInfoDTO> models = fetchModels(aiProvider, apiKey);
+        final List<AiModelInfoDTO> models = fetchModels(aiProvider, xAiApiKey);
         final AiModelsResponseDTO response = new AiModelsResponseDTO().models(models);
         return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Internal indexer callback: returns the decrypted AI API key for the account that owns the
+     * given stash. The API key is never stored in Redis Streams — the indexer fetches it here at
+     * processing time over HTTPS, so it is not at rest in any unencrypted store.
+     */
+    @GetMapping("/stashes/{stashId}/ai-credentials")
+    public ResponseEntity<Map<String, String>> getAiCredentials(
+            @PathVariable final UUID stashId, @RequestHeader("X-Indexer-Secret") final String xIndexerSecret) {
+        if (!indexerCallbackSecret.equals(xIndexerSecret)) {
+            throw new UnauthorizedException("Invalid indexer secret");
+        }
+        final Optional<UUID> accountIdOpt = accountRepository.findClaimerAccountId(stashId);
+        if (accountIdOpt.isEmpty()) {
+            return ResponseEntity.ok(Map.of("apiKey", ""));
+        }
+        final Optional<AccountAiSettings> settingsOpt = getAccountAiSettingsQuery.execute(accountIdOpt.get());
+        if (settingsOpt.isEmpty() || settingsOpt.get().getProvider() == AiProvider.NONE) {
+            return ResponseEntity.ok(Map.of("apiKey", ""));
+        }
+        final AccountAiSettings settings = settingsOpt.get();
+        final String apiKey = settings.getProvider() == AiProvider.OPENROUTER_INCLUDED
+                ? includedApiKey
+                : (settings.getApiKey() != null ? settings.getApiKey() : "");
+        return ResponseEntity.ok(Map.of("apiKey", apiKey));
     }
 
     private List<AiModelInfoDTO> fetchModels(final AiProvider provider, final String apiKey) {
@@ -86,8 +126,8 @@ public class AccountAiSettingsController implements AccountAiSettingsApi {
                     .build();
             return switch (provider) {
                 case NONE -> List.of();
-                case OPENROUTER_INCLUDED -> fetchOpenRouterModels(client, true);
-                case OPENROUTER -> fetchOpenRouterModels(client, false);
+                case OPENROUTER_INCLUDED -> fetchOpenRouterModels(client, includedApiKey, true);
+                case OPENROUTER -> fetchOpenRouterModels(client, apiKey, false);
                 case OPENAI -> fetchOpenAiModels(client, apiKey);
                 case ANTHROPIC -> fetchAnthropicModels(client, apiKey);
                 case OPENCODE -> fetchOpenCodeModels(client, apiKey);
@@ -98,13 +138,16 @@ public class AccountAiSettingsController implements AccountAiSettingsApi {
         }
     }
 
-    private List<AiModelInfoDTO> fetchOpenRouterModels(final HttpClient client, final boolean freeOnly)
-            throws Exception {
-        final HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create("https://openrouter.ai/api/v1/models"))
+    private List<AiModelInfoDTO> fetchOpenRouterModels(
+            final HttpClient client, final String apiKey, final boolean freeOnly) throws Exception {
+        final boolean hasKey = apiKey != null && !apiKey.isBlank();
+        final String url = hasKey ? "https://openrouter.ai/api/v1/models/user" : "https://openrouter.ai/api/v1/models";
+        final HttpRequest.Builder builder = HttpRequest.newBuilder()
+                .uri(URI.create(url))
                 .timeout(Duration.ofSeconds(10))
-                .GET()
-                .build();
+                .GET();
+        if (hasKey) builder.header("Authorization", "Bearer " + apiKey);
+        final HttpRequest request = builder.build();
         final HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
         final JsonNode root = objectMapper.readTree(response.body());
         final JsonNode data = root.get("data");

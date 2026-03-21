@@ -80,27 +80,22 @@ public class LinkManagementService
                 ListLinksQuery {
 
     private static final String DEFAULT_SYSTEM_PROMPT = """
-            You are a research assistant that creates comprehensive, well-structured summaries of web pages \
+            You are a research assistant that creates concise, well-structured summaries of web pages \
             for a bookmarking app. Your goal is to help the user quickly recall why they saved this \
             page and extract maximum value from it.
 
             This is a single one-shot request — produce the complete, final summary in one response. \
             Do not ask questions, request clarification, or suggest follow-ups.
 
-            Produce a thorough markdown summary using the following structure (adapt or omit sections \
-            that don't apply to the content):
+            Produce a markdown summary. Only include a section if you have substantive content for it — \
+            do not force-fill sections with generic or speculative text.
 
             ## Overview
             A concise 2–3 sentence paragraph explaining what this page is, who it's for, and why it matters.
 
-            {{PAGE_SCREENSHOT}}
-
-            ### Visual Structure
-            A brief description of the page's visual layout: what is shown above the fold, the major \
-            content areas, navigation elements, and how the page is organised at a glance.
-
             ## Key Takeaways
-            A bulleted list of the 5–8 most important points, insights, or facts a reader should remember.
+            A bulleted list of the 5–8 most important points, insights, or facts a reader should remember. \
+            Only include if the page has distinct, enumerable takeaways.
 
             ## Main Content
             The primary information organised into logical sub-sections using ### headings. Use:
@@ -110,8 +105,8 @@ public class LinkManagementService
             - Fenced code blocks (with language tag) for any code, commands, config, or technical syntax
 
             ## Notable Details
-            Interesting facts, statistics, caveats, edge cases, or anything else worth remembering that \
-            didn't fit above.
+            Interesting facts, statistics, caveats, or edge cases worth remembering. \
+            Only include if there is content that didn't fit naturally above.
 
             Rules:
             - Write in clear, neutral prose — strip marketing fluff
@@ -119,7 +114,6 @@ public class LinkManagementService
             - If the page has no meaningful content (login wall, 404, paywall, etc.) say so in one sentence
             - Output ONLY the markdown — no preamble, no meta-commentary, no closing remarks
             - Do NOT wrap the output in a markdown code block
-            - Include the token {{PAGE_SCREENSHOT}} exactly once in your output, at the position shown above\
             """;
 
     private final LinkRepository linkRepository;
@@ -133,12 +127,6 @@ public class LinkManagementService
 
     @Value("${linkpouch.ai.system-prompt:" + DEFAULT_SYSTEM_PROMPT + "}")
     private String systemPrompt;
-
-    @Value("${linkpouch.ai.included-api-key:}")
-    private String includedApiKey;
-
-    @Value("${linkpouch.ai.included-model:google/gemini-flash-1.5}")
-    private String includedModel;
 
     // ==================== AddLinkUseCase ====================
 
@@ -516,18 +504,13 @@ public class LinkManagementService
             final String effectivePrompt = settings.getCustomPrompt() != null
                             && !settings.getCustomPrompt().isBlank()
                     ? settings.getCustomPrompt()
-                    : systemPrompt;
-            final String resolvedApiKey =
-                    settings.getProvider() == AiProvider.OPENROUTER_INCLUDED ? includedApiKey : settings.getApiKey();
-            final String resolvedModel =
-                    settings.getProvider() == AiProvider.OPENROUTER_INCLUDED ? includedModel : settings.getModel();
+                    : resolveBasePrompt();
             aiSummaryRequestPublisher.publishRequest(
                     link.getId(),
                     link.getStashId(),
                     link.getPageContent(),
                     settings.getProvider(),
-                    resolvedApiKey,
-                    resolvedModel,
+                    settings.getModel(),
                     effectivePrompt);
         }
     }
@@ -557,22 +540,19 @@ public class LinkManagementService
         final String effectivePrompt = settings.getCustomPrompt() != null
                         && !settings.getCustomPrompt().isBlank()
                 ? settings.getCustomPrompt()
-                : systemPrompt;
-
-        // For INCLUDED provider, use server-side API key and model
-        final String resolvedApiKey =
-                settings.getProvider() == AiProvider.OPENROUTER_INCLUDED ? includedApiKey : settings.getApiKey();
-        final String resolvedModel =
-                settings.getProvider() == AiProvider.OPENROUTER_INCLUDED ? includedModel : settings.getModel();
+                : resolveBasePrompt();
 
         aiSummaryRequestPublisher.publishRequest(
                 savedLink.getId(),
                 savedLink.getStashId(),
                 savedLink.getPageContent(),
                 settings.getProvider(),
-                resolvedApiKey,
-                resolvedModel,
+                settings.getModel(),
                 effectivePrompt);
+    }
+
+    private String resolveBasePrompt() {
+        return systemPrompt != null && !systemPrompt.isBlank() ? systemPrompt : DEFAULT_SYSTEM_PROMPT;
     }
 
     private Optional<AccountAiSettings> resolveAiSettings(final UUID stashId) {

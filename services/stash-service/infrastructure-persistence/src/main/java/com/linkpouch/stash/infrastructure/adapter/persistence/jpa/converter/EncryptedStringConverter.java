@@ -12,8 +12,6 @@ import javax.crypto.spec.SecretKeySpec;
 import jakarta.persistence.AttributeConverter;
 import jakarta.persistence.Converter;
 
-import lombok.extern.slf4j.Slf4j;
-
 /**
  * JPA AttributeConverter that encrypts/decrypts String values using AES-256-GCM.
  *
@@ -22,7 +20,6 @@ import lombok.extern.slf4j.Slf4j;
  *
  * <p>Storage format: base64( iv[12] || ciphertext || tag[16] )
  */
-@Slf4j
 @Converter
 public class EncryptedStringConverter implements AttributeConverter<String, String> {
 
@@ -41,8 +38,8 @@ public class EncryptedStringConverter implements AttributeConverter<String, Stri
     public String convertToDatabaseColumn(final String attribute) {
         if (attribute == null) return null;
         if (keyBytes == null) {
-            log.warn("Encryption key not configured — storing API key as plaintext");
-            return attribute;
+            throw new IllegalStateException(
+                    "Encryption key not configured (AI_SETTINGS_ENCRYPTION_KEY) — refusing to store API key as plaintext");
         }
         try {
             final SecretKey key = new SecretKeySpec(keyBytes, "AES");
@@ -64,7 +61,8 @@ public class EncryptedStringConverter implements AttributeConverter<String, Stri
     public String convertToEntityAttribute(final String dbData) {
         if (dbData == null) return null;
         if (keyBytes == null) {
-            return dbData;
+            throw new IllegalStateException(
+                    "Encryption key not configured (AI_SETTINGS_ENCRYPTION_KEY) — cannot decrypt API key");
         }
         try {
             final byte[] decoded = Base64.getDecoder().decode(dbData);

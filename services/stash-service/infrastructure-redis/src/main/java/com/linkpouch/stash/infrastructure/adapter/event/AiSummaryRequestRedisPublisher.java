@@ -35,7 +35,6 @@ public class AiSummaryRequestRedisPublisher implements AiSummaryRequestPublisher
             final UUID stashId,
             final String pageContent,
             final AiProvider provider,
-            final String apiKey,
             final String model,
             final String systemPrompt) {
         try {
@@ -45,7 +44,7 @@ public class AiSummaryRequestRedisPublisher implements AiSummaryRequestPublisher
             eventData.put("stashId", stashId.toString());
             eventData.put("pageContent", pageContent != null ? pageContent : "");
             eventData.put("provider", provider.name());
-            eventData.put("apiKey", apiKey != null ? apiKey : "");
+            // apiKey intentionally omitted — indexer fetches credentials at processing time
             eventData.put("model", model != null ? model : "");
             eventData.put("systemPrompt", systemPrompt != null ? systemPrompt : "");
             eventData.put("timestamp", Instant.now().toString());

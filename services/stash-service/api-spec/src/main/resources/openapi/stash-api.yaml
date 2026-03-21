@@ -1809,12 +1809,12 @@ paths:
               - OPENAI
               - ANTHROPIC
               - OPENCODE
-        - name: apiKey
-          in: query
+        - name: X-Ai-Api-Key
+          in: header
           required: false
           schema:
             type: string
-          description: API key to use for fetching models (ignored for OPENROUTER_INCLUDED/OPENROUTER public list)
+          description: API key to use for fetching models (ignored for OPENROUTER_INCLUDED/OPENROUTER public list). Sent as a header to avoid leaking into server logs and browser history.
       responses:
         '200':
           description: List of available model IDs

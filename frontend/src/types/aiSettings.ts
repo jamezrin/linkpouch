@@ -20,9 +20,7 @@ export interface AiSettingsResponse {
   customPrompt?: string | null;
 }
 
-export interface UpsertAiSettingsRequest {
-  provider: AiProvider;
-  apiKey?: string | null;
-  model?: string | null;
-  customPrompt?: string | null;
-}
+export type UpsertAiSettingsRequest =
+  | { provider: 'NONE'; apiKey: null; model: null; customPrompt: null }
+  | { provider: 'OPENROUTER_INCLUDED'; apiKey?: null; model: string; customPrompt?: null }
+  | { provider: Exclude<AiProvider, 'NONE' | 'OPENROUTER_INCLUDED'>; apiKey: string | null; model: string; customPrompt?: string | null };

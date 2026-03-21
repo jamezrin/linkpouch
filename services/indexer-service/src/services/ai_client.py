@@ -48,10 +48,8 @@ class OpenAiCompatibleProvider(AiSummaryProvider):
             "OpenAI-compatible request",
             base_url=self._base_url,
             model=model,
-            system_prompt=system_prompt,
             content_length=len(truncated),
             content_truncated=len(page_content or "") > MAX_CONTENT_LENGTH,
-            page_content=truncated,
         )
 
         start = time.monotonic()
@@ -73,8 +71,13 @@ class OpenAiCompatibleProvider(AiSummaryProvider):
             elapsed_ms = int((time.monotonic() - start) * 1000)
             response.raise_for_status()
             data = response.json()
+            if "error" in data:
+                raise ValueError(f"AI API error: {data['error']}")
+            choices = data.get("choices") or []
+            if not choices or not choices[0].get("message", {}).get("content"):
+                raise ValueError(f"Unexpected AI API response structure: {data}")
             usage = data.get("usage", {})
-            summary = data["choices"][0]["message"]["content"]
+            summary = choices[0]["message"]["content"]
             confirmed_model = data.get("model", model)
             input_tokens = usage.get("prompt_tokens")
             output_tokens = usage.get("completion_tokens")
@@ -110,10 +113,8 @@ class AnthropicProvider(AiSummaryProvider):
         logger.debug(
             "Anthropic request",
             model=model,
-            system_prompt=system_prompt,
             content_length=len(truncated),
             content_truncated=len(page_content or "") > MAX_CONTENT_LENGTH,
-            page_content=truncated,
         )
 
         start = time.monotonic()
@@ -140,8 +141,13 @@ class AnthropicProvider(AiSummaryProvider):
             elapsed_ms = int((time.monotonic() - start) * 1000)
             response.raise_for_status()
             data = response.json()
+            if "error" in data:
+                raise ValueError(f"AI API error: {data['error']}")
+            content_blocks = data.get("content") or []
+            if not content_blocks or not content_blocks[0].get("text"):
+                raise ValueError(f"Unexpected AI API response structure: {data}")
             usage = data.get("usage", {})
-            summary = data["content"][0]["text"]
+            summary = content_blocks[0]["text"]
             confirmed_model = data.get("model", model)
             input_tokens = usage.get("input_tokens")
             output_tokens = usage.get("output_tokens")
