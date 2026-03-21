@@ -42,7 +42,7 @@
         <protobuf.version>4.29.3</protobuf.version>
         <protobuf-maven-plugin.version>2.9.0</protobuf-maven-plugin.version>
         <!-- Latest jOOQ -->
-        <jooq.version>3.19.14</jooq.version>
+        <jooq.version>3.19.30</jooq.version>
         <!-- Other dependencies -->
         <postgresql.version>42.7.4</postgresql.version>
         <lombok.version>1.18.44</lombok.version>
