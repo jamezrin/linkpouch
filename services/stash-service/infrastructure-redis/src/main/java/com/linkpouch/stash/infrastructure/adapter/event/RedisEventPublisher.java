@@ -10,14 +10,13 @@ import org.springframework.data.redis.connection.stream.RecordId;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-
 import com.linkpouch.stash.domain.event.LinkAddedEvent;
 import com.linkpouch.stash.domain.event.ScreenshotRefreshRequestedEvent;
 import com.linkpouch.stash.domain.port.outbound.EventPublisher;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import tools.jackson.databind.ObjectMapper;
 
 /**
  * Redis Streams implementation of EventPublisher. Publishes domain events to Redis Streams for

@@ -17,9 +17,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-
 import com.linkpouch.stash.api.controller.AccountAiSettingsApi;
 import com.linkpouch.stash.api.model.AiModelInfoDTO;
 import com.linkpouch.stash.api.model.AiModelsResponseDTO;
@@ -37,6 +34,8 @@ import com.linkpouch.stash.infrastructure.adapter.web.interceptor.AccountJwtInte
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 
 @Slf4j
 @RestController
@@ -175,7 +174,8 @@ public class AccountAiSettingsController implements AccountAiSettingsApi {
         final JsonNode root = objectMapper.readTree(response.body());
         final JsonNode data = root.get("data");
         if (data == null || !data.isArray()) return List.of();
-        return data.findValuesAsText("id").stream()
+        return data.findValues("id").stream()
+                .map(JsonNode::asText)
                 .filter(id -> id.startsWith("gpt-"))
                 .sorted()
                 .map(AiModelInfoDTO::new)
@@ -225,7 +225,10 @@ public class AccountAiSettingsController implements AccountAiSettingsApi {
         final JsonNode root = objectMapper.readTree(response.body());
         final JsonNode data = root.get("data");
         if (data == null || !data.isArray()) return List.of();
-        return data.findValuesAsText("id").stream().map(AiModelInfoDTO::new).toList();
+        return data.findValues("id").stream()
+                .map(JsonNode::asText)
+                .map(AiModelInfoDTO::new)
+                .toList();
     }
 
     private AiSettingsResponseDTO toDto(final AccountAiSettings settings) {

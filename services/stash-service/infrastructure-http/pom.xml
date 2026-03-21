@@ -25,7 +25,7 @@
         <!-- Spring Web for RestClient -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-web</artifactId>
+            <artifactId>spring-boot-starter-webmvc</artifactId>
         </dependency>
 
         <!-- Apache HttpClient 5 for RestClient request factory -->
