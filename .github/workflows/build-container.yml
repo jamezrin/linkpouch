@@ -68,7 +68,7 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha,scope=${{ inputs.service-name }}-amd64
-          cache-to: type=gha,mode=max,scope=${{ inputs.service-name }}-amd64
+          cache-to: type=gha,mode=min,scope=${{ inputs.service-name }}-amd64
           build-args: ${{ inputs.build-args }}
 
   build-arm64:
@@ -108,7 +108,7 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha,scope=${{ inputs.service-name }}-arm64
-          cache-to: type=gha,mode=max,scope=${{ inputs.service-name }}-arm64
+          cache-to: type=gha,mode=min,scope=${{ inputs.service-name }}-arm64
           build-args: ${{ inputs.build-args }}
 
   merge-manifests:
