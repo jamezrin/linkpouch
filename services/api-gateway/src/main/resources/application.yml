@@ -3,132 +3,134 @@ spring:
     name: api-gateway
   cloud:
     gateway:
-      default-filters:
-        - DedupeResponseHeader=Access-Control-Allow-Credentials Access-Control-Allow-Origin
-      globalcors:
-        cors-configurations:
-          '[/**]':
-            allowedOrigins:
-              - "https://linkpou.ch"
-              - "http://localhost:3000"
-              - "http://localhost:5173"
-            allowedMethods:
-              - GET
-              - POST
-              - PUT
-              - DELETE
-              - OPTIONS
-              - PATCH
-            allowedHeaders:
-              - "Content-Type"
-              - "Authorization"
-              - "X-Stash-Signature"
-              - "Last-Event-ID"
-            allowCredentials: false
-      routes:
-        # Stash Service - OAuth2 authorization redirect
-        - id: stash-service-oauth2-authorize
-          uri: ${STASH_SERVICE_URL:http://stash-service:8080}
-          predicates:
-            - Path=/oauth2/**
-          filters:
-            - StripPrefix=0
+      server:
+        webflux:
+          default-filters:
+            - DedupeResponseHeader=Access-Control-Allow-Credentials Access-Control-Allow-Origin
+          globalcors:
+            cors-configurations:
+              '[/**]':
+                allowedOrigins:
+                  - "https://linkpou.ch"
+                  - "http://localhost:3000"
+                  - "http://localhost:5173"
+                allowedMethods:
+                  - GET
+                  - POST
+                  - PUT
+                  - DELETE
+                  - OPTIONS
+                  - PATCH
+                allowedHeaders:
+                  - "Content-Type"
+                  - "Authorization"
+                  - "X-Stash-Signature"
+                  - "Last-Event-ID"
+                allowCredentials: false
+          routes:
+            # Stash Service - OAuth2 authorization redirect
+            - id: stash-service-oauth2-authorize
+              uri: ${STASH_SERVICE_URL:http://stash-service:8080}
+              predicates:
+                - Path=/oauth2/**
+              filters:
+                - StripPrefix=0
 
-        # Stash Service - OAuth2 callback (Spring Security expects the full path)
-        - id: stash-service-oauth2-callback
-          uri: ${STASH_SERVICE_URL:http://stash-service:8080}
-          predicates:
-            - Path=/login/oauth2/code/**
-          filters:
-            - StripPrefix=0
+            # Stash Service - OAuth2 callback (Spring Security expects the full path)
+            - id: stash-service-oauth2-callback
+              uri: ${STASH_SERVICE_URL:http://stash-service:8080}
+              predicates:
+                - Path=/login/oauth2/code/**
+              filters:
+                - StripPrefix=0
 
-        # Stash Service - account API (/api/account/** → /account/**)
-        - id: stash-service-account
-          uri: ${STASH_SERVICE_URL:http://stash-service:8080}
-          predicates:
-            - Path=/api/account/**
-          filters:
-            - StripPrefix=1
+            # Stash Service - account API (/api/account/** → /account/**)
+            - id: stash-service-account
+              uri: ${STASH_SERVICE_URL:http://stash-service:8080}
+              predicates:
+                - Path=/api/account/**
+              filters:
+                - StripPrefix=1
 
-        # Block internal ai-credentials endpoint from public access
-        # Only callable by the indexer service from within the cluster
-        - id: block-ai-credentials
-          uri: no://op
-          predicates:
-            - Path=/api/stashes/*/ai-credentials
-            - Method=GET
-          filters:
-            - SetStatus=403
+            # Block internal ai-credentials endpoint from public access
+            # Only callable by the indexer service from within the cluster
+            - id: block-ai-credentials
+              uri: no://op
+              predicates:
+                - Path=/api/stashes/*/ai-credentials
+                - Method=GET
+              filters:
+                - SetStatus=403
 
-        # Stash Service - stash routes
-        - id: stash-service-stashes
-          uri: ${STASH_SERVICE_URL:http://stash-service:8080}
-          predicates:
-            - Path=/api/stashes/**
-          filters:
-            - StripPrefix=1
+            # Stash Service - stash routes
+            - id: stash-service-stashes
+              uri: ${STASH_SERVICE_URL:http://stash-service:8080}
+              predicates:
+                - Path=/api/stashes/**
+              filters:
+                - StripPrefix=1
 
-        # Block internal indexer callback endpoints from public access
-        # These are only callable by the indexer service from within the cluster
-        - id: block-indexer-metadata-callback
-          uri: no://op
-          predicates:
-            - Path=/api/links/*/metadata
-            - Method=PATCH
-          filters:
-            - SetStatus=403
+            # Block internal indexer callback endpoints from public access
+            # These are only callable by the indexer service from within the cluster
+            - id: block-indexer-metadata-callback
+              uri: no://op
+              predicates:
+                - Path=/api/links/*/metadata
+                - Method=PATCH
+              filters:
+                - SetStatus=403
 
-        - id: block-indexer-screenshot-callback
-          uri: no://op
-          predicates:
-            - Path=/api/links/*/screenshot
-            - Method=PATCH
-          filters:
-            - SetStatus=403
+            - id: block-indexer-screenshot-callback
+              uri: no://op
+              predicates:
+                - Path=/api/links/*/screenshot
+                - Method=PATCH
+              filters:
+                - SetStatus=403
 
-        - id: block-indexer-status-callback
-          uri: no://op
-          predicates:
-            - Path=/api/links/*/status
-            - Method=PATCH
-          filters:
-            - SetStatus=403
+            - id: block-indexer-status-callback
+              uri: no://op
+              predicates:
+                - Path=/api/links/*/status
+                - Method=PATCH
+              filters:
+                - SetStatus=403
 
-        # Stash Service - remaining link routes
-        - id: stash-service-links
-          uri: ${STASH_SERVICE_URL:http://stash-service:8080}
-          predicates:
-            - Path=/api/links/**
-          filters:
-            - StripPrefix=1
+            # Stash Service - remaining link routes
+            - id: stash-service-links
+              uri: ${STASH_SERVICE_URL:http://stash-service:8080}
+              predicates:
+                - Path=/api/links/**
+              filters:
+                - StripPrefix=1
 
-        # Stash Service - embeddability check
-        - id: stash-service-embeddable-check
-          uri: ${STASH_SERVICE_URL:http://stash-service:8080}
-          predicates:
-            - Path=/api/embeddable-check
-          filters:
-            - StripPrefix=1
+            # Stash Service - embeddability check
+            - id: stash-service-embeddable-check
+              uri: ${STASH_SERVICE_URL:http://stash-service:8080}
+              predicates:
+                - Path=/api/embeddable-check
+              filters:
+                - StripPrefix=1
 
-        # Wayback Machine CDX API proxy (avoids CORS restrictions)
-        - id: wayback-cdx-proxy
-          uri: https://web.archive.org
-          metadata:
-            response-timeout: 30000
-            connect-timeout: 3000
-          predicates:
-            - Path=/api/wayback/cdx
-          filters:
-            - RewritePath=/api/wayback/cdx, /cdx/search/cdx
-            - SetRequestHeader=Host, web.archive.org
+            # Wayback Machine CDX API proxy (avoids CORS restrictions)
+            - id: wayback-cdx-proxy
+              uri: https://web.archive.org
+              metadata:
+                response-timeout: 30000
+                connect-timeout: 3000
+              predicates:
+                - Path=/api/wayback/cdx
+              filters:
+                - RewritePath=/api/wayback/cdx, /cdx/search/cdx
+                - SetRequestHeader=Host, web.archive.org
 
-        # Health check route
-        - id: health
-          uri: ${STASH_SERVICE_URL:http://stash-service:8080}
-          predicates:
-            - Path=/health
-          filters:
-            - StripPrefix=0
+            # Health check route
+            - id: health
+              uri: ${STASH_SERVICE_URL:http://stash-service:8080}
+              predicates:
+                - Path=/health
+              filters:
+                - StripPrefix=0
 
 server:
   port: 8080
