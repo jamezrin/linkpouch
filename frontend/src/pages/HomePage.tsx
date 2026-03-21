@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useMutation } from '@tanstack/react-query';
 import { stashApi } from '../services/api';
 import { useAccount } from '../contexts/account';
@@ -1028,6 +1028,14 @@ export default function HomePage() {
             <span className="text-sm font-semibold text-slate-500" style={DISPLAY}>linkpouch</span>
           </div>
           <p className="text-slate-700 text-xs mb-5" style={MONO}>Save links. Find them fast.</p>
+          <div className="flex items-center justify-center gap-4 mb-5">
+            <Link to="/terms" className="text-slate-600 hover:text-slate-400 text-xs transition-colors" style={MONO}>
+              Terms of Service
+            </Link>
+            <Link to="/privacy" className="text-slate-600 hover:text-slate-400 text-xs transition-colors" style={MONO}>
+              Privacy Policy
+            </Link>
+          </div>
           <div className="flex items-center justify-center gap-4">
             <a
               href="https://x.com/jamezrin"
