@@ -93,4 +93,17 @@ public interface ValueObjectMapper {
     default String stashVisibilityToString(StashVisibility visibility) {
         return visibility != null ? visibility.name() : StashVisibility.SHARED.name();
     }
+
+    default AiSummaryStatus stringToAiSummaryStatus(String value) {
+        if (value == null) return AiSummaryStatus.SKIPPED;
+        try {
+            return AiSummaryStatus.valueOf(value);
+        } catch (IllegalArgumentException e) {
+            return AiSummaryStatus.SKIPPED;
+        }
+    }
+
+    default String aiSummaryStatusToString(AiSummaryStatus status) {
+        return status != null ? status.name() : AiSummaryStatus.SKIPPED.name();
+    }
 }

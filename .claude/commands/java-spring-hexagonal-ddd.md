@@ -223,34 +223,62 @@ public interface SaveOrderPort {
 - Location: `infrastructure-web/`, `infrastructure-messaging/`, etc.
 - Depends on use case interfaces from `domain` only — never on use case impls or `application`.
 - Responsible for framework-specific concerns (HTTP, serialization, validation annotations).
-- Maps incoming requests to domain commands/queries using a dedicated MapStruct mapper. The mapper is the bridge that touches both the DTO and the domain type — the DTO class itself must never import domain types directly.
+- **HTTP controllers implement OpenAPI-generated interfaces** (from the `api-spec` module) — never write `@RequestMapping`/`@PostMapping` etc. by hand. The generated interface owns the routing, parameter binding, and response type.
+- Maps incoming requests to domain commands/queries using MapStruct mappers. Mappers are the bridge that touches both the DTO and the domain type — the DTO class itself must never import domain types directly.
+- **Mapper structure**: one shared mapper for cross-cutting type conversions (dates, value objects ↔ primitives/strings, enums) plus one focused mapper per aggregate/domain concept. Each aggregate mapper composes the shared one via `uses`. Controllers inject only the mapper for their aggregate.
 
 ```java
+// The controller implements a generated interface — never write @PostMapping by hand.
+// Routing, parameter binding, and DTO types all come from the OpenAPI-generated interface.
 @RestController
 @RequiredArgsConstructor
-public class OrderController {
+public class OrderController implements OrdersApi {
 
     private final CreateOrderUseCase createOrderUseCase;
-    private final OrderRequestMapper mapper;
+    private final OrderDtoMapper mapper;  // only the mapper for this aggregate
 
-    @PostMapping("/orders")
-    ResponseEntity<CreateOrderResponse> create(@RequestBody @Valid CreateOrderRequest req) {
+    @Override
+    public ResponseEntity<OrderResponseDTO> createOrder(CreateOrderRequestDTO req) {
         OrderId id = createOrderUseCase.execute(mapper.mapIn(req));
-        return ResponseEntity.status(HttpStatus.CREATED).body(new CreateOrderResponse(id.value()));
+        return ResponseEntity.status(HttpStatus.CREATED).body(new OrderResponseDTO(id.value()));
     }
 }
 ```
 
 ```java
-// Mapper lives in infrastructure-web.
-// The DTO (CreateOrderRequest) knows nothing about domain types.
-// The mapper is the only class in this module that imports domain types.
+// Shared mapper for type conversions that cut across all aggregates.
+// Handles value object ↔ primitive/String, LocalDateTime ↔ OffsetDateTime, etc.
+// No aggregate-level mappings live here.
 @Mapper(componentModel = "spring")
-public interface OrderRequestMapper {
+public interface WebValueObjectMapper {
 
-    @Mapping(target = "productId", source = "productId")
-    @Mapping(target = "quantity", source = "quantity")
-    CreateOrderCommand mapIn(CreateOrderRequest req);
+    default OffsetDateTime toOffsetDateTime(LocalDateTime ldt) {
+        return ldt == null ? null : ldt.atOffset(ZoneOffset.UTC);
+    }
+
+    default String orderStatusToString(OrderStatus status) {
+        return status != null ? status.name() : null;
+    }
+}
+```
+
+```java
+// Aggregate-level mapper — composes the shared mapper.
+// Lives in infrastructure-web. It is the only class in this module that imports domain types.
+// DTOs are OpenAPI-generated — they know nothing about domain types.
+@Mapper(componentModel = "spring", uses = WebValueObjectMapper.class, config = WebMappingConfig.class)
+public interface OrderDtoMapper {
+
+    default CreateOrderCommand mapIn(CreateOrderRequestDTO dto) {
+        return new CreateOrderCommand(dto.getProductId(), dto.getQuantity());
+    }
+
+    @Mapping(target = "id", source = "id")
+    @Mapping(target = "status", source = "status")
+    @Mapping(target = "createdAt", source = "createdAt")
+    OrderResponseDTO mapOut(Order order);
+
+    List<OrderResponseDTO> mapOut(List<Order> orders);
 }
 ```
 
@@ -682,18 +710,20 @@ public class PersistenceConfiguration {
 
 ### OpenAPI
 
-Define the API contract in `api-spec/` (or within `infrastructure-web/`) as YAML files. Generate controller interfaces and request/response DTOs at build time using the OpenAPI Generator Maven/Gradle plugin.
+Define the API contract in a dedicated `api-spec/` Maven/Gradle module as YAML files. Generate controller interfaces and request/response DTOs at build time using the OpenAPI Generator plugin.
 
-- Generated interfaces are implemented by your `@RestController` classes in `infrastructure-web/`.
-- Never commit generated sources.
-- DTOs are generated into `infrastructure-web/` only — they never leak into `domain` or `application`.
+- `api-spec/` generates the Java interfaces and DTOs; `infrastructure-web/` depends on `api-spec/`.
+- `@RestController` classes implement the generated interfaces — never write routing annotations (`@PostMapping`, etc.) by hand.
+- Generated sources live in `target/` — never commit them.
+- DTOs are generated into `api-spec/` and used only by `infrastructure-web/` — they never leak into `domain` or `application`.
 
 ### jOOQ
 
-jOOQ classes are generated from the live database schema and used exclusively in the read-side output adapters inside `infrastructure-postgres/` (or a dedicated `infrastructure-jooq/` module).
+jOOQ classes are generated from the live database schema and used exclusively in the read-side output adapters inside the persistence infrastructure module.
 
-- Never commit generated jOOQ classes.
-- Regenerate after every schema migration: `mvn jooq-codegen:generate`.
+- jOOQ sources may be stored in `src/main/generated/` (tracked) or `target/generated-sources/` (not tracked) depending on project convention — check the build configuration before deciding.
+- Regenerate after every schema migration.
+- The build requires a live database with the schema applied (jOOQ introspects it at codegen time).
 - The build fails without generated classes — this is intentional and ensures schema drift is caught immediately.
 
 ## Refactoring Guidelines

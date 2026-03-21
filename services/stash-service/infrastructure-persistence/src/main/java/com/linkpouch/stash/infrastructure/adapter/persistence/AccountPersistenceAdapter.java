@@ -111,6 +111,11 @@ public class AccountPersistenceAdapter implements AccountRepository {
     }
 
     @Override
+    public List<UUID> findAccountIdsByStashId(final UUID stashId) {
+        return accountStashJpaRepository.findAccountIdsByStashId(stashId);
+    }
+
+    @Override
     public PagedResult<ClaimedStashSummary> listClaimedStashes(final ListClaimedStashesCommand command) {
         final var accountStashes = DSL.table(DSL.name("account_stashes"));
         final var accountIdField = DSL.field(DSL.name("account_stashes", "account_id"), UUID.class);

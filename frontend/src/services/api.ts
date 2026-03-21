@@ -15,6 +15,7 @@ import {
   MoveFolderRequest,
   MoveLinkToFolderRequest,
 } from '../types';
+import { AiSettingsResponse, AiModelsResponse, UpsertAiSettingsRequest, AiProvider } from '../types/aiSettings';
 
 export const api = axios.create({
   baseURL: '/api',
@@ -165,13 +166,18 @@ export const linkApi = {
       headers: bearerHeader(accessToken),
     }),
 
+  reindexLink: (stashId: string, accessToken: string, linkId: string) =>
+    api.post(`/stashes/${stashId}/links/${linkId}/reindex`, null, {
+      headers: bearerHeader(accessToken),
+    }),
+
   batchDeleteLinks: (stashId: string, accessToken: string, linkIds: string[]) =>
     api.post(`/stashes/${stashId}/links/batch-delete`, { linkIds }, {
       headers: bearerHeader(accessToken),
     }),
 
-  putBatchLinkScreenshot: (stashId: string, accessToken: string, linkIds: string[]) =>
-    api.put(`/stashes/${stashId}/links/batch-screenshot`, { linkIds }, {
+  batchReindexLinks: (stashId: string, accessToken: string, linkIds: string[]) =>
+    api.post(`/stashes/${stashId}/links/batch-reindex`, { linkIds }, {
       headers: bearerHeader(accessToken),
     }),
 
@@ -230,4 +236,25 @@ export const folderApi = {
 export const utilsApi = {
   checkEmbeddable: (url: string) =>
     api.get<EmbeddabilityCheckResponse>('/embeddable-check', { params: { url } }),
+};
+
+export const accountApi = {
+  getAiSettings: (accountJwt: string) =>
+    api.get<AiSettingsResponse>('/account/ai-settings', {
+      headers: { Authorization: `Bearer ${accountJwt}` },
+    }),
+
+  upsertAiSettings: (accountJwt: string, data: UpsertAiSettingsRequest) =>
+    api.put<AiSettingsResponse>('/account/ai-settings', data, {
+      headers: { Authorization: `Bearer ${accountJwt}` },
+    }),
+
+  fetchAiModels: (accountJwt: string, provider: AiProvider, apiKey?: string | null) =>
+    api.get<AiModelsResponse>('/account/ai-settings/models', {
+      headers: {
+        Authorization: `Bearer ${accountJwt}`,
+        ...(apiKey ? { 'X-Ai-Api-Key': apiKey } : {}),
+      },
+      params: { provider },
+    }),
 };

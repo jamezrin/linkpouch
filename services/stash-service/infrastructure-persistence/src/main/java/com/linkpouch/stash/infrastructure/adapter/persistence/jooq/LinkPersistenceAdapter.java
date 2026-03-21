@@ -16,6 +16,7 @@ import org.jooq.Query;
 import org.jooq.impl.DSL;
 import org.springframework.stereotype.Component;
 
+import com.linkpouch.stash.domain.model.AiSummaryStatus;
 import com.linkpouch.stash.domain.model.Link;
 import com.linkpouch.stash.domain.model.LinkDescription;
 import com.linkpouch.stash.domain.model.LinkStatus;
@@ -227,7 +228,13 @@ public class LinkPersistenceAdapter implements LinkRepository {
                         : null,
                 pos != null ? pos : 0,
                 record.get(LINKS.FOLDER_ID),
-                parseLinkStatus(record.get("status", String.class)));
+                parseLinkStatus(record.get("status", String.class)),
+                record.get("ai_summary", String.class),
+                parseAiSummaryStatus(record.get("ai_summary_status", String.class)),
+                record.get("ai_summary_model", String.class),
+                record.get("ai_summary_input_tokens", Integer.class),
+                record.get("ai_summary_output_tokens", Integer.class),
+                record.get("ai_summary_elapsed_ms", Integer.class));
     }
 
     private static LinkStatus parseLinkStatus(final String value) {
@@ -236,6 +243,15 @@ public class LinkPersistenceAdapter implements LinkRepository {
             return LinkStatus.valueOf(value);
         } catch (IllegalArgumentException e) {
             return LinkStatus.PENDING;
+        }
+    }
+
+    private static AiSummaryStatus parseAiSummaryStatus(final String value) {
+        if (value == null) return AiSummaryStatus.SKIPPED;
+        try {
+            return AiSummaryStatus.valueOf(value);
+        } catch (IllegalArgumentException e) {
+            return AiSummaryStatus.SKIPPED;
         }
     }
 }

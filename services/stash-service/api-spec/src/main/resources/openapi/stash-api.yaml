@@ -276,6 +276,35 @@ components:
             - INDEXED
             - FAILED
           description: Indexing lifecycle status of the link
+        aiSummary:
+          type: string
+          nullable: true
+          description: AI-generated markdown summary of the page content
+        aiSummaryStatus:
+          type: string
+          enum:
+            - PENDING
+            - GENERATING
+            - COMPLETED
+            - FAILED
+            - SKIPPED
+          description: AI summarization lifecycle status
+        aiSummaryModel:
+          type: string
+          nullable: true
+          description: Model identifier used to generate the summary
+        aiSummaryInputTokens:
+          type: integer
+          nullable: true
+          description: Number of input (prompt) tokens consumed
+        aiSummaryOutputTokens:
+          type: integer
+          nullable: true
+          description: Number of output (completion) tokens generated
+        aiSummaryElapsedMs:
+          type: integer
+          nullable: true
+          description: Wall-clock time in milliseconds for the AI generation call
 
     PagedLinkResponse:
       type: object
@@ -292,41 +321,6 @@ components:
           type: integer
         number:
           type: integer
-
-    UpdateLinkMetadataRequest:
-      type: object
-      properties:
-        title:
-          type: string
-        description:
-          type: string
-        faviconUrl:
-          type: string
-        pageContent:
-          type: string
-        finalUrl:
-          type: string
-
-    UpdateLinkStatusRequest:
-      type: object
-      required:
-        - status
-      properties:
-        status:
-          type: string
-          enum:
-            - PENDING
-            - INDEXED
-            - FAILED
-          description: New indexing status for the link
-
-    UpdateLinkScreenshotRequest:
-      type: object
-      required:
-        - screenshotKey
-      properties:
-        screenshotKey:
-          type: string
 
     ReorderLinksRequest:
       type: object
@@ -365,7 +359,7 @@ components:
           minItems: 1
           maxItems: 100
 
-    PutBatchLinkScreenshotRequest:
+    BatchReindexLinksRequest:
       type: object
       required: [linkIds]
       properties:
@@ -470,6 +464,91 @@ components:
             - FULL
             - READ_ONLY
 
+    AiSettingsResponse:
+      type: object
+      properties:
+        provider:
+          type: string
+          enum:
+            - NONE
+            - OPENROUTER_INCLUDED
+            - OPENROUTER
+            - OPENAI
+            - ANTHROPIC
+            - OPENCODE
+        model:
+          type: string
+          nullable: true
+        hasApiKey:
+          type: boolean
+          description: True when an encrypted API key is stored (never returns the raw key)
+        customPrompt:
+          type: string
+          nullable: true
+          description: Custom system prompt to use instead of the default
+
+    UpsertAiSettingsRequest:
+      type: object
+      required:
+        - provider
+      properties:
+        provider:
+          type: string
+          enum:
+            - NONE
+            - OPENROUTER_INCLUDED
+            - OPENROUTER
+            - OPENAI
+            - ANTHROPIC
+            - OPENCODE
+        apiKey:
+          type: string
+          nullable: true
+          description: API key for the provider (null preserves an existing key; omit for OPENROUTER_INCLUDED)
+        model:
+          type: string
+          nullable: true
+        customPrompt:
+          type: string
+          nullable: true
+          description: Custom system prompt to use instead of the default
+
+    AiModelInfo:
+      type: object
+      required: [id]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+          nullable: true
+        description:
+          type: string
+          nullable: true
+        contextLength:
+          type: integer
+          nullable: true
+          description: Maximum context window in tokens
+        pricingPrompt:
+          type: number
+          format: double
+          nullable: true
+          description: Cost per input token in USD (multiply × 1,000,000 for display)
+        pricingCompletion:
+          type: number
+          format: double
+          nullable: true
+          description: Cost per output token in USD
+
+    AiModelsResponse:
+      type: object
+      properties:
+        models:
+          type: array
+          items:
+            $ref: '#/components/schemas/AiModelInfo'
+          description: Available models for the given provider
+
     EmbeddabilityCheckResponse:
       type: object
       properties:
@@ -499,6 +578,18 @@ components:
           type: string
           format: date-time
           description: When the stash signature was last regenerated (only set when errorCode is SIGNATURE_REGENERATED)
+
+    SseTicketResponse:
+      type: object
+      required:
+        - ticket
+        - expiresIn
+      properties:
+        ticket:
+          type: string
+        expiresIn:
+          type: integer
+          description: Ticket lifetime in seconds
 
 paths:
   /stashes:
@@ -801,6 +892,39 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
+  /stashes/{stashId}/sse-ticket:
+    parameters:
+      - name: stashId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    post:
+      summary: Issue a short-lived SSE ticket for the stash
+      description: >
+        Clients exchange their Bearer stash-access token for a short-lived ticket before
+        opening an SSE connection. The ticket is passed as a query parameter so that the
+        Bearer token never appears in server access logs.
+      operationId: issueSseTicket
+      tags:
+        - Stashes
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Ticket issued
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SseTicketResponse'
+        '401':
+          description: Invalid or expired access token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
   /stashes/{stashId}/links:
     parameters:
       - name: stashId
@@ -1024,6 +1148,39 @@ paths:
         schema:
           type: string
           format: uuid
+    get:
+      summary: Fetch screenshot image for a link
+      operationId: getLinkScreenshot
+      tags:
+        - Links
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Screenshot PNG image
+          content:
+            image/png:
+              schema:
+                type: string
+                format: binary
+        '403':
+          description: Link does not belong to this stash
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Link or screenshot not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '502':
+          description: Storage error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
     put:
       summary: Request screenshot refresh for link
       operationId: putLinkScreenshot
@@ -1034,6 +1191,49 @@ paths:
       responses:
         '202':
           description: Screenshot refresh requested
+        '401':
+          description: Invalid or expired access token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Link does not belong to this stash
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Link not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /stashes/{stashId}/links/{linkId}/reindex:
+    parameters:
+      - name: stashId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: linkId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    post:
+      summary: Trigger full reindex (screenshot + AI summary) for a single link
+      operationId: reindexLink
+      tags:
+        - Links
+      security:
+        - bearerAuth: []
+      responses:
+        '202':
+          description: Reindex triggered
         '401':
           description: Invalid or expired access token
           content:
@@ -1096,7 +1296,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
-  /stashes/{stashId}/links/batch-screenshot:
+  /stashes/{stashId}/links/batch-reindex:
     parameters:
       - name: stashId
         in: path
@@ -1104,9 +1304,9 @@ paths:
         schema:
           type: string
           format: uuid
-    put:
-      summary: Request screenshot refresh for multiple links in batch
-      operationId: putBatchLinkScreenshot
+    post:
+      summary: Trigger full reindex (screenshot + AI summary) for multiple links
+      operationId: batchReindexLinks
       tags:
         - Links
       security:
@@ -1116,10 +1316,10 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/PutBatchLinkScreenshotRequest'
+              $ref: '#/components/schemas/BatchReindexLinksRequest'
       responses:
         '202':
-          description: Screenshot refresh requested
+          description: Reindex triggered
         '401':
           description: Invalid or expired access token
           content:
@@ -1134,140 +1334,6 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
         '404':
           description: Stash not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-
-  /links/{linkId}/metadata:
-    parameters:
-      - name: linkId
-        in: path
-        required: true
-        schema:
-          type: string
-          format: uuid
-      - name: X-Indexer-Secret
-        in: header
-        required: true
-        schema:
-          type: string
-        description: Shared secret for internal indexer callback authentication
-
-    patch:
-      summary: Update link metadata (internal indexer callback)
-      operationId: updateLinkMetadata
-      tags:
-        - Links
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/UpdateLinkMetadataRequest'
-      responses:
-        '200':
-          description: Link metadata updated
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/LinkResponse'
-        '401':
-          description: Invalid or missing indexer secret
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '404':
-          description: Link not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-
-  /links/{linkId}/status:
-    parameters:
-      - name: linkId
-        in: path
-        required: true
-        schema:
-          type: string
-          format: uuid
-      - name: X-Indexer-Secret
-        in: header
-        required: true
-        schema:
-          type: string
-        description: Shared secret for internal indexer callback authentication
-
-    patch:
-      summary: Update link indexing status (internal indexer callback)
-      operationId: updateLinkStatus
-      tags:
-        - Links
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/UpdateLinkStatusRequest'
-      responses:
-        '204':
-          description: Link status updated
-        '401':
-          description: Invalid or missing indexer secret
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '404':
-          description: Link not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-
-  /links/{linkId}/screenshot:
-    parameters:
-      - name: linkId
-        in: path
-        required: true
-        schema:
-          type: string
-          format: uuid
-      - name: X-Indexer-Secret
-        in: header
-        required: true
-        schema:
-          type: string
-        description: Shared secret for internal indexer callback authentication
-
-    patch:
-      summary: Update link screenshot key (internal indexer callback)
-      operationId: updateLinkScreenshot
-      tags:
-        - Links
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/UpdateLinkScreenshotRequest'
-      responses:
-        '200':
-          description: Link screenshot updated
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/LinkResponse'
-        '401':
-          description: Invalid or missing indexer secret
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '404':
-          description: Link not found
           content:
             application/json:
               schema:
@@ -1499,6 +1565,106 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
         '404':
           description: Stash not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /account/ai-settings:
+    get:
+      summary: Get AI settings for the authenticated account
+      operationId: getAiSettings
+      tags:
+        - AccountAiSettings
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: AI settings for the account
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AiSettingsResponse'
+        '404':
+          description: No AI settings have been configured yet
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Invalid or missing account token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    put:
+      summary: Create or update AI settings (use provider NONE to disable)
+      operationId: upsertAiSettings
+      tags:
+        - AccountAiSettings
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpsertAiSettingsRequest'
+      responses:
+        '200':
+          description: AI settings saved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AiSettingsResponse'
+        '401':
+          description: Invalid or missing account token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /account/ai-settings/models:
+    get:
+      summary: Fetch available model IDs for a given provider and API key (stateless, not persisted)
+      operationId: getAiModels
+      tags:
+        - AccountAiSettings
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: provider
+          in: query
+          required: true
+          schema:
+            type: string
+            enum:
+              - OPENROUTER_INCLUDED
+              - OPENROUTER
+              - OPENAI
+              - ANTHROPIC
+              - OPENCODE
+        - name: X-Ai-Api-Key
+          in: header
+          required: false
+          schema:
+            type: string
+          description: API key to use for fetching models (ignored for OPENROUTER_INCLUDED/OPENROUTER public list). Sent as a header to avoid leaking into server logs and browser history.
+      responses:
+        '200':
+          description: List of available model IDs
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AiModelsResponse'
+        '400':
+          description: Invalid provider or API key
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Invalid or missing account token
           content:
             application/json:
               schema:

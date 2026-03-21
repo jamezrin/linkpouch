@@ -6,6 +6,7 @@ from typing import Any
 from urllib.parse import urljoin, urlparse
 
 import structlog
+import trafilatura
 from playwright.async_api import async_playwright
 from tenacity import retry, retry_if_not_exception_type, stop_after_attempt, wait_exponential
 
@@ -121,10 +122,15 @@ class LinkScraper:
                         base = result["final_url"] or url
                         result["favicon_url"] = urljoin(base, favicon_href)
 
-                body_text = await page.evaluate("""() => {
-                    return document.body.innerText.substring(0, 100000);
-                }""")
-                result["page_content"] = body_text[: self.settings.max_content_length]
+                html = await page.content()
+                extracted = trafilatura.extract(html, include_comments=False, include_tables=True)
+                if extracted and len(extracted.strip()) > 200:
+                    result["page_content"] = extracted[: self.settings.max_content_length]
+                    logger.debug("Page content extracted via trafilatura", url=url, length=len(result["page_content"]))
+                else:
+                    body_text = await page.evaluate("() => document.body.innerText")
+                    result["page_content"] = body_text[: self.settings.max_content_length]
+                    logger.debug("Page content extracted via innerText fallback", url=url, length=len(result["page_content"]))
 
                 # Take screenshot on the same already-loaded page
                 screenshot_bytes = await page.screenshot(type="png", full_page=False)

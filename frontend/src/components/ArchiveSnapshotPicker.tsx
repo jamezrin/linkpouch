@@ -225,6 +225,16 @@ export function ArchiveSnapshotPicker({
     ? [...new Set(months.map((m) => m.year))].sort((a, b) => b - a)
     : [];
 
+  const currentYearIndex = selectedYear !== null ? years.indexOf(selectedYear) : -1;
+
+  const goToPrevYear = () => {
+    if (currentYearIndex < years.length - 1) setSelectedYear(years[currentYearIndex + 1]);
+  };
+
+  const goToNextYear = () => {
+    if (currentYearIndex > 0) setSelectedYear(years[currentYearIndex - 1]);
+  };
+
   // Auto-select the most recent year when data loads
   useEffect(() => {
     if (years.length > 0 && selectedYear === null) {
@@ -386,21 +396,27 @@ export function ArchiveSnapshotPicker({
 
           {!isLoading && !isError && months && months.length > 0 && selectedYear !== null && (
             <>
-              {/* Year tabs */}
-              <div className="flex gap-0.5 px-2 pt-2 pb-0 overflow-x-auto overflow-y-hidden">
-                {years.map((year) => (
-                  <button
-                    key={year}
-                    onClick={() => setSelectedYear(year)}
-                    className={`px-2.5 py-1 rounded-t-md text-[11px] font-semibold transition-colors flex-shrink-0 ${
-                      selectedYear === year
-                        ? 'bg-white dark:bg-slate-800 text-indigo-700 dark:text-indigo-300 border border-b-white dark:border-b-slate-800 border-slate-200 dark:border-slate-700 relative -mb-px z-10'
-                        : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-md'
-                    }`}
-                  >
-                    {year}
-                  </button>
-                ))}
+              {/* Year navigation */}
+              <div className="flex items-center justify-between px-2 pt-2 pb-0">
+                <button
+                  onClick={goToPrevYear}
+                  disabled={currentYearIndex >= years.length - 1}
+                  className="p-1 rounded text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                  aria-label="Previous year"
+                >
+                  ‹
+                </button>
+                <span className="text-[11px] font-semibold text-indigo-700 dark:text-indigo-300">
+                  {selectedYear}
+                </span>
+                <button
+                  onClick={goToNextYear}
+                  disabled={currentYearIndex <= 0}
+                  className="p-1 rounded text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                  aria-label="Next year"
+                >
+                  ›
+                </button>
               </div>
 
               {/* Month grid */}
