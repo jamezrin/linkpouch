@@ -1,4 +1,4 @@
-package com.linkpouch.stash.infrastructure.adapter.web;
+package com.linkpouch.stash.infrastructure.adapter.web.oauth2;
 
 import java.io.IOException;
 import java.util.Map;

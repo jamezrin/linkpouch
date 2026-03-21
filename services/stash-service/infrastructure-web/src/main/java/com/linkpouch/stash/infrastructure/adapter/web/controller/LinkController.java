@@ -1,4 +1,4 @@
-package com.linkpouch.stash.infrastructure.adapter.web;
+package com.linkpouch.stash.infrastructure.adapter.web.controller;
 
 import java.net.URI;
 import java.util.List;
@@ -7,7 +7,10 @@ import java.util.UUID;
 import jakarta.servlet.http.HttpServletRequest;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.ByteArrayResource;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -45,9 +48,13 @@ import com.linkpouch.stash.domain.port.in.UpdateLinkMetadataUseCase;
 import com.linkpouch.stash.domain.port.in.UpdateLinkScreenshotUseCase;
 import com.linkpouch.stash.domain.port.in.UpdateLinkStatusUseCase;
 import com.linkpouch.stash.domain.service.StashAccessClaims;
+import com.linkpouch.stash.infrastructure.adapter.web.interceptor.StashJwtInterceptor;
 import com.linkpouch.stash.infrastructure.adapter.web.mapper.ApiDtoMapper;
 
 import lombok.RequiredArgsConstructor;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.GetObjectRequest;
+import software.amazon.awssdk.services.s3.model.NoSuchKeyException;
 
 @RestController
 @RequiredArgsConstructor
@@ -68,11 +75,15 @@ public class LinkController implements LinksApi {
     private final FindLinkByIdQuery findLinkByIdQuery;
     private final ListLinksQuery listLinksQuery;
     private final FindStashByIdQuery findStashByIdQuery;
+    private final S3Client s3Client;
     private final ApiDtoMapper mapper;
     private final HttpServletRequest httpRequest;
 
     @Value("${linkpouch.base-url:http://localhost:8080}")
     private String baseUrl;
+
+    @Value("${linkpouch.s3.bucket}")
+    private String s3Bucket;
 
     @Value("${linkpouch.indexer.callback-secret}")
     private String indexerCallbackSecret;
@@ -336,6 +347,34 @@ public class LinkController implements LinksApi {
         if (!claims.stashClaimed()) return; // unclaimed → anyone can write
         if (claims.claimer()) return;
         throw new ForbiddenException("This pouch is read-only");
+    }
+
+    @Override
+    public ResponseEntity<org.springframework.core.io.Resource> getLinkScreenshot(
+            final UUID stashId, final UUID linkId) {
+        final var link =
+                findLinkByIdQuery.execute(linkId).orElseThrow(() -> new NotFoundException("Link not found: " + linkId));
+        if (!link.getStashId().equals(stashId)) {
+            throw new ForbiddenException("Link does not belong to this stash");
+        }
+        if (link.getScreenshotKey() == null) {
+            return ResponseEntity.notFound().build();
+        }
+        try {
+            final var request = GetObjectRequest.builder()
+                    .bucket(s3Bucket)
+                    .key(link.getScreenshotKey().getValue())
+                    .build();
+            final byte[] bytes = s3Client.getObjectAsBytes(request).asByteArray();
+            return ResponseEntity.ok()
+                    .contentType(MediaType.IMAGE_PNG)
+                    .header(HttpHeaders.CACHE_CONTROL, "public, max-age=86400")
+                    .body(new ByteArrayResource(bytes));
+        } catch (NoSuchKeyException e) {
+            return ResponseEntity.notFound().build();
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.BAD_GATEWAY).build();
+        }
     }
 
     private StashAccessClaims getRequiredClaims() {

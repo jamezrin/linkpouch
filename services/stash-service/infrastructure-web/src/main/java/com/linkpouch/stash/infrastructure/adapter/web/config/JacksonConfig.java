@@ -1,4 +1,4 @@
-package com.linkpouch.stash.infrastructure.adapter.web;
+package com.linkpouch.stash.infrastructure.adapter.web.config;
 
 import org.openapitools.jackson.nullable.JsonNullableModule;
 import org.springframework.context.annotation.Bean;

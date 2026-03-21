@@ -646,6 +646,27 @@ components:
           format: date-time
           description: When the stash signature was last regenerated (only set when errorCode is SIGNATURE_REGENERATED)
 
+    SseTicketResponse:
+      type: object
+      required:
+        - ticket
+        - expiresIn
+      properties:
+        ticket:
+          type: string
+        expiresIn:
+          type: integer
+          description: Ticket lifetime in seconds
+
+    AiCredentialsResponse:
+      type: object
+      required:
+        - apiKey
+      properties:
+        apiKey:
+          type: string
+          description: Decrypted AI API key for the account that owns this stash, or empty string if none configured
+
 paths:
   /stashes:
     post:
@@ -947,6 +968,39 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
+  /stashes/{stashId}/sse-ticket:
+    parameters:
+      - name: stashId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    post:
+      summary: Issue a short-lived SSE ticket for the stash
+      description: >
+        Clients exchange their Bearer stash-access token for a short-lived ticket before
+        opening an SSE connection. The ticket is passed as a query parameter so that the
+        Bearer token never appears in server access logs.
+      operationId: issueSseTicket
+      tags:
+        - Stashes
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Ticket issued
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SseTicketResponse'
+        '401':
+          description: Invalid or expired access token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
   /stashes/{stashId}/links:
     parameters:
       - name: stashId
@@ -1170,6 +1224,39 @@ paths:
         schema:
           type: string
           format: uuid
+    get:
+      summary: Fetch screenshot image for a link
+      operationId: getLinkScreenshot
+      tags:
+        - Links
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Screenshot PNG image
+          content:
+            image/png:
+              schema:
+                type: string
+                format: binary
+        '403':
+          description: Link does not belong to this stash
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Link or screenshot not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '502':
+          description: Storage error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
     put:
       summary: Request screenshot refresh for link
       operationId: putLinkScreenshot
@@ -1830,6 +1917,43 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
         '401':
           description: Invalid or missing account token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /stashes/{stashId}/ai-credentials:
+    parameters:
+      - name: stashId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    get:
+      summary: Internal — fetch decrypted AI API key for a stash's account (indexer only)
+      description: >
+        Called by the indexer at processing time to retrieve the AI API key for the account
+        that owns the given stash. Requires the shared X-Indexer-Secret header.
+        This endpoint is blocked at the API gateway and only reachable from within the cluster.
+      operationId: getAiCredentials
+      tags:
+        - AccountAiSettings
+      parameters:
+        - name: X-Indexer-Secret
+          in: header
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: AI credentials for the account
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AiCredentialsResponse'
+        '401':
+          description: Invalid indexer secret
           content:
             application/json:
               schema:

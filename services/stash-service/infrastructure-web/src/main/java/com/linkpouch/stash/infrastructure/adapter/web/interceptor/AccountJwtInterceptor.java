@@ -1,4 +1,4 @@
-package com.linkpouch.stash.infrastructure.adapter.web;
+package com.linkpouch.stash.infrastructure.adapter.web.interceptor;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;

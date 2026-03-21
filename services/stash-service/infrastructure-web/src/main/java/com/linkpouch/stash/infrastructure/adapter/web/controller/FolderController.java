@@ -1,4 +1,4 @@
-package com.linkpouch.stash.infrastructure.adapter.web;
+package com.linkpouch.stash.infrastructure.adapter.web.controller;
 
 import java.util.List;
 import java.util.UUID;
@@ -28,6 +28,7 @@ import com.linkpouch.stash.domain.port.in.MoveLinkToFolderUseCase;
 import com.linkpouch.stash.domain.port.in.RenameFolderCommand;
 import com.linkpouch.stash.domain.port.in.RenameFolderUseCase;
 import com.linkpouch.stash.domain.service.StashAccessClaims;
+import com.linkpouch.stash.infrastructure.adapter.web.interceptor.StashJwtInterceptor;
 import com.linkpouch.stash.infrastructure.adapter.web.mapper.ApiDtoMapper;
 
 import lombok.RequiredArgsConstructor;

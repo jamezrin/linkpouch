@@ -1,4 +1,4 @@
-package com.linkpouch.stash.infrastructure.adapter.web;
+package com.linkpouch.stash.infrastructure.adapter.web.handler;
 
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;

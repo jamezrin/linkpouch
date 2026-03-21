@@ -1,9 +1,12 @@
-package com.linkpouch.stash.infrastructure.adapter.web;
+package com.linkpouch.stash.infrastructure.adapter.web.config;
 
 import org.springframework.context.annotation.Configuration;
 import org.springframework.lang.NonNull;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+
+import com.linkpouch.stash.infrastructure.adapter.web.interceptor.AccountJwtInterceptor;
+import com.linkpouch.stash.infrastructure.adapter.web.interceptor.StashJwtInterceptor;
 
 import lombok.RequiredArgsConstructor;
 

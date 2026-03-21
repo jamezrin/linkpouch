@@ -1,4 +1,4 @@
-package com.linkpouch.stash.infrastructure.adapter.web;
+package com.linkpouch.stash.infrastructure.adapter.web.controller;
 
 import java.util.UUID;
 
@@ -20,11 +20,13 @@ import com.linkpouch.stash.domain.exception.UnauthorizedException;
 import com.linkpouch.stash.domain.model.Stash;
 import com.linkpouch.stash.domain.port.in.*;
 import com.linkpouch.stash.domain.port.outbound.AccountRepository;
+import com.linkpouch.stash.domain.port.outbound.SseTicketPort;
 import com.linkpouch.stash.domain.service.AccountClaims;
 import com.linkpouch.stash.domain.service.AccountTokenService;
 import com.linkpouch.stash.domain.service.StashAccessClaims;
 import com.linkpouch.stash.domain.service.StashSignatureService;
 import com.linkpouch.stash.domain.service.StashTokenService;
+import com.linkpouch.stash.infrastructure.adapter.web.interceptor.StashJwtInterceptor;
 import com.linkpouch.stash.infrastructure.adapter.web.mapper.ApiDtoMapper;
 
 import lombok.RequiredArgsConstructor;
@@ -49,6 +51,7 @@ public class StashController implements StashesApi {
     private final StashSignatureService signatureService;
     private final StashTokenService tokenService;
     private final ApiDtoMapper mapper;
+    private final SseTicketPort sseTicketPort;
     private final HttpServletRequest httpRequest;
 
     @Override
@@ -212,6 +215,12 @@ public class StashController implements StashesApi {
             throw new UnauthorizedException("Access token is missing");
         }
         return (StashAccessClaims) claims;
+    }
+
+    @Override
+    public ResponseEntity<SseTicketResponseDTO> issueSseTicket(final UUID stashId) {
+        final String ticket = sseTicketPort.issue(stashId);
+        return ResponseEntity.ok(new SseTicketResponseDTO(ticket, 900));
     }
 
     /**

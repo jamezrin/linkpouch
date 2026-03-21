@@ -1,4 +1,4 @@
-package com.linkpouch.stash.infrastructure.adapter.web;
+package com.linkpouch.stash.infrastructure.adapter.web.controller;
 
 import java.io.IOException;
 import java.net.URI;
@@ -7,7 +7,6 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -16,15 +15,13 @@ import jakarta.servlet.http.HttpServletRequest;
 import org.openapitools.jackson.nullable.JsonNullable;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import com.linkpouch.stash.api.controller.AccountAiSettingsApi;
+import com.linkpouch.stash.api.model.AiCredentialsResponseDTO;
 import com.linkpouch.stash.api.model.AiModelInfoDTO;
 import com.linkpouch.stash.api.model.AiModelsResponseDTO;
 import com.linkpouch.stash.api.model.AiSettingsResponseDTO;
@@ -38,6 +35,7 @@ import com.linkpouch.stash.domain.port.in.UpsertAccountAiSettingsCommand;
 import com.linkpouch.stash.domain.port.in.UpsertAccountAiSettingsUseCase;
 import com.linkpouch.stash.domain.port.outbound.AccountRepository;
 import com.linkpouch.stash.domain.service.AccountClaims;
+import com.linkpouch.stash.infrastructure.adapter.web.interceptor.AccountJwtInterceptor;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -99,25 +97,24 @@ public class AccountAiSettingsController implements AccountAiSettingsApi {
      * given stash. The API key is never stored in Redis Streams — the indexer fetches it here at
      * processing time over HTTPS, so it is not at rest in any unencrypted store.
      */
-    @GetMapping("/stashes/{stashId}/ai-credentials")
-    public ResponseEntity<Map<String, String>> getAiCredentials(
-            @PathVariable final UUID stashId, @RequestHeader("X-Indexer-Secret") final String xIndexerSecret) {
+    @Override
+    public ResponseEntity<AiCredentialsResponseDTO> getAiCredentials(final UUID stashId, final String xIndexerSecret) {
         if (!indexerCallbackSecret.equals(xIndexerSecret)) {
             throw new UnauthorizedException("Invalid indexer secret");
         }
         final Optional<UUID> accountIdOpt = accountRepository.findClaimerAccountId(stashId);
         if (accountIdOpt.isEmpty()) {
-            return ResponseEntity.ok(Map.of("apiKey", ""));
+            return ResponseEntity.ok(new AiCredentialsResponseDTO(""));
         }
         final Optional<AccountAiSettings> settingsOpt = getAccountAiSettingsQuery.execute(accountIdOpt.get());
         if (settingsOpt.isEmpty() || settingsOpt.get().getProvider() == AiProvider.NONE) {
-            return ResponseEntity.ok(Map.of("apiKey", ""));
+            return ResponseEntity.ok(new AiCredentialsResponseDTO(""));
         }
         final AccountAiSettings settings = settingsOpt.get();
         final String apiKey = settings.getProvider() == AiProvider.OPENROUTER_INCLUDED
                 ? includedApiKey
                 : (settings.getApiKey() != null ? settings.getApiKey() : "");
-        return ResponseEntity.ok(Map.of("apiKey", apiKey));
+        return ResponseEntity.ok(new AiCredentialsResponseDTO(apiKey));
     }
 
     private List<AiModelInfoDTO> fetchModels(final AiProvider provider, final String apiKey) {

@@ -1,4 +1,4 @@
-package com.linkpouch.stash.infrastructure.adapter.web;
+package com.linkpouch.stash.infrastructure.adapter.web.interceptor;
 
 import java.util.UUID;
 import java.util.regex.Matcher;

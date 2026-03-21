@@ -1,4 +1,4 @@
-package com.linkpouch.stash.infrastructure.adapter.web;
+package com.linkpouch.stash.infrastructure.adapter.web.storage;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
