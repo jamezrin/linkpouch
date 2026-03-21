@@ -94,13 +94,6 @@
             <optional>true</optional>
         </dependency>
 
-        <!-- Spring Boot 4 migration helper — warns about renamed properties at startup. Remove before GA. -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-properties-migrator</artifactId>
-            <scope>runtime</scope>
-        </dependency>
-
         <!-- Testing -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

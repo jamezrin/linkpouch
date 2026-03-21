@@ -49,6 +49,8 @@
         <mapstruct.version>1.6.3</mapstruct.version>
         <!-- AWS SDK v2 -->
         <aws-sdk.version>2.42.18</aws-sdk.version>
+        <!-- Testcontainers -->
+        <testcontainers.version>2.0.3</testcontainers.version>
         <!-- jOOQ: set to true to skip codegen when DB is unavailable. -->
         <!-- Apply Atlas migrations before codegen: atlas migrate apply (env local) -->
         <jooq.codegen.skip>false</jooq.codegen.skip>
@@ -97,7 +99,7 @@
             <dependency>
                 <groupId>org.testcontainers</groupId>
                 <artifactId>testcontainers-bom</artifactId>
-                <version>2.0.3</version>
+                <version>${testcontainers.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
