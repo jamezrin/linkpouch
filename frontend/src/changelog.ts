@@ -4,9 +4,18 @@ export interface ChangelogEntry {
   items: string[];
 }
 
-export const LATEST_VERSION = 6;
+export const LATEST_VERSION = 7;
 
 export const changelog: ChangelogEntry[] = [
+  {
+    version: 7,
+    date: new Date('2026-03-21'),
+    items: [
+      'AI settings now show a full model browser with provider tiers — browse and select from available models across providers',
+      'Screenshot viewer — click the thumbnail in the preview header to open the screenshot in a full-screen modal',
+      'Archive snapshot picker now has previous/next year navigation buttons for faster browsing',
+    ],
+  },
   {
     version: 6,
     date: new Date('2026-03-20'),

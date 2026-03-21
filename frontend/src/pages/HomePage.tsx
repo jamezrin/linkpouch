@@ -71,7 +71,16 @@ const FEATURES: Array<{ icon: React.ReactNode; title: string; desc: string }> = 
       </svg>
     ),
     title: 'Adaptive preview',
-    desc: 'Try the live page first, with automatic fallback to archive.org when a site blocks embedding — plus a one-click toggle between sources.',
+    desc: 'Three preview modes in one pane: live page, archived snapshot, or AI summary — switch between them with a tab bar, and your last choice is remembered.',
+  },
+  {
+    icon: (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+      </svg>
+    ),
+    title: 'AI Summary',
+    desc: 'Every link gets an AI-generated structured summary with key takeaways, main content, and notable details. Use the free built-in provider or connect your own key via OpenRouter, OpenAI, or Anthropic.',
   },
   {
     icon: (
