@@ -41,10 +41,7 @@ class RedisStreamConsumer:
         )
         self._running = True
         
-        # Create consumer group if not exists
         await self._create_consumer_groups()
-        
-        # Start consuming
         await self._consume()
     
     async def stop(self) -> None:
@@ -109,8 +106,7 @@ class RedisStreamConsumer:
                     if claimed_msgs:
                         for msg_id, msg_data in claimed_msgs:
                             await self._process_message(stream_key, msg_id, msg_data, handler)
-                    # Reset cursor to "0-0" when we've swept through all pending entries
-                    autoclaim_cursors[stream_key] = next_cursor if next_cursor != "0-0" else "0-0"
+                    autoclaim_cursors[stream_key] = next_cursor
 
                     # 2. Read new (undelivered) messages
                     messages = await self.redis.xreadgroup(  # type: ignore
@@ -356,14 +352,12 @@ class RedisStreamConsumer:
                     stash_id=stash_id,
                 )
                 return
-            # Regenerate screenshot
             screenshot = await self.scraper.take_screenshot(url, stash_id, link_id)
             logger.info(
                 "Screenshot refreshed",
                 link_id=link_id,
                 screenshot_key=screenshot.get("key"),
             )
-            # Notify stash service about new screenshot
             if screenshot.get("key"):
                 await self.stash_client.update_screenshot(
                     link_id=link_id,

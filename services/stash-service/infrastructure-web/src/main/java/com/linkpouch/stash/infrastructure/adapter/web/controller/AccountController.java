@@ -1,5 +1,6 @@
 package com.linkpouch.stash.infrastructure.adapter.web.controller;
 
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.UUID;
 
@@ -18,6 +19,7 @@ import com.linkpouch.stash.api.model.UpdateLinkPermissionsRequestDTO;
 import com.linkpouch.stash.api.model.UpdateVisibilityRequestDTO;
 import com.linkpouch.stash.domain.exception.NotFoundException;
 import com.linkpouch.stash.domain.model.Account;
+import com.linkpouch.stash.domain.model.ClaimedStashSummary;
 import com.linkpouch.stash.domain.model.StashLinkPermissions;
 import com.linkpouch.stash.domain.model.StashVisibility;
 import com.linkpouch.stash.domain.port.in.ClaimStashCommand;
@@ -75,9 +77,8 @@ public class AccountController implements AccountApi {
     public ResponseEntity<PagedClaimedStashResponseDTO> listClaimedStashes(
             final String search, final String sort, final Integer page, final Integer size) {
         final AccountClaims claims = getClaims();
-        final PagedResult<com.linkpouch.stash.domain.model.ClaimedStashSummary> result =
-                listClaimedStashesQuery.execute(
-                        new ListClaimedStashesCommand(claims.accountId(), search, sort, page, size));
+        final PagedResult<ClaimedStashSummary> result = listClaimedStashesQuery.execute(
+                new ListClaimedStashesCommand(claims.accountId(), search, sort, page, size));
 
         final List<ClaimedStashSummaryResponseDTO> content = result.content().stream()
                 .map(s -> new ClaimedStashSummaryResponseDTO()
@@ -85,8 +86,8 @@ public class AccountController implements AccountApi {
                         .stashName(s.name())
                         .visibility(ClaimedStashSummaryResponseDTO.VisibilityEnum.fromValue(
                                 s.visibility().name()))
-                        .createdAt(s.createdAt() != null ? s.createdAt().atOffset(java.time.ZoneOffset.UTC) : null)
-                        .updatedAt(s.updatedAt() != null ? s.updatedAt().atOffset(java.time.ZoneOffset.UTC) : null))
+                        .createdAt(s.createdAt() != null ? s.createdAt().atOffset(ZoneOffset.UTC) : null)
+                        .updatedAt(s.updatedAt() != null ? s.updatedAt().atOffset(ZoneOffset.UTC) : null))
                 .toList();
 
         final PagedClaimedStashResponseDTO response = new PagedClaimedStashResponseDTO()

@@ -6,6 +6,7 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -63,12 +64,11 @@ public class AccountAiSettingsController implements AccountAiSettingsApi {
         final AccountClaims claims = getClaims();
         final AiProvider aiProvider = AiProvider.valueOf(body.getProvider().name());
         final JsonNullable<String> apiKeyNullable = body.getApiKey();
-        final String apiKey = apiKeyNullable != null && apiKeyNullable.isPresent() ? apiKeyNullable.get() : null;
+        final String apiKey = apiKeyNullable.isPresent() ? apiKeyNullable.get() : null;
         final JsonNullable<String> customPromptNullable = body.getCustomPrompt();
-        final String customPrompt =
-                customPromptNullable != null && customPromptNullable.isPresent() ? customPromptNullable.get() : null;
+        final String customPrompt = customPromptNullable.isPresent() ? customPromptNullable.get() : null;
         final JsonNullable<String> modelNullable = body.getModel();
-        final String model = modelNullable != null && modelNullable.isPresent() ? modelNullable.get() : null;
+        final String model = modelNullable.isPresent() ? modelNullable.get() : null;
         final AccountAiSettings saved = upsertAccountAiSettingsUseCase.execute(
                 new UpsertAccountAiSettingsCommand(claims.accountId(), aiProvider, apiKey, model, customPrompt));
         return ResponseEntity.ok(toDto(saved));
@@ -76,7 +76,6 @@ public class AccountAiSettingsController implements AccountAiSettingsApi {
 
     @Override
     public ResponseEntity<AiModelsResponseDTO> getAiModels(final String provider, final String xAiApiKey) {
-        // Ensure authenticated
         getClaims();
 
         final AiProvider aiProvider = AiProvider.valueOf(provider);
@@ -121,7 +120,7 @@ public class AccountAiSettingsController implements AccountAiSettingsApi {
         final JsonNode root = objectMapper.readTree(response.body());
         final JsonNode data = root.get("data");
         if (data == null || !data.isArray()) return List.of();
-        final List<AiModelInfoDTO> result = new java.util.ArrayList<>();
+        final List<AiModelInfoDTO> result = new ArrayList<>();
         for (final JsonNode item : data) {
             final String id = item.path("id").asText(null);
             if (id == null) continue;
@@ -199,7 +198,7 @@ public class AccountAiSettingsController implements AccountAiSettingsApi {
         final JsonNode root = objectMapper.readTree(response.body());
         final JsonNode data = root.get("data");
         if (data == null || !data.isArray()) return List.of();
-        final List<AiModelInfoDTO> result = new java.util.ArrayList<>();
+        final List<AiModelInfoDTO> result = new ArrayList<>();
         for (final JsonNode item : data) {
             final String id = item.path("id").asText(null);
             if (id == null) continue;
