@@ -147,11 +147,6 @@ spec:
             secretKeyRef:
               name: stash-service-secret
               key: AI_INCLUDED_API_KEY
-        - name: AI_INCLUDED_MODEL
-          valueFrom:
-            secretKeyRef:
-              name: stash-service-secret
-              key: AI_INCLUDED_MODEL
         resources:
           requests:
             memory: "512Mi"
