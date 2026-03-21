@@ -13,8 +13,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
 
 import com.linkpouch.stash.domain.model.Link;
 import com.linkpouch.stash.domain.port.outbound.LinkStatusBroadcaster;
@@ -45,7 +45,7 @@ public class LinkStatusSseAdapter implements LinkStatusBroadcaster {
                     SseEmitter.event().name("link-updated").data(json);
             registry.send(stashId, event);
             log.debug("Broadcast link-updated SSE for stash {} link {}", stashId, link.getId());
-        } catch (JsonProcessingException e) {
+        } catch (JacksonException e) {
             log.error("Failed to serialize link {} for SSE broadcast", link.getId(), e);
         }
     }

@@ -34,12 +34,12 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
         <!-- Latest Spring Boot -->
-        <spring-boot.version>3.5.12</spring-boot.version>
+        <spring-boot.version>4.0.1</spring-boot.version>
         <!-- Spring gRPC -->
-        <spring-grpc.version>0.12.0</spring-grpc.version>
+        <spring-grpc.version>1.0.2</spring-grpc.version>
         <!-- gRPC and Protobuf -->
-        <grpc.version>1.70.0</grpc.version>
-        <protobuf.version>4.29.3</protobuf.version>
+        <grpc.version>1.77.0</grpc.version>
+        <protobuf.version>4.33.1</protobuf.version>
         <protobuf-maven-plugin.version>2.13.1</protobuf-maven-plugin.version>
         <!-- Latest jOOQ -->
         <jooq.version>3.20.11</jooq.version>
@@ -89,6 +89,15 @@
                 <groupId>software.amazon.awssdk</groupId>
                 <artifactId>bom</artifactId>
                 <version>${aws-sdk.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+
+            <!-- Testcontainers BOM (Spring Boot 4 no longer manages individual TC artifacts directly) -->
+            <dependency>
+                <groupId>org.testcontainers</groupId>
+                <artifactId>testcontainers-bom</artifactId>
+                <version>2.0.3</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
