@@ -25,11 +25,12 @@ A modern link bookmarking application with anonymous stashes, full-text search, 
 # Install tools (Java 21, Maven 3.9, Node 22, Python 3.13)
 mise install
 
-# Start all infrastructure and services
-docker-compose up -d
+# Copy and configure environment variables
+cp .env.example .env
+# Edit .env — set GITHUB_CLIENT_ID/SECRET, AI_INCLUDED_API_KEY, AI_ENCRYPTION_KEY, etc.
 
-# Apply Atlas migrations and generate jOOQ code (first run only)
-mise run migrate
+# Start all infrastructure and services (Atlas migrations run automatically)
+docker-compose up -d
 
 # Build the stash service
 cd services/stash-service
@@ -37,6 +38,8 @@ mise exec java -- mvn clean package -DskipTests
 ```
 
 The frontend is served by Vite on `http://localhost:5173` and the API Gateway is on `http://localhost:8080`.
+
+> **IDE / local dev (outside Docker):** Run `mise run migrate` after `docker-compose up -d` to apply migrations and regenerate jOOQ sources against the running database.
 
 ## Architecture
 
@@ -56,7 +59,7 @@ The frontend is served by Vite on `http://localhost:5173` and the API Gateway is
          ▼                          ▼
   ┌─────────────┐          ┌─────────────────────┐
   │  PostgreSQL │          │  Redis Streams      │
-  │  16         │◀─────────│  (link events)      │
+  │  18         │◀─────────│  (link events)      │
   └─────────────┘          └────────┬────────────┘
                                     │
                                     ▼
@@ -85,7 +88,7 @@ The frontend is served by Vite on `http://localhost:5173` and the API Gateway is
 | Database | PostgreSQL 18 (FTS + trigram indexes) |
 | Migrations | Atlas |
 | ORM / query | JPA (writes), jOOQ 3.19 (reads / FTS) |
-| Events | Redis 7.4 Streams |
+| Events | Redis 8 Streams |
 | Object storage | SeaweedFS (S3-compatible) |
 | Scraping | Playwright (Chromium) |
 | Drag-and-drop | @dnd-kit |
@@ -235,11 +238,12 @@ mise install
 ### Running locally
 
 ```bash
-# Start infrastructure (postgres, redis, seaweedfs) + all app services
-docker-compose up -d
+# Copy and fill in environment variables (OAuth2 keys, AI key, etc.)
+cp .env.example .env
 
-# First-time setup: run migrations
-mise run migrate
+# Start infrastructure (postgres, redis, seaweedfs) + all app services
+# Atlas migrations run automatically via the atlas-migrate service
+docker-compose up -d
 
 # Build stash service
 cd services/stash-service
@@ -250,6 +254,8 @@ cd frontend
 npm install
 npm run dev
 ```
+
+> To run stash-service from an IDE (outside Docker), also run `mise run migrate` to apply migrations and regenerate jOOQ sources.
 
 ### Build commands
 
