@@ -58,17 +58,18 @@ public class JacksonConfig {
 
     private static final class JsonNullableDeserializer extends StdDeserializer<JsonNullable<?>> {
 
-        JsonNullableDeserializer(final JavaType valueType) {
+        private final JavaType containedType;
+
+        JsonNullableDeserializer(final JavaType wrappingType) {
             super(JsonNullable.class);
+            this.containedType = wrappingType != null ? wrappingType.containedType(0) : null;
         }
 
         @Override
         public JsonNullable<?> deserialize(final JsonParser p, final DeserializationContext ctxt)
                 throws JacksonException {
-            final JavaType containedType = ctxt.getContextualType() != null
-                    ? ctxt.getContextualType().containedType(0)
-                    : TypeFactory.unknownType();
-            final Object value = ctxt.readValue(p, containedType);
+            final JavaType typeToUse = containedType != null ? containedType : TypeFactory.unknownType();
+            final Object value = ctxt.readValue(p, typeToUse);
             return JsonNullable.of(value);
         }
 
