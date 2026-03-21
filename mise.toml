@@ -4,7 +4,7 @@ java = "temurin-21.0.10+7.0.LTS"
 maven = "3.9"
 
 # Node.js
-node = "22"
+node = "24"
 npm = "10"
 
 # Python (for indexer service)
