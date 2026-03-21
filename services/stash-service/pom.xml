@@ -50,7 +50,7 @@
         <!-- AWS SDK v2 -->
         <aws-sdk.version>2.42.18</aws-sdk.version>
         <!-- Testcontainers -->
-        <testcontainers.version>2.0.3</testcontainers.version>
+        <testcontainers.version>2.0.4</testcontainers.version>
         <!-- jOOQ: set to true to skip codegen when DB is unavailable. -->
         <!-- Apply Atlas migrations before codegen: atlas migrate apply (env local) -->
         <jooq.codegen.skip>false</jooq.codegen.skip>
