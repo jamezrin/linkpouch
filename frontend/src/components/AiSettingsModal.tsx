@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { accountApi } from '../services/api';
-import { AiProvider, UpsertAiSettingsRequest } from '../types/aiSettings';
+import { AiModelInfo, AiProvider, UpsertAiSettingsRequest } from '../types/aiSettings';
 import { useScrollLock } from '../hooks/useScrollLock';
 
 interface AiSettingsModalProps {
@@ -15,6 +15,7 @@ interface ProviderMeta {
   requiresApiKey: boolean;
   fixedModel?: string;
   isNone?: boolean;
+  tier?: 'included' | 'byok';
 }
 
 const PROVIDER_META: Record<AiProvider, ProviderMeta> = {
@@ -28,36 +29,59 @@ const PROVIDER_META: Record<AiProvider, ProviderMeta> = {
     label: 'OpenRouter (free models only)',
     description: 'Uses the Linkpouch-provided OpenRouter key. Limited to free-tier models. No API key required.',
     requiresApiKey: false,
-    fixedModel: 'openrouter/free',
+    tier: 'included',
   },
   OPENROUTER: {
-    label: 'OpenRouter BYOK',
+    label: 'OpenRouter',
     description: 'Bring your own OpenRouter key to access hundreds of models.',
     requiresApiKey: true,
+    tier: 'byok',
   },
   OPENAI: {
-    label: 'OpenAI BYOK',
+    label: 'OpenAI',
     description: 'Use your OpenAI API key (GPT-4o, etc.).',
     requiresApiKey: true,
+    tier: 'byok',
   },
   ANTHROPIC: {
-    label: 'Anthropic BYOK',
+    label: 'Anthropic',
     description: 'Use your Anthropic API key (Claude models).',
     requiresApiKey: true,
+    tier: 'byok',
   },
   OPENCODE: {
-    label: 'OpenCode BYOK',
+    label: 'OpenCode',
     description: 'Use your OpenCode API key.',
     requiresApiKey: true,
+    tier: 'byok',
   },
 };
 
-const FALLBACK_MODELS: Record<Exclude<AiProvider, 'NONE'>, string[]> = {
-  OPENROUTER_INCLUDED: ['openrouter/free'],
-  OPENROUTER: ['google/gemini-flash-1.5', 'google/gemini-flash-2.0', 'mistralai/mistral-7b-instruct'],
-  OPENAI: ['gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo'],
-  ANTHROPIC: ['claude-opus-4-6', 'claude-sonnet-4-6', 'claude-haiku-4-5-20251001'],
-  OPENCODE: ['opencode/opencode-a1', 'opencode/opencode-a1-mini'],
+const FALLBACK_MODELS: Record<Exclude<AiProvider, 'NONE'>, AiModelInfo[]> = {
+  OPENROUTER_INCLUDED: [
+    { id: 'meta-llama/llama-3.1-8b-instruct:free' },
+    { id: 'google/gemini-2.0-flash-exp:free' },
+    { id: 'mistralai/mistral-7b-instruct:free' },
+  ],
+  OPENROUTER: [
+    { id: 'google/gemini-flash-1.5' },
+    { id: 'google/gemini-flash-2.0' },
+    { id: 'mistralai/mistral-7b-instruct' },
+  ],
+  OPENAI: [
+    { id: 'gpt-4o' },
+    { id: 'gpt-4o-mini' },
+    { id: 'gpt-4-turbo' },
+  ],
+  ANTHROPIC: [
+    { id: 'claude-opus-4-6' },
+    { id: 'claude-sonnet-4-6' },
+    { id: 'claude-haiku-4-5-20251001' },
+  ],
+  OPENCODE: [
+    { id: 'opencode/opencode-a1' },
+    { id: 'opencode/opencode-a1-mini' },
+  ],
 };
 
 type WizardStep = 1 | 2 | 3 | 4;
@@ -69,6 +93,20 @@ interface WizardState {
   model: string;
   useCustomPrompt: boolean;
   customPrompt: string;
+}
+
+function formatPricing(model: AiModelInfo): string | null {
+  if (model.pricingPrompt == null) return null;
+  const inp = model.pricingPrompt * 1_000_000;
+  const out = (model.pricingCompletion ?? 0) * 1_000_000;
+  if (inp === 0 && out === 0) return 'Free';
+  const fmt = (n: number) => (n < 0.01 ? n.toFixed(4) : n.toFixed(2));
+  return `in: $${fmt(inp)} / out: $${fmt(out)} per 1M`;
+}
+
+function formatContext(tokens: number): string {
+  if (tokens >= 1000) return `${Math.round(tokens / 1000)}K ctx`;
+  return `${tokens} ctx`;
 }
 
 export function AiSettingsModal({ accountToken, onClose }: AiSettingsModalProps) {
@@ -93,6 +131,8 @@ export function AiSettingsModal({ accountToken, onClose }: AiSettingsModalProps)
     useCustomPrompt: false,
     customPrompt: '',
   });
+
+  const [browserSearch, setBrowserSearch] = useState('');
 
   // Pre-select the currently active provider (or NONE) when settings load
   const [preselected, setPreselected] = useState(false);
@@ -120,7 +160,7 @@ export function AiSettingsModal({ accountToken, onClose }: AiSettingsModalProps)
       return;
     }
     const meta = PROVIDER_META[provider];
-    const initialModel = meta.fixedModel ?? settings?.model ?? FALLBACK_MODELS[provider][0];
+    const initialModel = meta.fixedModel ?? settings?.model ?? FALLBACK_MODELS[provider][0].id;
     setWizard({
       provider,
       apiKey: '',
@@ -131,7 +171,7 @@ export function AiSettingsModal({ accountToken, onClose }: AiSettingsModalProps)
     });
   };
 
-  // Step 1 confirm button: disable AI for NONE, save immediately for no-key providers, advance wizard for BYOK
+  // Step 1 confirm button
   const handleStep1Confirm = () => {
     if (!wizard.provider) return;
     if (wizard.provider === 'NONE') {
@@ -140,12 +180,13 @@ export function AiSettingsModal({ accountToken, onClose }: AiSettingsModalProps)
     }
     const meta = PROVIDER_META[wizard.provider];
     if (!meta.requiresApiKey) {
-      upsertMutation.mutate({
-        provider: wizard.provider,
-        model: meta.fixedModel!,
-        apiKey: null,
-        customPrompt: null,
-      });
+      if (meta.fixedModel) {
+        // Fixed model — save immediately with no further steps
+        upsertMutation.mutate({ provider: wizard.provider, model: meta.fixedModel, apiKey: null, customPrompt: null });
+      } else {
+        // No API key but model selection required (e.g. OPENROUTER_INCLUDED)
+        setStep(3);
+      }
       return;
     }
     if (settings?.provider === wizard.provider) {
@@ -155,11 +196,10 @@ export function AiSettingsModal({ accountToken, onClose }: AiSettingsModalProps)
     }
   };
 
-  // Step 2 → 3: fetch models with given key
-  const apiKeyForFetch = wizard.useExistingKey ? null : wizard.apiKey;
-
   // wizard.provider is always a real AiProvider (not NONE) in steps 2-4
   const realProvider = wizard.provider as Exclude<AiProvider, 'NONE'>;
+
+  const apiKeyForFetch = wizard.useExistingKey ? null : wizard.apiKey;
 
   const modelsQuery = useQuery({
     queryKey: ['ai-models', realProvider, apiKeyForFetch],
@@ -167,20 +207,16 @@ export function AiSettingsModal({ accountToken, onClose }: AiSettingsModalProps)
       accountApi
         .fetchAiModels(accountToken, realProvider, apiKeyForFetch)
         .then((r) => r.data.models),
-    enabled: false, // triggered manually
+    enabled: false,
     staleTime: Infinity,
   });
 
-  const handleFetchModels = async () => {
-    const result = await modelsQuery.refetch();
-    const models = result.data ?? [];
-    const fallback = FALLBACK_MODELS[realProvider];
-    setWizard((prev) => ({
-      ...prev,
-      model: prev.model || models[0] || fallback[0],
-    }));
-    setStep(3);
-  };
+  // Auto-fetch models when entering step 3
+  useEffect(() => {
+    if (step === 3 && realProvider) {
+      modelsQuery.refetch();
+    }
+  }, [step, realProvider]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const upsertMutation = useMutation({
     mutationFn: (payload: UpsertAiSettingsRequest) =>
@@ -197,28 +233,31 @@ export function AiSettingsModal({ accountToken, onClose }: AiSettingsModalProps)
       provider: realProvider,
       model: wizard.model,
       apiKey: wizard.useExistingKey ? null : wizard.apiKey || null,
-      customPrompt: wizard.useCustomPrompt ? wizard.customPrompt : null,
+      customPrompt: wizard.provider !== 'OPENROUTER_INCLUDED' && wizard.useCustomPrompt ? wizard.customPrompt : null,
     };
     upsertMutation.mutate(payload);
   };
 
   const goBack = () => {
     if (step === 2) {
-      // Reset all wizard state and return to provider list
       setWizard({ provider: null, apiKey: '', useExistingKey: false, model: '', useCustomPrompt: false, customPrompt: '' });
       setStep(1);
     } else if (step === 3) {
-      // Reset model selection (it was based on the key entered in step 2)
       setWizard((prev) => ({ ...prev, model: '' }));
-      setStep(2);
+      setBrowserSearch('');
+      // OPENROUTER_INCLUDED skips step 2, go straight back to step 1
+      const meta = wizard.provider ? PROVIDER_META[wizard.provider] : null;
+      if (meta && !meta.requiresApiKey) {
+        setStep(1);
+      } else {
+        setStep(2);
+      }
     } else if (step === 4) {
-      // Reset custom prompt state before going back
       setWizard((prev) => ({
         ...prev,
         useCustomPrompt: !!(settings?.provider === wizard.provider && settings?.customPrompt),
         customPrompt: (settings?.provider === wizard.provider ? settings?.customPrompt : null) ?? '',
       }));
-      // Already-active provider jumped directly from step 1 → 4, so go back to step 1
       if (settings?.provider === wizard.provider) {
         setStep(1);
       } else {
@@ -229,10 +268,17 @@ export function AiSettingsModal({ accountToken, onClose }: AiSettingsModalProps)
 
   const providers: AiProvider[] = ['NONE', 'OPENROUTER_INCLUDED', 'OPENROUTER', 'OPENAI', 'ANTHROPIC', 'OPENCODE'];
 
-  const availableModels =
+  const availableModels: AiModelInfo[] =
     modelsQuery.data && modelsQuery.data.length > 0
       ? modelsQuery.data
       : (realProvider ? FALLBACK_MODELS[realProvider] : []);
+
+  const filteredModels = browserSearch.trim()
+    ? availableModels.filter((m) => {
+        const q = browserSearch.toLowerCase();
+        return m.id.toLowerCase().includes(q) || (m.name ?? '').toLowerCase().includes(q);
+      })
+    : availableModels;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -255,11 +301,20 @@ export function AiSettingsModal({ accountToken, onClose }: AiSettingsModalProps)
             <div>
               <h2 className="text-base font-semibold text-slate-900 dark:text-white">AI Settings</h2>
               <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                {wizard.provider === 'NONE' || (wizard.provider && !PROVIDER_META[wizard.provider].requiresApiKey)
-                  ? 'Step 1 of 1'
-                  : wizard.provider && settings?.provider === wizard.provider
-                  ? `Step ${step === 4 ? 2 : 1} of 2`
-                  : `Step ${step} of 4`}
+                {(() => {
+                  if (!wizard.provider || wizard.provider === 'NONE') return 'Step 1 of 1';
+                  const meta = PROVIDER_META[wizard.provider];
+                  if (meta.fixedModel) return 'Step 1 of 1';
+                  if (!meta.requiresApiKey) {
+                    // OPENROUTER_INCLUDED: steps 1 → 3 → 4, shown as 1/2/3 of 3
+                    const display = step === 1 ? 1 : step === 3 ? 2 : 3;
+                    return `Step ${display} of 3`;
+                  }
+                  if (settings?.provider === wizard.provider) {
+                    return `Step ${step === 4 ? 2 : 1} of 2`;
+                  }
+                  return `Step ${step} of 4`;
+                })()}
               </p>
             </div>
           </div>
@@ -303,15 +358,27 @@ export function AiSettingsModal({ accountToken, onClose }: AiSettingsModalProps)
                             : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800/50'
                         }`}
                       >
-                        <div className="flex items-center justify-between">
+                        <div className="flex items-center justify-between gap-2">
                           <span className="text-[13px] font-semibold text-slate-900 dark:text-white">
                             {meta.label}
                           </span>
-                          {isActive && (
-                            <span className="text-[10px] font-medium text-indigo-600 dark:text-indigo-400 bg-indigo-100 dark:bg-indigo-900/40 px-2 py-0.5 rounded-full">
-                              Active
-                            </span>
-                          )}
+                          <div className="flex items-center gap-1 shrink-0">
+                            {isActive && (
+                              <span className="text-[10px] font-medium text-indigo-600 dark:text-indigo-400 bg-indigo-100 dark:bg-indigo-900/40 px-2 py-0.5 rounded-full">
+                                Active
+                              </span>
+                            )}
+                            {meta.tier === 'included' && (
+                              <span className="text-[10px] font-medium text-emerald-700 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-900/40 px-2 py-0.5 rounded-full">
+                                Included
+                              </span>
+                            )}
+                            {meta.tier === 'byok' && (
+                              <span className="text-[10px] font-medium text-amber-700 dark:text-amber-400 bg-amber-100 dark:bg-amber-900/40 px-2 py-0.5 rounded-full">
+                                API Key Required
+                              </span>
+                            )}
+                          </div>
                         </div>
                         <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">{meta.description}</p>
                       </button>
@@ -326,7 +393,7 @@ export function AiSettingsModal({ accountToken, onClose }: AiSettingsModalProps)
                       ? 'Saving…'
                       : wizard.provider === 'NONE'
                       ? 'Disable AI (no additional steps required)'
-                      : wizard.provider && !PROVIDER_META[wizard.provider].requiresApiKey
+                      : wizard.provider && !PROVIDER_META[wizard.provider].requiresApiKey && PROVIDER_META[wizard.provider].fixedModel
                       ? 'Finish (no additional steps required)'
                       : 'Next →'}
                   </button>
@@ -373,32 +440,21 @@ export function AiSettingsModal({ accountToken, onClose }: AiSettingsModalProps)
                   )}
 
                   <button
-                    onClick={handleFetchModels}
+                    onClick={() => setStep(3)}
                     disabled={!wizard.useExistingKey && !wizard.apiKey}
                     className="w-full text-[12px] font-medium py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white transition-colors disabled:opacity-50"
                   >
-                    {modelsQuery.isFetching ? 'Fetching models…' : 'Next — fetch models'}
+                    Next
                   </button>
-                  {modelsQuery.isError && (
-                    <p className="text-[11px] text-red-500">
-                      Failed to fetch models. You can still type a model name manually on the next step.
-                    </p>
-                  )}
                 </div>
               )}
 
               {/* Step 3 — Select model */}
               {step === 3 && wizard.provider && (
-                <div className="space-y-4">
+                <div className="space-y-3">
                   <h3 className="text-[13px] font-semibold text-slate-900 dark:text-white">
                     Select model for {PROVIDER_META[wizard.provider].label}
                   </h3>
-
-                  {modelsQuery.isFetching && (
-                    <div className="flex justify-center py-4">
-                      <div className="w-5 h-5 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
-                    </div>
-                  )}
 
                   <div>
                     <label className="text-[11px] text-slate-500 dark:text-slate-400 font-medium mb-1 block">
@@ -413,25 +469,63 @@ export function AiSettingsModal({ accountToken, onClose }: AiSettingsModalProps)
                     />
                   </div>
 
-                  {availableModels.length > 0 && (
-                    <div>
-                      <p className="text-[11px] text-slate-500 dark:text-slate-400 mb-1">Suggestions:</p>
-                      <div className="flex flex-wrap gap-1.5">
-                        {availableModels.slice(0, 12).map((m) => (
-                          <button
-                            key={m}
-                            onClick={() => setWizard((prev) => ({ ...prev, model: m }))}
-                            className={`text-[11px] px-2 py-1 rounded-md border transition-colors ${
-                              wizard.model === m
-                                ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400'
-                                : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'
-                            }`}
-                          >
-                            {m}
-                          </button>
-                        ))}
-                      </div>
+                  <div className="border border-slate-200 dark:border-slate-700 rounded-lg">
+                    <div className="px-3 py-2 border-b border-slate-100 dark:border-slate-800 flex items-center gap-2">
+                      <input
+                        type="text"
+                        value={browserSearch}
+                        onChange={(e) => setBrowserSearch(e.target.value)}
+                        placeholder="Search models…"
+                        className="flex-1 text-[12px] px-2 py-1 rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
+                      />
+                      {modelsQuery.isFetching && (
+                        <div className="w-4 h-4 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin shrink-0" />
+                      )}
                     </div>
+                    <div className="max-h-64 overflow-y-auto">
+                      {filteredModels.length === 0 ? (
+                        <p className="text-[11px] text-slate-400 text-center py-4">No models found</p>
+                      ) : (
+                        filteredModels.map((m) => {
+                          const isSelected = wizard.model === m.id;
+                          const pricing = formatPricing(m);
+                          return (
+                            <div
+                              key={m.id}
+                              role="button"
+                              tabIndex={0}
+                              onClick={() => setWizard((prev) => ({ ...prev, model: m.id }))}
+                              onKeyDown={(e) => e.key === 'Enter' && setWizard((prev) => ({ ...prev, model: m.id }))}
+                              style={{ cursor: 'pointer' }}
+                              className={`px-3 py-2 border-b border-slate-100 dark:border-slate-800 last:border-b-0 ${
+                                isSelected
+                                  ? 'bg-indigo-50 dark:bg-indigo-900/20'
+                                  : 'hover:bg-slate-50 dark:hover:bg-slate-800/50'
+                              }`}
+                            >
+                              <div style={{ fontSize: '12px', fontWeight: 500, color: isSelected ? '#4f46e5' : 'inherit', wordBreak: 'break-all' }}>
+                                {m.id}
+                              </div>
+                              {m.name && m.name !== m.id && (
+                                <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '1px' }}>{m.name}</div>
+                              )}
+                              {(pricing != null || m.contextLength != null) && (
+                                <div style={{ fontSize: '10px', color: '#94a3b8', marginTop: '2px' }}>
+                                  {[pricing, m.contextLength != null ? formatContext(m.contextLength) : null]
+                                    .filter(Boolean).join(' · ')}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })
+                      )}
+                    </div>
+                  </div>
+
+                  {modelsQuery.isError && (
+                    <p className="text-[11px] text-red-500">
+                      Failed to fetch models. Using local suggestions — you can also type a model ID manually.
+                    </p>
                   )}
 
                   <button
@@ -482,32 +576,34 @@ export function AiSettingsModal({ accountToken, onClose }: AiSettingsModalProps)
                     </p>
                   )}
 
-                  {/* Custom prompt */}
-                  <div>
-                    <div className="flex items-center gap-2 mb-2">
-                      <input
-                        type="checkbox"
-                        id="custom-prompt"
-                        checked={wizard.useCustomPrompt}
-                        onChange={(e) =>
-                          setWizard((prev) => ({ ...prev, useCustomPrompt: e.target.checked }))
-                        }
-                        className="rounded"
-                      />
-                      <label htmlFor="custom-prompt" className="text-[12px] text-slate-600 dark:text-slate-300">
-                        Use a custom system prompt
-                      </label>
+                  {/* Custom prompt — not available for OPENROUTER_INCLUDED */}
+                  {wizard.provider !== 'OPENROUTER_INCLUDED' && (
+                    <div>
+                      <div className="flex items-center gap-2 mb-2">
+                        <input
+                          type="checkbox"
+                          id="custom-prompt"
+                          checked={wizard.useCustomPrompt}
+                          onChange={(e) =>
+                            setWizard((prev) => ({ ...prev, useCustomPrompt: e.target.checked }))
+                          }
+                          className="rounded"
+                        />
+                        <label htmlFor="custom-prompt" className="text-[12px] text-slate-600 dark:text-slate-300">
+                          Use a custom system prompt
+                        </label>
+                      </div>
+                      {wizard.useCustomPrompt && (
+                        <textarea
+                          value={wizard.customPrompt}
+                          onChange={(e) => setWizard((prev) => ({ ...prev, customPrompt: e.target.value }))}
+                          rows={4}
+                          placeholder="Enter your custom system prompt for AI summarization..."
+                          className="w-full text-[12px] px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 resize-none"
+                        />
+                      )}
                     </div>
-                    {wizard.useCustomPrompt && (
-                      <textarea
-                        value={wizard.customPrompt}
-                        onChange={(e) => setWizard((prev) => ({ ...prev, customPrompt: e.target.value }))}
-                        rows={4}
-                        placeholder="Enter your custom system prompt for AI summarization..."
-                        className="w-full text-[12px] px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 resize-none"
-                      />
-                    )}
-                  </div>
+                  )}
 
                   <button
                     onClick={handleSave}

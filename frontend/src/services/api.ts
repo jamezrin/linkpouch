@@ -15,7 +15,7 @@ import {
   MoveFolderRequest,
   MoveLinkToFolderRequest,
 } from '../types';
-import { AiSettingsResponse, UpsertAiSettingsRequest, AiProvider } from '../types/aiSettings';
+import { AiSettingsResponse, AiModelsResponse, UpsertAiSettingsRequest, AiProvider } from '../types/aiSettings';
 
 export const api = axios.create({
   baseURL: '/api',
@@ -250,7 +250,7 @@ export const accountApi = {
     }),
 
   fetchAiModels: (accountJwt: string, provider: AiProvider, apiKey?: string | null) =>
-    api.get<{ models: string[] }>('/account/ai-settings/models', {
+    api.get<AiModelsResponse>('/account/ai-settings/models', {
       headers: { Authorization: `Bearer ${accountJwt}` },
       params: {
         provider,

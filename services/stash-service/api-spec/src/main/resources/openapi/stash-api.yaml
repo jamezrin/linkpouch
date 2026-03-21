@@ -580,14 +580,41 @@ components:
           nullable: true
           description: Wall-clock time in milliseconds for the AI call
 
+    AiModelInfo:
+      type: object
+      required: [id]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+          nullable: true
+        description:
+          type: string
+          nullable: true
+        contextLength:
+          type: integer
+          nullable: true
+          description: Maximum context window in tokens
+        pricingPrompt:
+          type: number
+          format: double
+          nullable: true
+          description: Cost per input token in USD (multiply × 1,000,000 for display)
+        pricingCompletion:
+          type: number
+          format: double
+          nullable: true
+          description: Cost per output token in USD
+
     AiModelsResponse:
       type: object
       properties:
         models:
           type: array
           items:
-            type: string
-          description: Available model IDs for the given provider
+            $ref: '#/components/schemas/AiModelInfo'
+          description: Available models for the given provider
 
     EmbeddabilityCheckResponse:
       type: object

@@ -29,18 +29,25 @@ public class AccountAiSettingsService implements GetAccountAiSettingsQuery, Upse
     @Override
     @Transactional
     public AccountAiSettings execute(final UpsertAccountAiSettingsCommand command) {
+        // Custom prompts are never persisted for the included provider — enforced
+        // server-side regardless of what the client sends.
+        final String customPrompt =
+                command.provider() == com.linkpouch.stash.domain.model.AiProvider.OPENROUTER_INCLUDED
+                        ? null
+                        : command.customPrompt();
+
         final Optional<AccountAiSettings> existing = repository.findByAccountId(command.accountId());
 
         if (existing.isPresent()) {
             final AccountAiSettings settings = existing.get();
             // Preserve existing api_key when null is passed (masked on client)
             final String apiKey = command.apiKey() != null ? command.apiKey() : settings.getApiKey();
-            settings.update(command.provider(), apiKey, command.model(), command.customPrompt());
+            settings.update(command.provider(), apiKey, command.model(), customPrompt);
             return repository.save(settings);
         }
 
         final AccountAiSettings settings = AccountAiSettings.create(
-                command.accountId(), command.provider(), command.apiKey(), command.model(), command.customPrompt());
+                command.accountId(), command.provider(), command.apiKey(), command.model(), customPrompt);
         return repository.save(settings);
     }
 }
