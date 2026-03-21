@@ -48,9 +48,10 @@ class Settings(BaseSettings):
     screenshot_width: int = Field(default=1280)
     screenshot_height: int = Field(default=720)
     
-    # Stash Service
-    stash_service_url: str = Field(default="http://stash-service:8080")
-    stash_service_timeout: int = Field(default=30)
+    # Stash Service gRPC
+    stash_service_grpc_host: str = Field(default="stash-service")
+    stash_service_grpc_port: int = Field(default=9090)
+    stash_service_timeout: int = Field(default=30)  # seconds, used as gRPC deadline
     indexer_callback_secret: str = Field(...)  # Required — no default allowed
     
     @property

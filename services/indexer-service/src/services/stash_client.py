@@ -1,30 +1,29 @@
-"""HTTP client for communicating with Stash Service."""
+"""gRPC client for communicating with Stash Service."""
 
-from typing import Any
-
-import httpx
+import grpc
 import structlog
 
 from src.config.settings import Settings
+from src.generated import stash_indexer_pb2, stash_indexer_pb2_grpc
 
 logger = structlog.get_logger()
 
 
 class StashServiceClient:
-    """Client for sending indexing results to Stash Service."""
-    
+    """Client for sending indexing results to Stash Service over gRPC."""
+
     def __init__(self, settings: Settings):
         self.settings = settings
-        self.client = httpx.AsyncClient(
-            base_url=settings.stash_service_url,
-            timeout=settings.stash_service_timeout,
-            headers={"X-Indexer-Secret": settings.indexer_callback_secret},
-        )
-    
+        target = f"{settings.stash_service_grpc_host}:{settings.stash_service_grpc_port}"
+        self._channel = grpc.aio.insecure_channel(target)
+        self._stub = stash_indexer_pb2_grpc.IndexerCallbackServiceStub(self._channel)
+        self._metadata = [("x-indexer-secret", settings.indexer_callback_secret)]
+        self._timeout = settings.stash_service_timeout
+
     async def close(self) -> None:
-        """Close the HTTP client."""
-        await self.client.aclose()
-    
+        """Close the gRPC channel."""
+        await self._channel.close()
+
     async def update_link_metadata(
         self,
         link_id: str,
@@ -36,59 +35,49 @@ class StashServiceClient:
     ) -> None:
         """Send scraped metadata back to Stash Service."""
         try:
-            payload = {
-                "title": title,
-                "description": description,
-                "faviconUrl": favicon_url,
-                "pageContent": page_content,
-                "finalUrl": final_url,
-            }
-            
-            response = await self.client.patch(
-                f"/links/{link_id}/metadata",
-                json=payload,
+            request = stash_indexer_pb2.UpdateLinkMetadataRequest(link_id=link_id)
+            if title is not None:
+                request.title = title
+            if description is not None:
+                request.description = description
+            if favicon_url is not None:
+                request.favicon_url = favicon_url
+            if page_content is not None:
+                request.page_content = page_content
+            if final_url is not None:
+                request.final_url = final_url
+
+            await self._stub.UpdateLinkMetadata(
+                request, metadata=self._metadata, timeout=self._timeout
             )
-            response.raise_for_status()
-            
-            logger.info(
-                "Link metadata updated",
-                link_id=link_id,
-                title=title,
-            )
-            
-        except Exception as e:
+            logger.info("Link metadata updated", link_id=link_id, title=title)
+        except grpc.RpcError as e:
             logger.error(
                 "Failed to update link metadata",
                 link_id=link_id,
-                error=str(e),
+                grpc_code=e.code(),
+                grpc_details=e.details(),
             )
             raise
-    
-    async def update_link_status(
-        self,
-        link_id: str,
-        status: str,
-    ) -> None:
+
+    async def update_link_status(self, link_id: str, status: str) -> None:
         """Notify Stash Service of a terminal link status (e.g. FAILED)."""
         try:
-            response = await self.client.patch(
-                f"/links/{link_id}/status",
-                json={"status": status},
+            status_value = stash_indexer_pb2.LinkStatus.Value(status)
+            request = stash_indexer_pb2.UpdateLinkStatusRequest(
+                link_id=link_id, status=status_value
             )
-            response.raise_for_status()
-
-            logger.info(
-                "Link status updated",
-                link_id=link_id,
-                status=status,
+            await self._stub.UpdateLinkStatus(
+                request, metadata=self._metadata, timeout=self._timeout
             )
-
-        except Exception as e:
+            logger.info("Link status updated", link_id=link_id, status=status)
+        except grpc.RpcError as e:
             logger.error(
                 "Failed to update link status",
                 link_id=link_id,
                 status=status,
-                error=str(e),
+                grpc_code=e.code(),
+                grpc_details=e.details(),
             )
             raise
 
@@ -96,11 +85,18 @@ class StashServiceClient:
         """Fetch the decrypted AI API key for the account that owns the given stash.
         Returns an empty string if no credentials are configured."""
         try:
-            response = await self.client.get(f"/stashes/{stash_id}/ai-credentials")
-            response.raise_for_status()
-            return response.json().get("apiKey", "")
-        except Exception as e:
-            logger.error("Failed to fetch AI credentials", stash_id=stash_id, error=str(e))
+            request = stash_indexer_pb2.GetAiCredentialsRequest(stash_id=stash_id)
+            response = await self._stub.GetAiCredentials(
+                request, metadata=self._metadata, timeout=self._timeout
+            )
+            return response.api_key
+        except grpc.RpcError as e:
+            logger.error(
+                "Failed to fetch AI credentials",
+                stash_id=stash_id,
+                grpc_code=e.code(),
+                grpc_details=e.details(),
+            )
             raise
 
     async def update_ai_summary(
@@ -115,62 +111,54 @@ class StashServiceClient:
     ) -> None:
         """Notify Stash Service of the AI summary result."""
         try:
-            payload: dict = {"status": status}
+            ai_status = (
+                stash_indexer_pb2.AiSummaryStatus.AI_COMPLETED
+                if status == "COMPLETED"
+                else stash_indexer_pb2.AiSummaryStatus.AI_FAILED
+            )
+            request = stash_indexer_pb2.UpdateLinkAiSummaryRequest(
+                link_id=link_id, status=ai_status
+            )
             if summary is not None:
-                payload["summary"] = summary
+                request.summary = summary
             if model is not None:
-                payload["model"] = model
+                request.model = model
             if input_tokens is not None:
-                payload["inputTokens"] = input_tokens
+                request.input_tokens = input_tokens
             if output_tokens is not None:
-                payload["outputTokens"] = output_tokens
+                request.output_tokens = output_tokens
             if elapsed_ms is not None:
-                payload["elapsedMs"] = elapsed_ms
+                request.elapsed_ms = elapsed_ms
 
-            response = await self.client.patch(
-                f"/links/{link_id}/ai-summary",
-                json=payload,
+            await self._stub.UpdateLinkAiSummary(
+                request, metadata=self._metadata, timeout=self._timeout
             )
-            response.raise_for_status()
-
-            logger.info(
-                "AI summary updated",
-                link_id=link_id,
-                status=status,
-            )
-
-        except Exception as e:
+            logger.info("AI summary updated", link_id=link_id, status=status)
+        except grpc.RpcError as e:
             logger.error(
                 "Failed to update AI summary",
                 link_id=link_id,
                 status=status,
-                error=str(e),
+                grpc_code=e.code(),
+                grpc_details=e.details(),
             )
             raise
 
-    async def update_screenshot(
-        self,
-        link_id: str,
-        screenshot_key: str,
-    ) -> None:
+    async def update_screenshot(self, link_id: str, screenshot_key: str) -> None:
         """Notify Stash Service that screenshot is ready."""
         try:
-            response = await self.client.patch(
-                f"/links/{link_id}/screenshot",
-                json={"screenshotKey": screenshot_key},
+            request = stash_indexer_pb2.UpdateLinkScreenshotRequest(
+                link_id=link_id, screenshot_key=screenshot_key
             )
-            response.raise_for_status()
-            
-            logger.info(
-                "Screenshot updated",
-                link_id=link_id,
-                screenshot_key=screenshot_key,
+            await self._stub.UpdateLinkScreenshot(
+                request, metadata=self._metadata, timeout=self._timeout
             )
-            
-        except Exception as e:
+            logger.info("Screenshot updated", link_id=link_id, screenshot_key=screenshot_key)
+        except grpc.RpcError as e:
             logger.error(
                 "Failed to update screenshot",
                 link_id=link_id,
-                error=str(e),
+                grpc_code=e.code(),
+                grpc_details=e.details(),
             )
             raise

@@ -19,9 +19,7 @@ import com.linkpouch.stash.api.model.*;
 import com.linkpouch.stash.domain.exception.ForbiddenException;
 import com.linkpouch.stash.domain.exception.NotFoundException;
 import com.linkpouch.stash.domain.exception.UnauthorizedException;
-import com.linkpouch.stash.domain.model.AiSummaryStatus;
 import com.linkpouch.stash.domain.model.Link;
-import com.linkpouch.stash.domain.model.LinkStatus;
 import com.linkpouch.stash.domain.model.Stash;
 import com.linkpouch.stash.domain.port.in.AddLinkCommand;
 import com.linkpouch.stash.domain.port.in.AddLinkUseCase;
@@ -41,15 +39,9 @@ import com.linkpouch.stash.domain.port.in.ReindexLinkUseCase;
 import com.linkpouch.stash.domain.port.in.ReorderLinksCommand;
 import com.linkpouch.stash.domain.port.in.ReorderLinksUseCase;
 import com.linkpouch.stash.domain.port.in.RequestScreenshotRefreshUseCase;
-import com.linkpouch.stash.domain.port.in.UpdateAiSummaryCommand;
-import com.linkpouch.stash.domain.port.in.UpdateAiSummaryUseCase;
-import com.linkpouch.stash.domain.port.in.UpdateLinkMetadataCommand;
-import com.linkpouch.stash.domain.port.in.UpdateLinkMetadataUseCase;
-import com.linkpouch.stash.domain.port.in.UpdateLinkScreenshotUseCase;
-import com.linkpouch.stash.domain.port.in.UpdateLinkStatusUseCase;
 import com.linkpouch.stash.domain.service.StashAccessClaims;
 import com.linkpouch.stash.infrastructure.adapter.web.interceptor.StashJwtInterceptor;
-import com.linkpouch.stash.infrastructure.adapter.web.mapper.ApiDtoMapper;
+import com.linkpouch.stash.infrastructure.adapter.web.mapper.LinkDtoMapper;
 
 import lombok.RequiredArgsConstructor;
 import software.amazon.awssdk.services.s3.S3Client;
@@ -60,23 +52,19 @@ import software.amazon.awssdk.services.s3.model.NoSuchKeyException;
 @RequiredArgsConstructor
 public class LinkController implements LinksApi {
 
-    private final UpdateAiSummaryUseCase updateAiSummaryUseCase;
     private final BatchReindexLinksUseCase batchReindexLinksUseCase;
     private final ReindexLinkUseCase reindexLinkUseCase;
     private final AddLinkUseCase addLinkUseCase;
     private final AddLinksBatchUseCase addLinksBatchUseCase;
     private final DeleteLinkUseCase deleteLinkUseCase;
     private final DeleteLinksBatchUseCase deleteLinksBatchUseCase;
-    private final UpdateLinkMetadataUseCase updateLinkMetadataUseCase;
-    private final UpdateLinkScreenshotUseCase updateLinkScreenshotUseCase;
-    private final UpdateLinkStatusUseCase updateLinkStatusUseCase;
     private final RequestScreenshotRefreshUseCase requestScreenshotRefreshUseCase;
     private final ReorderLinksUseCase reorderLinksUseCase;
     private final FindLinkByIdQuery findLinkByIdQuery;
     private final ListLinksQuery listLinksQuery;
     private final FindStashByIdQuery findStashByIdQuery;
     private final S3Client s3Client;
-    private final ApiDtoMapper mapper;
+    private final LinkDtoMapper mapper;
     private final HttpServletRequest httpRequest;
 
     @Value("${linkpouch.base-url:http://localhost:8080}")
@@ -84,9 +72,6 @@ public class LinkController implements LinksApi {
 
     @Value("${linkpouch.s3.bucket}")
     private String s3Bucket;
-
-    @Value("${linkpouch.indexer.callback-secret}")
-    private String indexerCallbackSecret;
 
     @Override
     public ResponseEntity<AddLinksBatchResponseDTO> addLinksBatch(
@@ -244,85 +229,6 @@ public class LinkController implements LinksApi {
         batchReindexLinksUseCase.execute(
                 new BatchReindexLinksCommand(stashId, List.copyOf(batchReindexLinksRequestDTO.getLinkIds())));
         return ResponseEntity.accepted().build();
-    }
-
-    @Override
-    public ResponseEntity<Void> updateLinkAiSummary(
-            final UUID linkId,
-            final String xIndexerSecret,
-            final com.linkpouch.stash.api.model.UpdateLinkAiSummaryRequestDTO dto) {
-        if (!indexerCallbackSecret.equals(xIndexerSecret)) {
-            throw new UnauthorizedException("Invalid indexer secret");
-        }
-        final AiSummaryStatus status =
-                "COMPLETED".equals(dto.getStatus().getValue()) ? AiSummaryStatus.COMPLETED : AiSummaryStatus.FAILED;
-        final String summary = dto.getSummary() != null && dto.getSummary().isPresent()
-                ? dto.getSummary().get()
-                : null;
-        final String model = dto.getModel() != null && dto.getModel().isPresent()
-                ? dto.getModel().get()
-                : null;
-        final Integer inputTokens =
-                dto.getInputTokens() != null && dto.getInputTokens().isPresent()
-                        ? dto.getInputTokens().get()
-                        : null;
-        final Integer outputTokens =
-                dto.getOutputTokens() != null && dto.getOutputTokens().isPresent()
-                        ? dto.getOutputTokens().get()
-                        : null;
-        final Integer elapsedMs =
-                dto.getElapsedMs() != null && dto.getElapsedMs().isPresent()
-                        ? dto.getElapsedMs().get()
-                        : null;
-
-        final var link =
-                findLinkByIdQuery.execute(linkId).orElseThrow(() -> new NotFoundException("Link not found: " + linkId));
-
-        updateAiSummaryUseCase.execute(new UpdateAiSummaryCommand(
-                linkId, link.getStashId(), summary, status, model, inputTokens, outputTokens, elapsedMs));
-        return ResponseEntity.noContent().build();
-    }
-
-    @Override
-    public ResponseEntity<LinkResponseDTO> updateLinkMetadata(
-            final UUID linkId, final String xIndexerSecret, final UpdateLinkMetadataRequestDTO dto) {
-        if (!indexerCallbackSecret.equals(xIndexerSecret)) {
-            throw new UnauthorizedException("Invalid indexer secret");
-        }
-        final var link = updateLinkMetadataUseCase.execute(new UpdateLinkMetadataCommand(
-                linkId,
-                dto.getTitle(),
-                dto.getDescription(),
-                dto.getFaviconUrl(),
-                dto.getPageContent(),
-                dto.getFinalUrl()));
-        return ResponseEntity.ok(toResponse(link));
-    }
-
-    @Override
-    public ResponseEntity<Void> updateLinkStatus(
-            final UUID linkId, final String xIndexerSecret, final UpdateLinkStatusRequestDTO dto) {
-        if (!indexerCallbackSecret.equals(xIndexerSecret)) {
-            throw new UnauthorizedException("Invalid indexer secret");
-        }
-        final LinkStatus status;
-        try {
-            status = LinkStatus.valueOf(dto.getStatus().getValue());
-        } catch (IllegalArgumentException e) {
-            throw new IllegalArgumentException("Invalid status value: " + dto.getStatus());
-        }
-        updateLinkStatusUseCase.execute(linkId, status);
-        return ResponseEntity.noContent().build();
-    }
-
-    @Override
-    public ResponseEntity<LinkResponseDTO> updateLinkScreenshot(
-            final UUID linkId, final String xIndexerSecret, final UpdateLinkScreenshotRequestDTO dto) {
-        if (!indexerCallbackSecret.equals(xIndexerSecret)) {
-            throw new UnauthorizedException("Invalid indexer secret");
-        }
-        final var link = updateLinkScreenshotUseCase.execute(linkId, dto.getScreenshotKey());
-        return ResponseEntity.ok(toResponse(link));
     }
 
     @Override

@@ -322,41 +322,6 @@ components:
         number:
           type: integer
 
-    UpdateLinkMetadataRequest:
-      type: object
-      properties:
-        title:
-          type: string
-        description:
-          type: string
-        faviconUrl:
-          type: string
-        pageContent:
-          type: string
-        finalUrl:
-          type: string
-
-    UpdateLinkStatusRequest:
-      type: object
-      required:
-        - status
-      properties:
-        status:
-          type: string
-          enum:
-            - PENDING
-            - INDEXED
-            - FAILED
-          description: New indexing status for the link
-
-    UpdateLinkScreenshotRequest:
-      type: object
-      required:
-        - screenshotKey
-      properties:
-        screenshotKey:
-          type: string
-
     ReorderLinksRequest:
       type: object
       required:
@@ -548,38 +513,6 @@ components:
           nullable: true
           description: Custom system prompt to use instead of the default
 
-    UpdateLinkAiSummaryRequest:
-      type: object
-      required:
-        - status
-      properties:
-        status:
-          type: string
-          enum:
-            - COMPLETED
-            - FAILED
-          description: AI summarization result status
-        summary:
-          type: string
-          nullable: true
-          description: AI-generated markdown summary (present when status is COMPLETED)
-        model:
-          type: string
-          nullable: true
-          description: Model identifier used to generate the summary
-        inputTokens:
-          type: integer
-          nullable: true
-          description: Number of input (prompt) tokens consumed
-        outputTokens:
-          type: integer
-          nullable: true
-          description: Number of output (completion) tokens generated
-        elapsedMs:
-          type: integer
-          nullable: true
-          description: Wall-clock time in milliseconds for the AI call
-
     AiModelInfo:
       type: object
       required: [id]
@@ -657,15 +590,6 @@ components:
         expiresIn:
           type: integer
           description: Ticket lifetime in seconds
-
-    AiCredentialsResponse:
-      type: object
-      required:
-        - apiKey
-      properties:
-        apiKey:
-          type: string
-          description: Decrypted AI API key for the account that owns this stash, or empty string if none configured
 
 paths:
   /stashes:
@@ -1415,182 +1339,6 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
-  /links/{linkId}/ai-summary:
-    parameters:
-      - name: linkId
-        in: path
-        required: true
-        schema:
-          type: string
-          format: uuid
-      - name: X-Indexer-Secret
-        in: header
-        required: true
-        schema:
-          type: string
-        description: Shared secret for internal indexer callback authentication
-
-    patch:
-      summary: Update link AI summary (internal indexer callback)
-      operationId: updateLinkAiSummary
-      tags:
-        - Links
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/UpdateLinkAiSummaryRequest'
-      responses:
-        '204':
-          description: AI summary updated
-        '401':
-          description: Invalid or missing indexer secret
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '404':
-          description: Link not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-
-  /links/{linkId}/metadata:
-    parameters:
-      - name: linkId
-        in: path
-        required: true
-        schema:
-          type: string
-          format: uuid
-      - name: X-Indexer-Secret
-        in: header
-        required: true
-        schema:
-          type: string
-        description: Shared secret for internal indexer callback authentication
-
-    patch:
-      summary: Update link metadata (internal indexer callback)
-      operationId: updateLinkMetadata
-      tags:
-        - Links
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/UpdateLinkMetadataRequest'
-      responses:
-        '200':
-          description: Link metadata updated
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/LinkResponse'
-        '401':
-          description: Invalid or missing indexer secret
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '404':
-          description: Link not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-
-  /links/{linkId}/status:
-    parameters:
-      - name: linkId
-        in: path
-        required: true
-        schema:
-          type: string
-          format: uuid
-      - name: X-Indexer-Secret
-        in: header
-        required: true
-        schema:
-          type: string
-        description: Shared secret for internal indexer callback authentication
-
-    patch:
-      summary: Update link indexing status (internal indexer callback)
-      operationId: updateLinkStatus
-      tags:
-        - Links
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/UpdateLinkStatusRequest'
-      responses:
-        '204':
-          description: Link status updated
-        '401':
-          description: Invalid or missing indexer secret
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '404':
-          description: Link not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-
-  /links/{linkId}/screenshot:
-    parameters:
-      - name: linkId
-        in: path
-        required: true
-        schema:
-          type: string
-          format: uuid
-      - name: X-Indexer-Secret
-        in: header
-        required: true
-        schema:
-          type: string
-        description: Shared secret for internal indexer callback authentication
-
-    patch:
-      summary: Update link screenshot key (internal indexer callback)
-      operationId: updateLinkScreenshot
-      tags:
-        - Links
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/UpdateLinkScreenshotRequest'
-      responses:
-        '200':
-          description: Link screenshot updated
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/LinkResponse'
-        '401':
-          description: Invalid or missing indexer secret
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '404':
-          description: Link not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-
   /account/me:
     get:
       summary: Get authenticated account profile
@@ -1917,43 +1665,6 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
         '401':
           description: Invalid or missing account token
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-
-  /stashes/{stashId}/ai-credentials:
-    parameters:
-      - name: stashId
-        in: path
-        required: true
-        schema:
-          type: string
-          format: uuid
-    get:
-      summary: Internal — fetch decrypted AI API key for a stash's account (indexer only)
-      description: >
-        Called by the indexer at processing time to retrieve the AI API key for the account
-        that owns the given stash. Requires the shared X-Indexer-Secret header.
-        This endpoint is blocked at the API gateway and only reachable from within the cluster.
-      operationId: getAiCredentials
-      tags:
-        - AccountAiSettings
-      parameters:
-        - name: X-Indexer-Secret
-          in: header
-          required: true
-          schema:
-            type: string
-      responses:
-        '200':
-          description: AI credentials for the account
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AiCredentialsResponse'
-        '401':
-          description: Invalid indexer secret
           content:
             application/json:
               schema:

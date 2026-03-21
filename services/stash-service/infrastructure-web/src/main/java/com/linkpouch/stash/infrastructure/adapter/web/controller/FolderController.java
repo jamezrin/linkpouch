@@ -29,7 +29,7 @@ import com.linkpouch.stash.domain.port.in.RenameFolderCommand;
 import com.linkpouch.stash.domain.port.in.RenameFolderUseCase;
 import com.linkpouch.stash.domain.service.StashAccessClaims;
 import com.linkpouch.stash.infrastructure.adapter.web.interceptor.StashJwtInterceptor;
-import com.linkpouch.stash.infrastructure.adapter.web.mapper.ApiDtoMapper;
+import com.linkpouch.stash.infrastructure.adapter.web.mapper.FolderDtoMapper;
 
 import lombok.RequiredArgsConstructor;
 
@@ -44,7 +44,7 @@ public class FolderController implements FoldersApi {
     private final ListFoldersQuery listFoldersQuery;
     private final MoveLinkToFolderUseCase moveLinkToFolderUseCase;
     private final FindStashByIdQuery findStashByIdQuery;
-    private final ApiDtoMapper mapper;
+    private final FolderDtoMapper mapper;
     private final HttpServletRequest httpRequest;
 
     @Override
@@ -54,7 +54,7 @@ public class FolderController implements FoldersApi {
                 .orElseThrow(() -> new NotFoundException("Stash not found: " + stashId));
 
         final List<Folder> folders = listFoldersQuery.execute(stashId);
-        return ResponseEntity.ok(mapper.mapOutFolders(folders));
+        return ResponseEntity.ok(mapper.mapOut(folders));
     }
 
     @Override

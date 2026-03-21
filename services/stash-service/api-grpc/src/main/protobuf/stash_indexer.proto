@@ -1,0 +1,69 @@
+syntax = "proto3";
+
+package com.linkpouch.stash.indexer.v1;
+
+option java_multiple_files = true;
+option java_package = "com.linkpouch.stash.grpc.indexer.v1";
+option java_outer_classname = "StashIndexerProto";
+
+import "google/protobuf/empty.proto";
+
+// Service for indexer-to-stash-service callbacks.
+// All RPCs require the "x-indexer-secret" metadata key.
+service IndexerCallbackService {
+    rpc UpdateLinkMetadata(UpdateLinkMetadataRequest) returns (google.protobuf.Empty);
+    rpc UpdateLinkStatus(UpdateLinkStatusRequest) returns (google.protobuf.Empty);
+    rpc UpdateLinkAiSummary(UpdateLinkAiSummaryRequest) returns (google.protobuf.Empty);
+    rpc UpdateLinkScreenshot(UpdateLinkScreenshotRequest) returns (google.protobuf.Empty);
+    rpc GetAiCredentials(GetAiCredentialsRequest) returns (GetAiCredentialsResponse);
+}
+
+message UpdateLinkMetadataRequest {
+    string link_id = 1;
+    optional string title = 2;
+    optional string description = 3;
+    optional string favicon_url = 4;
+    optional string page_content = 5;
+    optional string final_url = 6;
+}
+
+enum LinkStatus {
+    PENDING = 0;
+    INDEXED = 1;
+    FAILED = 2;
+}
+
+message UpdateLinkStatusRequest {
+    string link_id = 1;
+    LinkStatus status = 2;
+}
+
+enum AiSummaryStatus {
+    AI_COMPLETED = 0;
+    AI_FAILED = 1;
+}
+
+message UpdateLinkAiSummaryRequest {
+    string link_id = 1;
+    AiSummaryStatus status = 2;
+    optional string summary = 3;
+    optional string model = 4;
+    optional int32 input_tokens = 5;
+    optional int32 output_tokens = 6;
+    optional int32 elapsed_ms = 7;
+}
+
+message UpdateLinkScreenshotRequest {
+    string link_id = 1;
+    string screenshot_key = 2;
+}
+
+message GetAiCredentialsRequest {
+    string stash_id = 1;
+}
+
+message GetAiCredentialsResponse {
+    // Decrypted AI API key for the account that owns this stash,
+    // or empty string if none is configured.
+    string api_key = 1;
+}

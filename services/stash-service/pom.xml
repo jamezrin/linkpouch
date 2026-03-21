@@ -15,12 +15,14 @@
     
     <modules>
         <module>api-spec</module>
+        <module>api-grpc</module>
         <module>domain</module>
         <module>application</module>
         <module>infrastructure-persistence</module>
         <module>infrastructure-redis</module>
         <module>infrastructure-http</module>
         <module>infrastructure-web</module>
+        <module>infrastructure-grpc</module>
         <module>infrastructure-sse</module>
         <module>boot</module>
     </modules>
@@ -33,6 +35,12 @@
 
         <!-- Latest Spring Boot -->
         <spring-boot.version>3.4.3</spring-boot.version>
+        <!-- Spring gRPC -->
+        <spring-grpc.version>0.8.0</spring-grpc.version>
+        <!-- gRPC and Protobuf -->
+        <grpc.version>1.70.0</grpc.version>
+        <protobuf.version>4.29.3</protobuf.version>
+        <protobuf-maven-plugin.version>2.9.0</protobuf-maven-plugin.version>
         <!-- Latest jOOQ -->
         <jooq.version>3.19.14</jooq.version>
         <!-- Other dependencies -->
@@ -67,6 +75,15 @@
                 <scope>import</scope>
             </dependency>
 
+            <!-- Spring gRPC BOM -->
+            <dependency>
+                <groupId>org.springframework.grpc</groupId>
+                <artifactId>spring-grpc-dependencies</artifactId>
+                <version>${spring-grpc.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+
             <!-- AWS SDK v2 BOM -->
             <dependency>
                 <groupId>software.amazon.awssdk</groupId>
@@ -80,6 +97,11 @@
             <dependency>
                 <groupId>com.linkpouch</groupId>
                 <artifactId>api-spec</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.linkpouch</groupId>
+                <artifactId>api-grpc</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -115,6 +137,11 @@
             <dependency>
                 <groupId>com.linkpouch</groupId>
                 <artifactId>infrastructure-sse</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.linkpouch</groupId>
+                <artifactId>infrastructure-grpc</artifactId>
                 <version>${project.version}</version>
             </dependency>
         </dependencies>

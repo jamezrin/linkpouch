@@ -27,7 +27,7 @@ import com.linkpouch.stash.domain.service.StashAccessClaims;
 import com.linkpouch.stash.domain.service.StashSignatureService;
 import com.linkpouch.stash.domain.service.StashTokenService;
 import com.linkpouch.stash.infrastructure.adapter.web.interceptor.StashJwtInterceptor;
-import com.linkpouch.stash.infrastructure.adapter.web.mapper.ApiDtoMapper;
+import com.linkpouch.stash.infrastructure.adapter.web.mapper.StashDtoMapper;
 
 import lombok.RequiredArgsConstructor;
 
@@ -50,7 +50,7 @@ public class StashController implements StashesApi {
     private final AccountTokenService accountTokenService;
     private final StashSignatureService signatureService;
     private final StashTokenService tokenService;
-    private final ApiDtoMapper mapper;
+    private final StashDtoMapper mapper;
     private final SseTicketPort sseTicketPort;
     private final HttpServletRequest httpRequest;
 

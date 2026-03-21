@@ -8,7 +8,6 @@ import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
 
 import jakarta.servlet.http.HttpServletRequest;
 
@@ -21,7 +20,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import com.linkpouch.stash.api.controller.AccountAiSettingsApi;
-import com.linkpouch.stash.api.model.AiCredentialsResponseDTO;
 import com.linkpouch.stash.api.model.AiModelInfoDTO;
 import com.linkpouch.stash.api.model.AiModelsResponseDTO;
 import com.linkpouch.stash.api.model.AiSettingsResponseDTO;
@@ -33,7 +31,6 @@ import com.linkpouch.stash.domain.model.AiProvider;
 import com.linkpouch.stash.domain.port.in.GetAccountAiSettingsQuery;
 import com.linkpouch.stash.domain.port.in.UpsertAccountAiSettingsCommand;
 import com.linkpouch.stash.domain.port.in.UpsertAccountAiSettingsUseCase;
-import com.linkpouch.stash.domain.port.outbound.AccountRepository;
 import com.linkpouch.stash.domain.service.AccountClaims;
 import com.linkpouch.stash.infrastructure.adapter.web.interceptor.AccountJwtInterceptor;
 
@@ -47,15 +44,11 @@ public class AccountAiSettingsController implements AccountAiSettingsApi {
 
     private final GetAccountAiSettingsQuery getAccountAiSettingsQuery;
     private final UpsertAccountAiSettingsUseCase upsertAccountAiSettingsUseCase;
-    private final AccountRepository accountRepository;
     private final ObjectMapper objectMapper;
     private final HttpServletRequest httpRequest;
 
     @Value("${linkpouch.ai.included-api-key:}")
     private String includedApiKey;
-
-    @Value("${linkpouch.indexer.callback-secret}")
-    private String indexerCallbackSecret;
 
     @Override
     public ResponseEntity<AiSettingsResponseDTO> getAiSettings() {
@@ -90,31 +83,6 @@ public class AccountAiSettingsController implements AccountAiSettingsApi {
         final List<AiModelInfoDTO> models = fetchModels(aiProvider, xAiApiKey);
         final AiModelsResponseDTO response = new AiModelsResponseDTO().models(models);
         return ResponseEntity.ok(response);
-    }
-
-    /**
-     * Internal indexer callback: returns the decrypted AI API key for the account that owns the
-     * given stash. The API key is never stored in Redis Streams — the indexer fetches it here at
-     * processing time over HTTPS, so it is not at rest in any unencrypted store.
-     */
-    @Override
-    public ResponseEntity<AiCredentialsResponseDTO> getAiCredentials(final UUID stashId, final String xIndexerSecret) {
-        if (!indexerCallbackSecret.equals(xIndexerSecret)) {
-            throw new UnauthorizedException("Invalid indexer secret");
-        }
-        final Optional<UUID> accountIdOpt = accountRepository.findClaimerAccountId(stashId);
-        if (accountIdOpt.isEmpty()) {
-            return ResponseEntity.ok(new AiCredentialsResponseDTO(""));
-        }
-        final Optional<AccountAiSettings> settingsOpt = getAccountAiSettingsQuery.execute(accountIdOpt.get());
-        if (settingsOpt.isEmpty() || settingsOpt.get().getProvider() == AiProvider.NONE) {
-            return ResponseEntity.ok(new AiCredentialsResponseDTO(""));
-        }
-        final AccountAiSettings settings = settingsOpt.get();
-        final String apiKey = settings.getProvider() == AiProvider.OPENROUTER_INCLUDED
-                ? includedApiKey
-                : (settings.getApiKey() != null ? settings.getApiKey() : "");
-        return ResponseEntity.ok(new AiCredentialsResponseDTO(apiKey));
     }
 
     private List<AiModelInfoDTO> fetchModels(final AiProvider provider, final String apiKey) {
