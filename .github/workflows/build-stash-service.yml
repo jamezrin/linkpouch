@@ -58,7 +58,7 @@ jobs:
             --var db_url="postgres://linkpouch:linkpouch_secret@localhost:5432/linkpouch?search_path=public&sslmode=disable"
 
       - name: Set up JDK 21
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           java-version: '21'
           distribution: 'temurin'
