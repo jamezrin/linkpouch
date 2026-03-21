@@ -76,6 +76,10 @@ public class LinkStatusSseAdapter implements LinkStatusBroadcaster {
         payload.put("updatedAt", formatDateTime(link.getUpdatedAt()));
         payload.put("position", link.getPosition());
         payload.put("status", link.getStatus() != null ? link.getStatus().name() : "PENDING");
+        payload.put("aiSummary", link.getAiSummary());
+        payload.put(
+                "aiSummaryStatus",
+                link.getAiSummaryStatus() != null ? link.getAiSummaryStatus().name() : "PENDING");
 
         return payload;
     }

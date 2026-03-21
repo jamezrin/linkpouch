@@ -35,4 +35,7 @@ public interface AccountRepository {
 
     /** Returns the account ID that has claimed this stash, if any. */
     Optional<UUID> findClaimerAccountId(UUID stashId);
+
+    /** Returns the account IDs that have claimed this stash, ordered by claimed_at ASC. */
+    List<UUID> findAccountIdsByStashId(UUID stashId);
 }

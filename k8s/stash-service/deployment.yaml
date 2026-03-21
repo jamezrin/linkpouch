@@ -51,6 +51,8 @@ spec:
         ports:
         - containerPort: 8080
           name: http
+        - containerPort: 9090
+          name: grpc
         env:
         - name: POSTGRES_HOST
           value: postgres-rw.postgres
@@ -137,6 +139,16 @@ spec:
             secretKeyRef:
               name: stash-service-secret
               key: TWITTER_CLIENT_SECRET
+        - name: AI_ENCRYPTION_KEY
+          valueFrom:
+            secretKeyRef:
+              name: stash-service-secret
+              key: AI_ENCRYPTION_KEY
+        - name: AI_INCLUDED_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: stash-service-secret
+              key: AI_INCLUDED_API_KEY
         resources:
           requests:
             memory: "512Mi"

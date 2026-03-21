@@ -9,9 +9,9 @@ import org.springframework.security.oauth2.client.web.DefaultOAuth2Authorization
 import org.springframework.security.oauth2.client.web.OAuth2AuthorizationRequestCustomizers;
 import org.springframework.security.web.SecurityFilterChain;
 
-import com.linkpouch.stash.infrastructure.adapter.web.HttpCookieOAuth2AuthorizationRequestRepository;
-import com.linkpouch.stash.infrastructure.adapter.web.OAuth2AuthenticationFailureHandler;
-import com.linkpouch.stash.infrastructure.adapter.web.OAuth2AuthenticationSuccessHandler;
+import com.linkpouch.stash.infrastructure.adapter.web.oauth2.HttpCookieOAuth2AuthorizationRequestRepository;
+import com.linkpouch.stash.infrastructure.adapter.web.oauth2.OAuth2AuthenticationFailureHandler;
+import com.linkpouch.stash.infrastructure.adapter.web.oauth2.OAuth2AuthenticationSuccessHandler;
 
 import lombok.RequiredArgsConstructor;
 

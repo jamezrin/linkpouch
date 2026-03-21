@@ -37,10 +37,12 @@ import { accountApi } from '../services/accountApi';
 import SignInModal from '../components/SignInModal';
 import { FolderTreePane } from '../components/FolderTreePane';
 import { LinkItem as LinkItemComponent } from '../components/LinkItem';
+import { AiSummaryPane } from '../components/AiSummaryPane';
+import { AiSettingsModal } from '../components/AiSettingsModal';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type PreviewMode = 'live' | 'archive';
+type PreviewMode = 'live' | 'archive' | 'ai-summary';
 
 // ─── Icons ───────────────────────────────────────────────────────────────────
 
@@ -224,10 +226,16 @@ export default function StashAccessPage() {
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [newLinkUrl, setNewLinkUrl] = useState('');
   const [urlError, setUrlError] = useState<string | null>(null);
+  const [reindexError, setReindexError] = useState<string | null>(null);
   const [bulkImportOpen, setBulkImportOpen] = useState(false);
   const [links, setLinks] = useState<LinkType[]>([]);
   const [screenshotModalOpen, setScreenshotModalOpen] = useState(false);
-  const [previewMode, setPreviewMode] = useState<PreviewMode>('live');
+  const [previewMode, setPreviewMode] = useState<PreviewMode>(
+    () => (localStorage.getItem('preferredPreviewMode') as PreviewMode) ?? 'live',
+  );
+  const [userChoseTab, setUserChoseTab] = useState(false);
+  const prevAiSummaryStatusRef = useRef<string | null | undefined>(undefined);
+  const [aiSettingsOpen, setAiSettingsOpen] = useState(false);
   const [liveLoading, setLiveLoading] = useState(false);
   const [archiveLoading, setArchiveLoading] = useState(false);
   const [showArchiveSuggestion, setShowArchiveSuggestion] = useState(false);
@@ -279,7 +287,10 @@ export default function StashAccessPage() {
   useStashEvents({
     stashId,
     accessToken,
-    onLinkUpdated: () => {
+    onLinkUpdated: (updatedLink) => {
+      // Apply the SSE payload immediately so the UI reflects the change without waiting for a re-fetch
+      setLinks((prev) => prev.map((l) => (l.id === updatedLink.id ? updatedLink : l)));
+      // Also schedule a debounced invalidation for eventual consistency
       if (sseInvalidateTimerRef.current) clearTimeout(sseInvalidateTimerRef.current);
       sseInvalidateTimerRef.current = setTimeout(() => {
         sseInvalidateTimerRef.current = null;
@@ -605,14 +616,17 @@ export default function StashAccessPage() {
   // Reset preview state when a different link is selected
   useEffect(() => {
     setScreenshotModalOpen(false);
-    setPreviewMode('live');
+    const savedMode = (localStorage.getItem('preferredPreviewMode') as PreviewMode) ?? 'live';
+    setPreviewMode(savedMode);
+    setUserChoseTab(savedMode !== 'live');
     setLiveLoading(true);
-    setArchiveLoading(false);
+    setArchiveLoading(savedMode === 'archive');
     setShowArchiveSuggestion(false);
     setLiveFailed(false);
     setSelectedArchiveTimestamp(null);
+    setReindexError(null);
     if (blockTimerRef.current) clearTimeout(blockTimerRef.current);
-    if (activeLinkId) {
+    if (activeLinkId && savedMode === 'live') {
       blockTimerRef.current = setTimeout(() => setShowArchiveSuggestion(true), 6000);
     }
     return () => {
@@ -628,6 +642,18 @@ export default function StashAccessPage() {
     () => (activeLinkId ? (links.find((l) => l.id === activeLinkId) ?? activeLinkData) : null),
     [links, activeLinkId, activeLinkData]
   );
+
+  // Auto-switch to AI Summary tab only on the GENERATING→COMPLETED transition.
+  // Checking the previous status avoids switching back when the user has already
+  // chosen a different tab and the component re-renders with an already-completed link.
+  useEffect(() => {
+    const prev = prevAiSummaryStatusRef.current;
+    const current = activeLink?.aiSummaryStatus;
+    prevAiSummaryStatusRef.current = current;
+    if (prev === 'GENERATING' && current === 'COMPLETED' && !userChoseTab) {
+      setPreviewMode('ai-summary');
+    }
+  }, [activeLink?.aiSummaryStatus, activeLinkId, userChoseTab]);
 
   const getScreenshotSrc = (link: LinkType | null) => {
     if (!link?.screenshotUrl || !accessToken) return null;
@@ -646,10 +672,8 @@ export default function StashAccessPage() {
         if (cancelled) return;
         if (!data.embeddable) {
           setLiveFailed(true);
-          setPreviewMode('archive');
-          setArchiveLoading(true);
-          setShowArchiveSuggestion(false);
           setLiveLoading(false);
+          setShowArchiveSuggestion(false);
         }
       })
       .catch(() => {
@@ -658,7 +682,7 @@ export default function StashAccessPage() {
     return () => {
       cancelled = true;
     };
-  }, [activeLink]);
+  }, [activeLink?.id, activeLink?.url]);
 
   // Debounce search query to avoid an API call on every keypress
   useEffect(() => {
@@ -820,17 +844,25 @@ export default function StashAccessPage() {
     },
   });
 
-  const refreshScreenshotMutation = useMutation({
-    mutationFn: (linkId: string) => linkApi.putLinkScreenshot(stashId!, accessToken!, linkId),
+  const reindexLinkMutation = useMutation({
+    mutationFn: (linkId: string) => linkApi.reindexLink(stashId!, accessToken!, linkId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['links', stashId] });
+      setReindexError(null);
+    },
+    onError: () => {
+      setReindexError('Failed to reindex link. Please try again.');
     },
   });
 
-  const batchRefreshScreenshotMutation = useMutation({
-    mutationFn: (ids: string[]) => linkApi.putBatchLinkScreenshot(stashId!, accessToken!, ids),
+  const batchReindexLinksMutation = useMutation({
+    mutationFn: (ids: string[]) => linkApi.batchReindexLinks(stashId!, accessToken!, ids),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['links', stashId] });
+      setReindexError(null);
+    },
+    onError: () => {
+      setReindexError('Failed to reindex links. Please try again.');
     },
   });
 
@@ -944,8 +976,8 @@ export default function StashAccessPage() {
   }, [selectedLinkIds, batchDeleteMutation]);
 
   const handleBatchRefresh = () => {
-    if (!confirm(`Refresh screenshots for ${selectedLinkIds.size} selected link${selectedLinkIds.size > 1 ? 's' : ''}?`)) return;
-    batchRefreshScreenshotMutation.mutate(Array.from(selectedLinkIds));
+    if (!confirm(`Reindex ${selectedLinkIds.size} selected link${selectedLinkIds.size > 1 ? 's' : ''}?`)) return;
+    batchReindexLinksMutation.mutate(Array.from(selectedLinkIds));
   };
 
   const handleLiveLoad = useCallback(() => {
@@ -961,7 +993,9 @@ export default function StashAccessPage() {
       clearTimeout(blockTimerRef.current);
       blockTimerRef.current = null;
     }
+    localStorage.setItem('preferredPreviewMode', 'archive');
     setPreviewMode('archive');
+    setUserChoseTab(true);
     setArchiveLoading(true);
     setShowArchiveSuggestion(false);
   }, []);
@@ -971,7 +1005,9 @@ export default function StashAccessPage() {
       clearTimeout(blockTimerRef.current);
       blockTimerRef.current = null;
     }
+    localStorage.setItem('preferredPreviewMode', 'live');
     setPreviewMode('live');
+    setUserChoseTab(true);
     setLiveLoading(true);
     setShowArchiveSuggestion(false);
     blockTimerRef.current = setTimeout(() => setShowArchiveSuggestion(true), 6000);
@@ -1278,11 +1314,11 @@ export default function StashAccessPage() {
             </button>
           )}
 
-          {/* Refresh screenshots */}
+          {/* Reindex links */}
           <button
             onClick={handleBatchRefresh}
-            disabled={selectedLinkIds.size === 0 || batchRefreshScreenshotMutation.isPending || !canWrite}
-            title="Refresh screenshots"
+            disabled={selectedLinkIds.size === 0 || batchReindexLinksMutation.isPending || !canWrite}
+            title="Reindex links"
             className="p-1.5 text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700 rounded transition-colors disabled:opacity-30"
           >
             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1330,6 +1366,10 @@ export default function StashAccessPage() {
           </button>
 
         </div>
+
+        {batchReindexLinksMutation.isError && reindexError && (
+          <p className="px-3 py-1 text-[11px] text-red-400 border-b border-slate-200/70 dark:border-slate-800/70">{reindexError}</p>
+        )}
 
         {/* Search */}
         <div id="lp-search-bar" className="flex items-center gap-2 px-3 py-2 border-b border-slate-200/70 dark:border-slate-800/70">
@@ -1600,12 +1640,11 @@ export default function StashAccessPage() {
                 </div>
               )}
 
-              {/* Live / Archive toggle — desktop only (shown in row 2 on mobile) */}
+              {/* Live / Archive / AI Summary toggle — desktop only (shown in row 2 on mobile) */}
               <div id="lp-live-archive-toggle" className="hidden md:flex text-[11px] font-medium flex-shrink-0">
                 <button
                   onClick={switchToLive}
-                  disabled={liveFailed}
-                  className={`px-2.5 py-1 rounded-l-md border border-slate-200 dark:border-slate-700 border-r-0 transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
+                  className={`px-2.5 py-1 rounded-l-md border border-slate-200 dark:border-slate-700 border-r-0 transition-colors ${
                     previewMode === 'live'
                       ? 'bg-indigo-600 text-white'
                       : 'bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'
@@ -1621,7 +1660,7 @@ export default function StashAccessPage() {
                     setArchiveLoading(true);
                   }}
                   nullLabel={previewMode === 'archive' ? 'Latest' : 'Archive'}
-                  triggerClassName={`px-2.5 py-1 rounded-r-md border border-slate-200 dark:border-slate-700 transition-colors flex items-center gap-1 ${
+                  triggerClassName={`px-2.5 py-1 border border-slate-200 dark:border-slate-700 border-r-0 transition-colors flex items-center gap-1 ${
                     previewMode === 'archive'
                       ? 'bg-indigo-600 text-white'
                       : 'bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'
@@ -1631,6 +1670,20 @@ export default function StashAccessPage() {
                   }}
                   fetchEnabled={previewMode === 'archive'}
                 />
+                <button
+                  onClick={() => { localStorage.setItem('preferredPreviewMode', 'ai-summary'); setPreviewMode('ai-summary'); setUserChoseTab(true); }}
+                  className={`px-2.5 py-1 rounded-r-md border border-slate-200 dark:border-slate-700 transition-colors flex items-center gap-1 ${
+                    previewMode === 'ai-summary'
+                      ? 'bg-indigo-600 text-white'
+                      : 'bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'
+                  }`}
+                >
+                  AI Summary
+                  {activeLink.aiSummaryStatus === 'GENERATING'
+                    ? <span className="inline-block w-2.5 h-2.5 border border-current border-t-transparent rounded-full animate-spin" />
+                    : <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full leading-none tracking-wide ${previewMode === 'ai-summary' ? 'bg-white/25 text-white' : 'bg-indigo-500 text-white'}`}>BETA</span>
+                  }
+                </button>
               </div>
 
               {/* Screenshot thumbnail — desktop only (shown in row 2 on mobile) */}
@@ -1651,16 +1704,18 @@ export default function StashAccessPage() {
                   <div className="w-16 h-8 rounded border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-700 animate-pulse" />
                 ) : (
                   <button
-                    onClick={() => refreshScreenshotMutation.mutate(activeLink.id)}
-                    disabled={refreshScreenshotMutation.isPending || !canWrite}
+                    onClick={() => reindexLinkMutation.mutate(activeLink.id)}
+                    disabled={reindexLinkMutation.isPending || !canWrite}
                     title={
-                      refreshScreenshotMutation.isPending
-                        ? 'Generating screenshot…'
-                        : 'Generate screenshot'
+                      reindexLinkMutation.isPending
+                        ? 'Reindexing…'
+                        : reindexLinkMutation.isError
+                        ? reindexError ?? 'Reindex failed'
+                        : 'Reindex link'
                     }
                     className="w-16 h-8 rounded border border-dashed border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 hover:border-slate-300 dark:hover:border-slate-500 transition-colors flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    {refreshScreenshotMutation.isPending ? (
+                    {reindexLinkMutation.isPending ? (
                       <svg
                         className="w-3 h-3 text-slate-400 animate-spin"
                         fill="none"
@@ -1713,12 +1768,11 @@ export default function StashAccessPage() {
                     </button>
                   </div>
                 )}
-                {/* Live / Archive toggle */}
+                {/* Live / Archive / AI Summary toggle */}
                 <div className="flex text-[11px] font-medium flex-shrink-0">
                   <button
                     onClick={switchToLive}
-                    disabled={liveFailed}
-                    className={`px-2.5 py-1 rounded-l-md border border-slate-200 dark:border-slate-700 border-r-0 transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
+                    className={`px-2.5 py-1 rounded-l-md border border-slate-200 dark:border-slate-700 border-r-0 transition-colors ${
                       previewMode === 'live'
                         ? 'bg-indigo-600 text-white'
                         : 'bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'
@@ -1731,7 +1785,7 @@ export default function StashAccessPage() {
                     selectedTimestamp={previewMode === 'archive' ? selectedArchiveTimestamp : null}
                     onSelect={(ts) => { setSelectedArchiveTimestamp(ts); setArchiveLoading(true); }}
                     nullLabel={previewMode === 'archive' ? 'Latest' : 'Archive'}
-                    triggerClassName={`px-2.5 py-1 rounded-r-md border border-slate-200 dark:border-slate-700 transition-colors flex items-center gap-1 ${
+                    triggerClassName={`px-2.5 py-1 border border-slate-200 dark:border-slate-700 border-r-0 transition-colors flex items-center gap-1 ${
                       previewMode === 'archive'
                         ? 'bg-indigo-600 text-white'
                         : 'bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'
@@ -1739,6 +1793,20 @@ export default function StashAccessPage() {
                     onOpen={() => { if (previewMode !== 'archive') switchToArchive(); }}
                     fetchEnabled={previewMode === 'archive'}
                   />
+                  <button
+                    onClick={() => { localStorage.setItem('preferredPreviewMode', 'ai-summary'); setPreviewMode('ai-summary'); setUserChoseTab(true); }}
+                    className={`px-2.5 py-1 rounded-r-md border border-slate-200 dark:border-slate-700 transition-colors flex items-center gap-1 ${
+                      previewMode === 'ai-summary'
+                        ? 'bg-indigo-600 text-white'
+                        : 'bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'
+                    }`}
+                  >
+                    AI
+                    {activeLink.aiSummaryStatus === 'GENERATING'
+                      ? <span className="inline-block w-2 h-2 border border-current border-t-transparent rounded-full animate-spin" />
+                      : <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full leading-none tracking-wide ${previewMode === 'ai-summary' ? 'bg-white/25 text-white' : 'bg-indigo-500 text-white'}`}>BETA</span>
+                    }
+                  </button>
                 </div>
                 <div className="flex-1" />
                 {/* Screenshot thumbnail */}
@@ -1755,12 +1823,12 @@ export default function StashAccessPage() {
                     <div className="w-14 h-7 rounded border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-700 animate-pulse" />
                   ) : (
                     <button
-                      onClick={() => refreshScreenshotMutation.mutate(activeLink.id)}
-                      disabled={refreshScreenshotMutation.isPending || !canWrite}
-                      title={refreshScreenshotMutation.isPending ? 'Generating screenshot…' : 'Generate screenshot'}
+                      onClick={() => reindexLinkMutation.mutate(activeLink.id)}
+                      disabled={reindexLinkMutation.isPending || !canWrite}
+                      title={reindexLinkMutation.isPending ? 'Reindexing…' : reindexLinkMutation.isError ? reindexError ?? 'Reindex failed' : 'Reindex link'}
                       className="w-14 h-7 rounded border border-dashed border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors flex items-center justify-center disabled:opacity-50"
                     >
-                      {refreshScreenshotMutation.isPending ? (
+                      {reindexLinkMutation.isPending ? (
                         <svg className="w-3 h-3 text-slate-400 animate-spin" fill="none" viewBox="0 0 24 24">
                           <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                           <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4l3-3-3-3v4a8 8 0 00-8 8h4z" />
@@ -1776,37 +1844,65 @@ export default function StashAccessPage() {
               </div>{/* end Row 2 */}
             </div>{/* end header outer wrapper */}
 
-            {/* iframe area */}
+            {/* iframe / AI summary area */}
             <div id="lp-preview-iframe" className="flex-1 overflow-hidden relative">
-              {previewMode === 'live' ? (
+              {previewMode === 'ai-summary' ? (
+                <AiSummaryPane
+                  link={activeLink}
+                  onOpenSettings={() => setAiSettingsOpen(true)}
+                />
+              ) : previewMode === 'live' ? (
                 <>
-                  {liveLoading && (
-                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-900 z-10">
-                      <div className="w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
-                      <p className="text-slate-500 dark:text-slate-400 text-sm mt-3">Loading website…</p>
+                  {liveFailed ? (
+                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-900 px-6 text-center">
+                      <svg className="w-10 h-10 text-slate-300 dark:text-slate-600 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                      </svg>
+                      <p className="text-sm font-medium text-slate-700 dark:text-slate-200 mb-1">This website can't be embedded</p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 max-w-xs mb-4">
+                        The site blocked embedding via iframe. There's nothing we can do about that — but you can still view a snapshot or read the AI summary.
+                      </p>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={switchToArchive}
+                          className="px-3 py-1.5 text-xs font-medium rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+                        >
+                          View archive snapshot
+                        </button>
+                        <button
+                          onClick={() => { localStorage.setItem('preferredPreviewMode', 'ai-summary'); setPreviewMode('ai-summary'); setUserChoseTab(true); }}
+                          className="px-3 py-1.5 text-xs font-medium rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white transition-colors"
+                        >
+                          Read AI summary
+                        </button>
+                      </div>
                     </div>
+                  ) : (
+                    <>
+                      {liveLoading && (
+                        <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-900 z-10">
+                          <div className="w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+                          <p className="text-slate-500 dark:text-slate-400 text-sm mt-3">Loading website…</p>
+                        </div>
+                      )}
+                      <iframe
+                        ref={liveIframeRef}
+                        key={`live-${activeLink.id}`}
+                        src={activeLink.url}
+                        title={`Live preview: ${activeLink.title || activeLink.url}`}
+                        className="w-full h-full border-0"
+                        sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox"
+                        onLoad={handleLiveLoad}
+                      />
+                    </>
                   )}
-                  <iframe
-                    ref={liveIframeRef}
-                    key={`live-${activeLink.id}`}
-                    src={activeLink.url}
-                    title={`Live preview: ${activeLink.title || activeLink.url}`}
-                    className="w-full h-full border-0"
-                    sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox"
-                    onLoad={handleLiveLoad}
-                  />
                 </>
               ) : (
                 <>
                   {archiveLoading && (
                     <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-900 z-10">
                       <div className="w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
-                      {liveFailed && (
-                        <p className="text-amber-600 text-xs mt-3">
-                          Live preview couldn't load — switching to archive
-                        </p>
-                      )}
-                      <p className={`text-slate-500 dark:text-slate-400 text-sm ${liveFailed ? 'mt-1' : 'mt-3'}`}>
+                      <p className="text-slate-500 dark:text-slate-400 text-sm mt-3">
                         Loading archive…
                       </p>
                       <a
@@ -1932,6 +2028,10 @@ export default function StashAccessPage() {
     </div>
 
     {signInOpen && <SignInModal onClose={() => setSignInOpen(false)} />}
+
+    {aiSettingsOpen && accountToken && (
+      <AiSettingsModal accountToken={accountToken} onClose={() => setAiSettingsOpen(false)} />
+    )}
 
     {bulkImportOpen && stashId && accessToken && (
       <BulkImportModal

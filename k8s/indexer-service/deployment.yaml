@@ -53,8 +53,10 @@ spec:
               key: indexer-secret-key
         - name: S3_BUCKET
           value: linkpouch-screenshots
-        - name: STASH_SERVICE_URL
-          value: http://stash-service:8080
+        - name: STASH_SERVICE_GRPC_HOST
+          value: stash-service
+        - name: STASH_SERVICE_GRPC_PORT
+          value: "9090"
         - name: INDEXER_CALLBACK_SECRET
           valueFrom:
             secretKeyRef:

@@ -8,6 +8,7 @@ import structlog
 from redis.asyncio import Redis
 
 from src.config.settings import Settings
+from src.services.ai_client import get_provider
 from src.services.scraper import LinkScraper
 from src.services.stash_client import StashServiceClient
 from src.services.storage_service import ScreenshotStorageService
@@ -40,10 +41,7 @@ class RedisStreamConsumer:
         )
         self._running = True
         
-        # Create consumer group if not exists
         await self._create_consumer_groups()
-        
-        # Start consuming
         await self._consume()
     
     async def stop(self) -> None:
@@ -60,6 +58,7 @@ class RedisStreamConsumer:
         streams = [
             self.settings.link_stream_key,
             self.settings.screenshot_stream_key,
+            self.settings.ai_summary_stream_key,
         ]
         
         for stream in streams:
@@ -82,6 +81,7 @@ class RedisStreamConsumer:
         streams = {
             self.settings.link_stream_key: self._handle_link_event,
             self.settings.screenshot_stream_key: self._handle_screenshot_event,
+            self.settings.ai_summary_stream_key: self._handle_ai_summary_event,
         }
         # Tracks the XAUTOCLAIM cursor per stream (start from oldest pending on boot)
         autoclaim_cursors: dict[str, str] = {key: "0-0" for key in streams}
@@ -106,8 +106,7 @@ class RedisStreamConsumer:
                     if claimed_msgs:
                         for msg_id, msg_data in claimed_msgs:
                             await self._process_message(stream_key, msg_id, msg_data, handler)
-                    # Reset cursor to "0-0" when we've swept through all pending entries
-                    autoclaim_cursors[stream_key] = next_cursor if next_cursor != "0-0" else "0-0"
+                    autoclaim_cursors[stream_key] = next_cursor
 
                     # 2. Read new (undelivered) messages
                     messages = await self.redis.xreadgroup(  # type: ignore
@@ -227,6 +226,107 @@ class RedisStreamConsumer:
                     )
                     raise e
     
+    async def _handle_ai_summary_event(self, data: dict) -> None:
+        """Handle ai.summary.requested event."""
+        event_type = data.get("eventType")
+        link_id = data.get("linkId")
+        provider = data.get("provider")
+
+        logger.info(
+            "Handling AI summary event",
+            event_type=event_type,
+            link_id=link_id,
+            provider=provider,
+        )
+
+        if event_type != "ai.summary.requested":
+            logger.warning("Unexpected event type in AI summary stream", event_type=event_type)
+            return
+
+        stash_id = data.get("stashId")
+        if not link_id or not provider or not stash_id:
+            logger.warning(
+                "Missing linkId, stashId, or provider in AI summary event",
+                link_id=link_id,
+                stash_id=stash_id,
+            )
+            return
+
+        model = data.get("model", "")
+        system_prompt = data.get("systemPrompt", "")
+        page_content = data.get("pageContent", "")
+
+        logger.info(
+            "AI summary request details",
+            link_id=link_id,
+            provider=provider,
+            model=model,
+            has_custom_prompt=bool(system_prompt),
+            page_content_length=len(page_content),
+        )
+
+        # Fetch credentials at processing time — the API key is never stored in the stream
+        api_key = await self.stash_client.get_ai_credentials(stash_id)
+        if not api_key:
+            logger.warning("No AI credentials available for stash", stash_id=stash_id, link_id=link_id)
+            await self.stash_client.update_ai_summary(link_id=link_id, status="FAILED", summary=None)
+            return
+
+        try:
+            result = await get_provider(provider).generate_summary(
+                api_key=api_key,
+                model=model,
+                system_prompt=system_prompt,
+                page_content=page_content,
+            )
+            confirmed_model = result.get("model", model)
+            input_tokens = result.get("input_tokens")
+            output_tokens = result.get("output_tokens")
+            elapsed_ms = result.get("elapsed_ms")
+            summary = result["summary"]
+            await self.stash_client.update_ai_summary(
+                link_id=link_id,
+                status="COMPLETED",
+                summary=summary,
+                model=confirmed_model,
+                input_tokens=input_tokens,
+                output_tokens=output_tokens,
+                elapsed_ms=elapsed_ms,
+            )
+            logger.info(
+                "AI summary generated successfully",
+                link_id=link_id,
+                provider=provider,
+                model=confirmed_model,
+                input_tokens=input_tokens,
+                output_tokens=output_tokens,
+                elapsed_ms=elapsed_ms,
+                summary_length=len(summary),
+            )
+        except Exception as e:
+            logger.error(
+                "AI summary generation failed",
+                link_id=link_id,
+                provider=provider,
+                model=model,
+                error=str(e),
+                exc_info=True,
+            )
+            try:
+                await self.stash_client.update_ai_summary(
+                    link_id=link_id,
+                    status="FAILED",
+                    summary=None,
+                )
+            except Exception as cb_err:
+                logger.error(
+                    "Failed to send FAILED callback for AI summary",
+                    link_id=link_id,
+                    error=str(cb_err),
+                )
+            # Do not re-raise — ACK the message so it is not retried indefinitely.
+            # The user can trigger a fresh attempt via the Revisit button.
+
     async def _handle_screenshot_event(self, data: dict) -> None:
         """Handle screenshot.refresh.requested event."""
         event_type = data.get("eventType")
@@ -252,14 +352,12 @@ class RedisStreamConsumer:
                     stash_id=stash_id,
                 )
                 return
-            # Regenerate screenshot
             screenshot = await self.scraper.take_screenshot(url, stash_id, link_id)
             logger.info(
                 "Screenshot refreshed",
                 link_id=link_id,
                 screenshot_key=screenshot.get("key"),
             )
-            # Notify stash service about new screenshot
             if screenshot.get("key"):
                 await self.stash_client.update_screenshot(
                     link_id=link_id,

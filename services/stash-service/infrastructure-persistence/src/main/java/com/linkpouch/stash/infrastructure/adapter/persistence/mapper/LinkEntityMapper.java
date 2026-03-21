@@ -27,6 +27,12 @@ public interface LinkEntityMapper {
     @Mapping(target = "position", source = "position")
     @Mapping(target = "folderId", source = "folderId")
     @Mapping(target = "status", source = "status")
+    @Mapping(target = "aiSummary", source = "aiSummary")
+    @Mapping(target = "aiSummaryStatus", source = "aiSummaryStatus")
+    @Mapping(target = "aiSummaryModel", source = "aiSummaryModel")
+    @Mapping(target = "aiSummaryInputTokens", source = "aiSummaryInputTokens")
+    @Mapping(target = "aiSummaryOutputTokens", source = "aiSummaryOutputTokens")
+    @Mapping(target = "aiSummaryElapsedMs", source = "aiSummaryElapsedMs")
     Link mapIn(LinkJpaEntity entity);
 
     List<Link> mapIn(List<LinkJpaEntity> entities);
@@ -46,6 +52,12 @@ public interface LinkEntityMapper {
     @Mapping(target = "position", source = "position")
     @Mapping(target = "folderId", source = "folderId")
     @Mapping(target = "status", source = "status")
+    @Mapping(target = "aiSummary", source = "aiSummary")
+    @Mapping(target = "aiSummaryStatus", source = "aiSummaryStatus")
+    @Mapping(target = "aiSummaryModel", source = "aiSummaryModel")
+    @Mapping(target = "aiSummaryInputTokens", source = "aiSummaryInputTokens")
+    @Mapping(target = "aiSummaryOutputTokens", source = "aiSummaryOutputTokens")
+    @Mapping(target = "aiSummaryElapsedMs", source = "aiSummaryElapsedMs")
     LinkJpaEntity mapOut(Link link);
 
     @Mapping(target = "id", ignore = true)
@@ -63,5 +75,11 @@ public interface LinkEntityMapper {
     @Mapping(target = "position", source = "position")
     @Mapping(target = "folderId", source = "folderId")
     @Mapping(target = "status", source = "status")
+    @Mapping(target = "aiSummary", source = "aiSummary")
+    @Mapping(target = "aiSummaryStatus", source = "aiSummaryStatus")
+    @Mapping(target = "aiSummaryModel", source = "aiSummaryModel")
+    @Mapping(target = "aiSummaryInputTokens", source = "aiSummaryInputTokens")
+    @Mapping(target = "aiSummaryOutputTokens", source = "aiSummaryOutputTokens")
+    @Mapping(target = "aiSummaryElapsedMs", source = "aiSummaryElapsedMs")
     void updateEntity(Link link, @MappingTarget LinkJpaEntity entity);
 }

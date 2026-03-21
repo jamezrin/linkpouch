@@ -1,16 +1,21 @@
 # Linkpouch
 
-A modern link bookmarking application with anonymous stashes, full-text search, and page previews.
+A modern link bookmarking application with anonymous stashes, full-text search, page previews, and AI-generated summaries.
 
 ## Features
 
 - **Anonymous stashes** — Create a private bookmark collection without an account. Access is controlled by a signed URL (HMAC-SHA256); no login required.
 - **Full-text search** — PostgreSQL FTS with weighted `tsvector` (title/description/URL/content) and trigram fallback for substring matches.
 - **Async metadata & screenshots** — Playwright-based scraper extracts page title, description, favicon, and takes screenshots in the background via Redis Streams.
+- **AI Summary** — Every link gets an AI-generated structured summary (key takeaways, main content, notable details). Supports OpenRouter (free built-in tier + BYOK), OpenAI, Anthropic, and OpenCode. API keys are encrypted at rest with AES-256-GCM.
+- **Three preview modes** — Switch between Live iframe, Archive snapshot (Wayback Machine), and AI Summary via a tab bar. Mode preference is remembered across links.
+- **Folders** — Organise links into nested folders; create, rename, move, and delete from the sidebar. Bulk import supports folder targeting.
+- **Revisit** — Re-fetches the screenshot and refreshes the AI summary for a link in one click.
 - **Drag-and-drop reordering** — Reorder links with `@dnd-kit`; supports multi-select group dragging.
-- **Live preview panel** — Renders the linked page in a sandboxed iframe. Falls back automatically to Wayback Machine if the site blocks embedding (X-Frame-Options / CSP).
-- **Archive.org integration** — Snapshot picker, CDX proxy to avoid CORS, and a live/archive toggle.
-- **Stash rename** — Click the stash name inline to rename it.
+- **Archive.org integration** — Snapshot picker with year navigation, CDX proxy to avoid CORS.
+- **Account linking** — Optionally sign in with GitHub, Google, Discord, or X to attach stashes to an account and access them across devices. Manage linked stashes at `/account`.
+- **Stash URL rotation** — Regenerate the signed URL to invalidate old shared links.
+- **Password protection** — Optionally restrict access to a stash with a password.
 - **Screenshot refresh** — Request a new screenshot on demand, individually or in bulk.
 - **What's New** — In-app changelog modal with an unseen-indicator badge. Seen state is persisted in `localStorage`.
 
@@ -120,8 +125,9 @@ All stash and link endpoints require an `X-Stash-Signature` header (HMAC-SHA256 
 |---|---|---|
 | `POST` | `/api/stashes` | Create a stash; returns signed URL |
 | `GET` | `/api/stashes/{id}` | Get stash details |
-| `PATCH` | `/api/stashes/{id}` | Rename stash |
+| `PATCH` | `/api/stashes/{id}` | Update stash (rename, password, visibility) |
 | `DELETE` | `/api/stashes/{id}` | Delete stash |
+| `POST` | `/api/stashes/{id}/rotate-signature` | Regenerate signed URL |
 
 ### Link endpoints
 
@@ -131,7 +137,19 @@ All stash and link endpoints require an `X-Stash-Signature` header (HMAC-SHA256 
 | `GET` | `/api/stashes/{id}/links` | List links (paginated, optional `search` param) |
 | `PATCH` | `/api/stashes/{id}/links` | Reorder links |
 | `DELETE` | `/api/stashes/{id}/links/{linkId}` | Delete a link |
-| `POST` | `/api/stashes/{id}/links/{linkId}/refresh-screenshot` | Request new screenshot |
+| `POST` | `/api/stashes/{id}/links/{linkId}/reindex` | Re-scrape and refresh AI summary |
+
+### Account endpoints
+
+| Method | Path | Description |
+|---|---|---|
+| `GET` | `/api/account` | Get account info |
+| `GET` | `/api/account/stashes` | List stashes claimed by the account |
+| `POST` | `/api/account/stashes/{id}/claim` | Claim a stash |
+| `DELETE` | `/api/account/stashes/{id}/claim` | Disown a stash |
+| `GET` | `/api/account/ai-settings` | Get AI provider settings |
+| `PUT` | `/api/account/ai-settings` | Upsert AI provider settings |
+| `GET` | `/api/account/ai-settings/models?provider=` | List available models for a provider |
 
 ### Utility endpoints
 
@@ -140,33 +158,63 @@ All stash and link endpoints require an `X-Stash-Signature` header (HMAC-SHA256 
 | `GET` | `/api/embeddable-check?url=` | Check if URL can be iframed |
 | `GET` | `/api/wayback/cdx` | Proxied Wayback Machine CDX API (avoids CORS) |
 
-Internal indexer callback endpoints (`PATCH /links/*/metadata`, `PATCH /links/*/screenshot`) are blocked at the API Gateway and only callable within the cluster.
+Internal indexer callback endpoints (`PATCH /links/*/metadata`, `PATCH /links/*/screenshot`, `PATCH /links/*/status`, `GET /stashes/*/ai-credentials`) are blocked at the API Gateway and only callable within the cluster.
 
 ## Security
 
 - **Signed URL access control** — HMAC-SHA256 with a stash-specific secret + master key. The signature is stored in `sessionStorage` after the first visit; the URL is rewritten to `/s/{id}` so the signature never appears in browser history.
 - **No stash enumeration** — There is no `GET /stashes` endpoint. Stashes are only accessible via their signed URL.
+- **Encrypted AI API keys** — User-provided API keys are encrypted at rest with AES-256-GCM via a JPA attribute converter. The encryption key is never stored alongside the data.
+- **AI credentials pull model** — The indexer never receives API keys via Redis Streams. It fetches credentials at processing time from an internal stash-service endpoint (`GET /stashes/{id}/ai-credentials`), which is blocked at the gateway and requires a shared `X-Indexer-Secret` header.
 - **SSRF protection** — Both the stash service (`infrastructure-http`) and the indexer (`scraper.py`) block requests to loopback, private (RFC1918), link-local, CGNAT, and multicast addresses.
-- **Gateway firewall** — Internal indexer callbacks are blocked at the API Gateway (HTTP 403). Only in-cluster services can reach them.
+- **Gateway firewall** — Internal indexer callbacks and the AI credentials endpoint are blocked at the API Gateway (HTTP 403). Only in-cluster services can reach them.
 - **Constant-time comparison** — Signatures are verified with `MessageDigest.isEqual` to prevent timing attacks.
 
 ## Database Schema
 
 ```sql
 -- stashes
-id UUID PRIMARY KEY, name TEXT, secret_key TEXT, created_at, updated_at
+id UUID PRIMARY KEY, name TEXT, secret_key TEXT, password_hash TEXT,
+visibility TEXT, version INTEGER, signature_refreshed_at,
+created_at, updated_at
 
 -- links
 id UUID PRIMARY KEY, stash_id UUID REFERENCES stashes(id) ON DELETE CASCADE,
+folder_id UUID REFERENCES folders(id),
 url TEXT, title TEXT, description TEXT, favicon_url TEXT,
 page_content TEXT, final_url TEXT, screenshot_key TEXT,
 position INTEGER,  -- drag-and-drop order
+status TEXT,       -- PENDING, PROCESSING, DONE, FAILED
+ai_summary TEXT, ai_summary_status TEXT, ai_summary_model TEXT,
 search_vector tsvector GENERATED ALWAYS AS (  -- weighted FTS
     setweight(to_tsvector('english', coalesce(title,'')), 'A') ||
     setweight(to_tsvector('english', coalesce(description,'')), 'B') ||
     ...
 ) STORED,
 created_at, updated_at
+
+-- folders
+id UUID PRIMARY KEY, stash_id UUID REFERENCES stashes(id) ON DELETE CASCADE,
+parent_id UUID REFERENCES folders(id), name TEXT, position INTEGER,
+created_at, updated_at
+
+-- accounts
+id UUID PRIMARY KEY, email TEXT, display_name TEXT, avatar_url TEXT,
+created_at, updated_at
+
+-- account_providers  (OAuth identities)
+id UUID PRIMARY KEY, account_id UUID REFERENCES accounts(id) ON DELETE CASCADE,
+provider TEXT, provider_user_id TEXT,
+UNIQUE (provider, provider_user_id)
+
+-- account_stashes  (claimed stashes)
+account_id UUID, stash_id UUID, claimed_at,
+PRIMARY KEY (account_id, stash_id)
+
+-- account_ai_settings
+account_id UUID PRIMARY KEY REFERENCES accounts(id) ON DELETE CASCADE,
+provider TEXT, api_key TEXT (AES-256-GCM encrypted), model TEXT,
+custom_prompt TEXT, created_at, updated_at
 ```
 
 GIN index on `search_vector`, trigram indexes on `title` and `url` for substring fallback.

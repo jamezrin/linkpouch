@@ -34,6 +34,7 @@ async function fetchMonthSummaries(url: string): Promise<WaybackMonthSummary[]> 
     fl: 'timestamp',
     filter: 'statuscode:[23][0-9][0-9]',
     collapse: 'timestamp:6',
+    matchType: 'exact',
     limit: '500', // up to ~40 years of monthly data
   });
 
@@ -82,6 +83,7 @@ async function fetchSnapshotsForMonth(
     from: `${year}${mm}01`,
     to: `${nextYear}${nextMM}01`,
     collapse: 'timestamp:8',
+    matchType: 'exact',
     limit: '62',
   });
 
