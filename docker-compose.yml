@@ -102,7 +102,6 @@ services:
       TWITTER_CLIENT_ID: local-dev-placeholder
       TWITTER_CLIENT_SECRET: local-dev-placeholder
       AI_INCLUDED_API_KEY: ${AI_INCLUDED_API_KEY}
-      AI_INCLUDED_MODEL: ${AI_INCLUDED_MODEL:-google/gemini-flash-1.5}
       AI_ENCRYPTION_KEY: ${AI_ENCRYPTION_KEY:-QTUI8l2jsWm+syMVrsvhtoy5ckFluHLk3wyMTT/qBlk=}
     depends_on:
       postgres:

@@ -134,6 +134,13 @@ export function AiSettingsModal({ accountToken, onClose }: AiSettingsModalProps)
 
   const [browserSearch, setBrowserSearch] = useState('');
 
+  const handleClose = () => {
+    setStep(1);
+    setWizard({ provider: null, apiKey: '', useExistingKey: false, model: '', useCustomPrompt: false, customPrompt: '' });
+    setBrowserSearch('');
+    onClose();
+  };
+
   // Pre-select the currently active provider (or NONE) when settings load
   useEffect(() => {
     if (isLoading || wizard.provider !== null) return;
@@ -222,7 +229,7 @@ export function AiSettingsModal({ accountToken, onClose }: AiSettingsModalProps)
       accountApi.upsertAiSettings(accountToken, payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['ai-settings'] });
-      onClose();
+      handleClose();
     },
   });
 
@@ -283,7 +290,7 @@ export function AiSettingsModal({ accountToken, onClose }: AiSettingsModalProps)
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={handleClose} />
       <div className="relative z-10 w-full max-w-md bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col max-h-[90vh]">
 
         {/* Header */}
@@ -320,7 +327,7 @@ export function AiSettingsModal({ accountToken, onClose }: AiSettingsModalProps)
             </div>
           </div>
           <button
-            onClick={onClose}
+            onClick={handleClose}
             className="w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

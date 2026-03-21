@@ -305,7 +305,7 @@ class RedisStreamConsumer:
                 input_tokens=input_tokens,
                 output_tokens=output_tokens,
                 elapsed_ms=elapsed_ms,
-                summary=summary,
+                summary_length=len(summary),
             )
         except Exception as e:
             logger.error(

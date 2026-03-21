@@ -4,21 +4,12 @@ export interface ChangelogEntry {
   items: string[];
 }
 
-export const LATEST_VERSION = 7;
+export const LATEST_VERSION = 6;
 
 export const changelog: ChangelogEntry[] = [
   {
-    version: 7,
-    date: new Date('2026-03-21'),
-    items: [
-      'AI settings now show a full model browser with provider tiers — browse and select from available models across providers',
-      'Screenshot viewer — click the thumbnail in the preview header to open the screenshot in a full-screen modal',
-      'Archive snapshot picker now has previous/next year navigation buttons for faster browsing',
-    ],
-  },
-  {
     version: 6,
-    date: new Date('2026-03-20'),
+    date: new Date('2026-03-21'),
     items: [
       'AI Summary — every link now gets an AI-generated structured summary with key takeaways, main content, and notable details',
       'Link preview now has three modes: Live, Archive snapshot, and AI Summary — switch between them with the tab bar',
@@ -28,6 +19,9 @@ export const changelog: ChangelogEntry[] = [
       'Preview mode preference is remembered — if you switch to AI Summary, the next link you open will start in AI Summary too',
       'Non-embeddable sites no longer silently redirect to archive view — instead you see a clear message explaining why and buttons to switch to Archive or AI Summary',
       'Bulk import now supports nested folder targeting — imported links land in the selected folder',
+      'AI settings now show a full model browser with provider tiers — browse and select from available models across providers',
+      'Screenshot viewer — click the thumbnail in the preview header to open the screenshot in a full-screen modal',
+      'Archive snapshot picker now has previous/next year navigation buttons for faster browsing',
     ],
   },
   {

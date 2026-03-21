@@ -1,5 +1,6 @@
 package com.linkpouch.stash.infrastructure.adapter.web;
 
+import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -149,6 +150,9 @@ public class AccountAiSettingsController implements AccountAiSettingsApi {
         if (hasKey) builder.header("Authorization", "Bearer " + apiKey);
         final HttpRequest request = builder.build();
         final HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+        if (response.statusCode() < 200 || response.statusCode() >= 300) {
+            throw new IOException("OpenRouter returned HTTP " + response.statusCode());
+        }
         final JsonNode root = objectMapper.readTree(response.body());
         final JsonNode data = root.get("data");
         if (data == null || !data.isArray()) return List.of();
@@ -201,6 +205,9 @@ public class AccountAiSettingsController implements AccountAiSettingsApi {
                 .GET()
                 .build();
         final HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+        if (response.statusCode() < 200 || response.statusCode() >= 300) {
+            throw new IOException("OpenAI returned HTTP " + response.statusCode());
+        }
         final JsonNode root = objectMapper.readTree(response.body());
         final JsonNode data = root.get("data");
         if (data == null || !data.isArray()) return List.of();
@@ -221,6 +228,9 @@ public class AccountAiSettingsController implements AccountAiSettingsApi {
                 .GET()
                 .build();
         final HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+        if (response.statusCode() < 200 || response.statusCode() >= 300) {
+            throw new IOException("Anthropic returned HTTP " + response.statusCode());
+        }
         final JsonNode root = objectMapper.readTree(response.body());
         final JsonNode data = root.get("data");
         if (data == null || !data.isArray()) return List.of();
@@ -245,6 +255,9 @@ public class AccountAiSettingsController implements AccountAiSettingsApi {
                 .GET()
                 .build();
         final HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+        if (response.statusCode() < 200 || response.statusCode() >= 300) {
+            throw new IOException("OpenCode returned HTTP " + response.statusCode());
+        }
         final JsonNode root = objectMapper.readTree(response.body());
         final JsonNode data = root.get("data");
         if (data == null || !data.isArray()) return List.of();
