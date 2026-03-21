@@ -122,6 +122,7 @@ export function AiSettingsModal({ accountToken, onClose }: AiSettingsModalProps)
       }),
   });
 
+  const [showHowItWorks, setShowHowItWorks] = useState(false);
   const [step, setStep] = useState<WizardStep>(1);
   const [wizard, setWizard] = useState<WizardState>({
     provider: null,
@@ -296,49 +297,148 @@ export function AiSettingsModal({ accountToken, onClose }: AiSettingsModalProps)
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-slate-800">
           <div className="flex items-center gap-3">
-            {step > 1 && (
+            {showHowItWorks ? (
               <button
-                onClick={goBack}
+                onClick={() => setShowHowItWorks(false)}
                 className="w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                 </svg>
               </button>
+            ) : (
+              step > 1 && (
+                <button
+                  onClick={goBack}
+                  className="w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                  </svg>
+                </button>
+              )
             )}
             <div>
-              <h2 className="text-base font-semibold text-slate-900 dark:text-white">AI Settings</h2>
-              <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                {(() => {
-                  if (!wizard.provider || wizard.provider === 'NONE') return 'Step 1 of 1';
-                  const meta = PROVIDER_META[wizard.provider];
-                  if (meta.fixedModel) return 'Step 1 of 1';
-                  if (!meta.requiresApiKey) {
-                    // OPENROUTER_INCLUDED: steps 1 → 3 → 4, shown as 1/2/3 of 3
-                    const display = step === 1 ? 1 : step === 3 ? 2 : 3;
-                    return `Step ${display} of 3`;
-                  }
-                  if (settings?.provider === wizard.provider) {
-                    return `Step ${step === 4 ? 2 : 1} of 2`;
-                  }
-                  return `Step ${step} of 4`;
-                })()}
-              </p>
+              {showHowItWorks ? (
+                <h2 className="text-base font-semibold text-slate-900 dark:text-white">How does this work?</h2>
+              ) : (
+                <>
+                  <h2 className="text-base font-semibold text-slate-900 dark:text-white">AI Settings</h2>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                    {(() => {
+                      if (!wizard.provider || wizard.provider === 'NONE') return 'Step 1 of 1';
+                      const meta = PROVIDER_META[wizard.provider];
+                      if (meta.fixedModel) return 'Step 1 of 1';
+                      if (!meta.requiresApiKey) {
+                        // OPENROUTER_INCLUDED: steps 1 → 3 → 4, shown as 1/2/3 of 3
+                        const display = step === 1 ? 1 : step === 3 ? 2 : 3;
+                        return `Step ${display} of 3`;
+                      }
+                      if (settings?.provider === wizard.provider) {
+                        return `Step ${step === 4 ? 2 : 1} of 2`;
+                      }
+                      return `Step ${step} of 4`;
+                    })()}
+                  </p>
+                </>
+              )}
             </div>
           </div>
-          <button
-            onClick={handleClose}
-            className="w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => setShowHowItWorks((v) => !v)}
+              title="How does this work?"
+              className={`w-7 h-7 flex items-center justify-center rounded-lg transition-colors ${
+                showHowItWorks
+                  ? 'text-indigo-600 dark:text-indigo-400 bg-indigo-100 dark:bg-indigo-900/40'
+                  : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
+              }`}
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </button>
+            <button
+              onClick={handleClose}
+              className="w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
         </div>
 
         {/* Body */}
         <div className="flex-1 overflow-y-auto p-5">
-          {isLoading ? (
+          {showHowItWorks ? (
+            <div className="space-y-4">
+              <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                Here is how the AI summarization feature works and what you should know before enabling it.
+              </p>
+
+              {[
+                {
+                  icon: (
+                    <svg className="w-4 h-4 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                  ),
+                  title: 'What the AI sees',
+                  body: 'The model never sees a screenshot or any visual representation of the page. It only receives the page text after it has been extracted and cleaned — HTML, ads, navigation, and boilerplate are stripped out before anything is sent to the model.',
+                },
+                {
+                  icon: (
+                    <svg className="w-4 h-4 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                    </svg>
+                  ),
+                  title: 'Your API key is encrypted',
+                  body: 'When you provide an API key, it is stored encrypted in our database and is only accessible within your stash. If you disable the AI provider, the key is deleted immediately — it is never retained.',
+                },
+                {
+                  icon: (
+                    <svg className="w-4 h-4 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                    </svg>
+                  ),
+                  title: 'Custom prompts',
+                  body: 'Custom system prompts are only available when using a BYOK (Bring Your Own Key) provider. The free included provider does not support custom prompts, as we cannot be held responsible for how a shared key might be used.',
+                },
+                {
+                  icon: (
+                    <svg className="w-4 h-4 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
+                  ),
+                  title: 'Beta feature',
+                  body: 'AI summarization is a beta feature. Quality, speed, and supported providers will improve over time.',
+                },
+                {
+                  icon: (
+                    <svg className="w-4 h-4 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                    </svg>
+                  ),
+                  title: 'Provider terms apply',
+                  body: 'Each AI provider has its own terms of service and privacy policy. Some models or providers may use submitted content for training purposes. Please review the terms of your chosen provider before use.',
+                },
+              ].map(({ icon, title, body }, i, arr) => (
+                <div key={title}>
+                  <div className="flex gap-3">
+                    <span className="text-indigo-500 dark:text-indigo-400">{icon}</span>
+                    <div>
+                      <p className="text-[12px] font-semibold text-slate-800 dark:text-slate-100 mb-0.5">{title}</p>
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed">{body}</p>
+                    </div>
+                  </div>
+                  {i < arr.length - 1 && (
+                    <div className="mt-4 border-t border-slate-100 dark:border-slate-800" />
+                  )}
+                </div>
+              ))}
+            </div>
+          ) : isLoading ? (
             <div className="flex justify-center py-8">
               <div className="w-6 h-6 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
             </div>
