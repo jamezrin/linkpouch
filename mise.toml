@@ -1,6 +1,6 @@
 [tools]
 # Java
-java = "21.0.10+7.0.LTS"
+java = "temurin-21.0.10+7.0.LTS"
 maven = "3.9"
 
 # Node.js
