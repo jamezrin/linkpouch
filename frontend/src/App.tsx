@@ -4,6 +4,8 @@ import { QueryClient, QueryClientProvider, useQuery, useMutation, useQueryClient
 import HomePage from './pages/HomePage';
 import StashAccessPage from './pages/StashAccessPage';
 import AccountPage from './pages/AccountPage';
+import TermsOfServicePage from './pages/TermsOfServicePage';
+import PrivacyPolicyPage from './pages/PrivacyPolicyPage';
 import ThemeToggle from './components/ThemeToggle';
 import AccountDropdown from './components/AccountDropdown';
 import MobileAccountSection from './components/MobileAccountSection';
@@ -21,6 +23,12 @@ const queryClient = new QueryClient();
 const STASH_PATH_WITH_SIG_RE = /^\/s\/([^/]+)\/([^/]+)/;
 // Matches /s/:stashId (clean URL without signature)
 const STASH_PATH_CLEAN_RE = /^\/s\/([^/]+)$/;
+
+function ScrollToTop() {
+  const { pathname } = useLocation();
+  useEffect(() => { window.scrollTo(0, 0); }, [pathname]);
+  return null;
+}
 
 function AppContent() {
   const location = useLocation();
@@ -127,6 +135,7 @@ function AppContent() {
 
   return (
     <StashSearchContext.Provider value={{ searchQuery, setSearchQuery, mobilePane, setMobilePane, stashSettingsOpen, setStashSettingsOpen, canWrite, setCanWrite, isClaimerToken, setIsClaimerToken }}>
+      <ScrollToTop />
       <div className={`flex flex-col bg-white dark:bg-slate-950 ${isStashPage ? 'h-dvh overflow-hidden' : 'min-h-dvh'}`}>
         <header className={`h-14 flex-shrink-0 bg-white dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800 items-center px-6 gap-3 relative ${isStashPage && mobilePane === 'preview' ? 'hidden md:flex' : 'flex'}`}>
           {/* Logo / home link */}
@@ -334,6 +343,8 @@ function AppContent() {
               <Route path="/account" element={<AccountPage />} />
               <Route path="/s/:stashId/:signature" element={<StashAccessPage />} />
               <Route path="/s/:stashId" element={<StashAccessPage />} />
+              <Route path="/terms" element={<TermsOfServicePage />} />
+              <Route path="/privacy" element={<PrivacyPolicyPage />} />
             </Routes>
           )}
         </main>
