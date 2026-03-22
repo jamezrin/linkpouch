@@ -3,6 +3,7 @@ package com.linkpouch.stash.infrastructure.adapter.persistence.jooq;
 import static com.linkpouch.stash.infrastructure.jooq.generated.Tables.FOLDERS;
 import static com.linkpouch.stash.infrastructure.jooq.generated.Tables.LINKS;
 
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -172,12 +173,12 @@ public class FolderPersistenceAdapter implements FolderRepository {
                 record.get(FOLDERS.POSITION) != null ? record.get(FOLDERS.POSITION) : 0,
                 record.get(FOLDERS.CREATED_AT) != null
                         ? record.get(FOLDERS.CREATED_AT)
-                                .withOffsetSameInstant(java.time.ZoneOffset.UTC)
+                                .withOffsetSameInstant(ZoneOffset.UTC)
                                 .toLocalDateTime()
                         : null,
                 record.get(FOLDERS.UPDATED_AT) != null
                         ? record.get(FOLDERS.UPDATED_AT)
-                                .withOffsetSameInstant(java.time.ZoneOffset.UTC)
+                                .withOffsetSameInstant(ZoneOffset.UTC)
                                 .toLocalDateTime()
                         : null);
     }

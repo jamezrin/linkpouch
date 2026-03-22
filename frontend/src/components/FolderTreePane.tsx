@@ -665,7 +665,7 @@ export const FolderTreePane = ({
             }
             return next;
           });
-        } else if (!e.shiftKey) {
+        } else {
           setSelectedLinkIds(new Set([nextLink.id]));
         }
 

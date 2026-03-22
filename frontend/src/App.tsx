@@ -63,7 +63,6 @@ function AppContent() {
   const { token: accessToken } = useStashToken(stashId);
   const { recordEntry } = useStashHistory();
 
-  // Close mobile menu and reset pane whenever the route changes
   useEffect(() => {
     setMobileMenuOpen(false);
     setMobilePane('list');
@@ -83,7 +82,6 @@ function AppContent() {
     if (stash?.name) setEditedName(stash.name);
   }, [stash?.name]);
 
-  // Record stash in local history whenever we have a valid signed URL + loaded stash
   useEffect(() => {
     if (stashId && stash?.name && signature) {
       recordEntry(stashId, stash.name, signature);
