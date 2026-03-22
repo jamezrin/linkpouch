@@ -2,8 +2,7 @@ import React, { useState, useCallback, useEffect, useRef, useContext, createCont
 import {
   DndContext,
   DragOverlay,
-  MouseSensor,
-  TouchSensor,
+  PointerSensor,
   useSensor,
   useSensors,
   useDraggable,
@@ -128,12 +127,10 @@ const DraggableLinkRow = ({
     <div
       ref={setRef}
       {...attributes}
-      {...listeners}
       data-link-id={link.id}
       className="relative"
       style={{
         opacity: isDragging || isGroupDragging ? 0.4 : 1,
-        touchAction: 'none',
         backgroundColor: depthTint,
       }}
     >
@@ -151,6 +148,7 @@ const DraggableLinkRow = ({
         onItemClick={onItemClick}
         onCheckboxClick={onCheckboxClick}
         onContextMenu={draggingType === null ? (e) => { e.preventDefault(); onContextMenu(e, link.id); } : undefined}
+        dragHandleListeners={listeners}
       />
       {isDropAfter && (
         <div className="absolute bottom-0 left-2 right-2 h-0.5 bg-indigo-400 z-10 rounded-full pointer-events-none" />
@@ -213,9 +211,8 @@ const DraggableFolderRow = ({
     <div
       ref={setRef}
       {...attributes}
-      {...listeners}
       className="relative"
-      style={{ opacity: isDragging ? 0.4 : 1, touchAction: 'none' }}
+      style={{ opacity: isDragging ? 0.4 : 1 }}
     >
       {isDropBefore && (
         <div className="absolute top-0 left-2 right-2 h-0.5 bg-indigo-400 z-10 rounded-full pointer-events-none" />
@@ -232,6 +229,7 @@ const DraggableFolderRow = ({
         onStartRename={onStartRename}
         onCancelRename={onCancelRename}
         isDropTarget={isDropInto}
+        dragHandleListeners={listeners}
         onContextMenu={(e) => {
           if (!isReadOnly) {
             e.preventDefault();
@@ -694,8 +692,7 @@ export const FolderTreePane = ({
   // ─── DnD ─────────────────────────────────────────────────────────────────────
 
   const sensors = useSensors(
-    useSensor(MouseSensor, { activationConstraint: { distance: 8 } }),
-    useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 5 } })
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
   );
 
   const handleDragStart = useCallback(
