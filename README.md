@@ -161,16 +161,15 @@ All stash and link endpoints require an `X-Stash-Signature` header (HMAC-SHA256 
 | `GET` | `/api/embeddable-check?url=` | Check if URL can be iframed |
 | `GET` | `/api/wayback/cdx` | Proxied Wayback Machine CDX API (avoids CORS) |
 
-Internal indexer callback endpoints (`PATCH /links/*/metadata`, `PATCH /links/*/screenshot`, `PATCH /links/*/status`, `GET /stashes/*/ai-credentials`) are blocked at the API Gateway and only callable within the cluster.
+Indexer-to-stash-service communication uses **gRPC** (`IndexerCallbackService` in `stash_indexer.proto`). The indexer calls `UpdateLinkMetadata`, `UpdateLinkStatus`, `UpdateLinkScreenshot`, `UpdateLinkAiSummary`, and `GetAiCredentials` over gRPC, authenticated via the `x-indexer-secret` metadata key.
 
 ## Security
 
 - **Signed URL access control** — HMAC-SHA256 with a stash-specific secret + master key. The signature is stored in `sessionStorage` after the first visit; the URL is rewritten to `/s/{id}` so the signature never appears in browser history.
 - **No stash enumeration** — There is no `GET /stashes` endpoint. Stashes are only accessible via their signed URL.
 - **Encrypted AI API keys** — User-provided API keys are encrypted at rest with AES-256-GCM via a JPA attribute converter. The encryption key is never stored alongside the data.
-- **AI credentials pull model** — The indexer never receives API keys via Redis Streams. It fetches credentials at processing time from an internal stash-service endpoint (`GET /stashes/{id}/ai-credentials`), which is blocked at the gateway and requires a shared `X-Indexer-Secret` header.
+- **AI credentials pull model** — The indexer never receives API keys via Redis Streams. It fetches credentials at processing time via gRPC (`GetAiCredentials`), authenticated with the shared `x-indexer-secret` metadata key.
 - **SSRF protection** — Both the stash service (`infrastructure-http`) and the indexer (`scraper.py`) block requests to loopback, private (RFC1918), link-local, CGNAT, and multicast addresses.
-- **Gateway firewall** — Internal indexer callbacks and the AI credentials endpoint are blocked at the API Gateway (HTTP 403). Only in-cluster services can reach them.
 - **Constant-time comparison** — Signatures are verified with `MessageDigest.isEqual` to prevent timing attacks.
 
 ## Database Schema

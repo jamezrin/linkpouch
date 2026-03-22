@@ -53,16 +53,6 @@ spring:
               filters:
                 - StripPrefix=1
 
-            # Block internal ai-credentials endpoint from public access
-            # Only callable by the indexer service from within the cluster
-            - id: block-ai-credentials
-              uri: no://op
-              predicates:
-                - Path=/api/stashes/*/ai-credentials
-                - Method=GET
-              filters:
-                - SetStatus=403
-
             # Stash Service - stash routes
             - id: stash-service-stashes
               uri: ${STASH_SERVICE_URL:http://stash-service:8080}
@@ -70,32 +60,6 @@ spring:
                 - Path=/api/stashes/**
               filters:
                 - StripPrefix=1
-
-            # Block internal indexer callback endpoints from public access
-            # These are only callable by the indexer service from within the cluster
-            - id: block-indexer-metadata-callback
-              uri: no://op
-              predicates:
-                - Path=/api/links/*/metadata
-                - Method=PATCH
-              filters:
-                - SetStatus=403
-
-            - id: block-indexer-screenshot-callback
-              uri: no://op
-              predicates:
-                - Path=/api/links/*/screenshot
-                - Method=PATCH
-              filters:
-                - SetStatus=403
-
-            - id: block-indexer-status-callback
-              uri: no://op
-              predicates:
-                - Path=/api/links/*/status
-                - Method=PATCH
-              filters:
-                - SetStatus=403
 
             # Stash Service - remaining link routes
             - id: stash-service-links
