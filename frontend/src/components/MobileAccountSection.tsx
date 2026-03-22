@@ -1,9 +1,7 @@
-import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useAccount } from '../contexts/account';
 import { accountApi } from '../services/accountApi';
 import { OAuthProviderName } from '../types/account';
-import StashesModal from './StashesModal';
 
 const PROVIDER_LABELS: Record<OAuthProviderName, string> = {
   github: 'GitHub',
@@ -22,11 +20,11 @@ const PROVIDER_COLORS: Record<OAuthProviderName, string> = {
 interface MobileAccountSectionProps {
   onAction?: () => void;
   onSignIn?: () => void;
+  onStashesOpen?: () => void;
 }
 
-export default function MobileAccountSection({ onAction, onSignIn }: MobileAccountSectionProps) {
+export default function MobileAccountSection({ onAction, onSignIn, onStashesOpen }: MobileAccountSectionProps) {
   const { accountToken, isSignedIn, clearAccountToken } = useAccount();
-  const [stashesOpen, setStashesOpen] = useState(false);
 
   const { data: account } = useQuery({
     queryKey: ['account'],
@@ -93,7 +91,7 @@ export default function MobileAccountSection({ onAction, onSignIn }: MobileAccou
 
       {/* Your pouches */}
       <button
-        onClick={() => { setStashesOpen(true); onAction?.(); }}
+        onClick={() => { onStashesOpen?.(); onAction?.(); }}
         className="flex items-center gap-2.5 px-2 py-1.5 rounded-lg text-[13px] font-medium transition-colors text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white w-full text-left"
       >
         <svg className="w-4 h-4 text-slate-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -113,7 +111,6 @@ export default function MobileAccountSection({ onAction, onSignIn }: MobileAccou
         Sign out
       </button>
 
-      {stashesOpen && <StashesModal onClose={() => setStashesOpen(false)} />}
     </>
   );
 }
