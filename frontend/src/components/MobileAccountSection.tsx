@@ -21,9 +21,10 @@ interface MobileAccountSectionProps {
   onAction?: () => void;
   onSignIn?: () => void;
   onStashesOpen?: () => void;
+  onAiSettingsOpen?: () => void;
 }
 
-export default function MobileAccountSection({ onAction, onSignIn, onStashesOpen }: MobileAccountSectionProps) {
+export default function MobileAccountSection({ onAction, onSignIn, onStashesOpen, onAiSettingsOpen }: MobileAccountSectionProps) {
   const { accountToken, isSignedIn, clearAccountToken } = useAccount();
 
   const { data: account } = useQuery({
@@ -98,6 +99,17 @@ export default function MobileAccountSection({ onAction, onSignIn, onStashesOpen
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
         </svg>
         Your pouches
+      </button>
+
+      {/* AI Settings */}
+      <button
+        onClick={() => { onAiSettingsOpen?.(); onAction?.(); }}
+        className="flex items-center gap-2.5 px-2 py-1.5 rounded-lg text-[13px] font-medium transition-colors text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white w-full text-left"
+      >
+        <svg className="w-4 h-4 text-slate-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+        </svg>
+        AI Settings
       </button>
 
       {/* Sign out */}
