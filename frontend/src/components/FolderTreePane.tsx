@@ -2,7 +2,8 @@ import React, { useState, useCallback, useEffect, useRef, useContext, createCont
 import {
   DndContext,
   DragOverlay,
-  PointerSensor,
+  MouseSensor,
+  TouchSensor,
   useSensor,
   useSensors,
   useDraggable,
@@ -692,7 +693,10 @@ export const FolderTreePane = ({
 
   // ─── DnD ─────────────────────────────────────────────────────────────────────
 
-  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
+  const sensors = useSensors(
+    useSensor(MouseSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 5 } })
+  );
 
   const handleDragStart = useCallback(
     (event: DragStartEvent) => {
