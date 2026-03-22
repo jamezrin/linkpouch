@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { ChevronRight, Folder as FolderIcon, GripVertical } from 'lucide-react';
+import { ChevronRight, Folder as FolderIcon } from 'lucide-react';
 import { Folder } from '../types';
 
 interface FolderItemProps {
@@ -15,8 +15,6 @@ interface FolderItemProps {
   onStartRename: (folderId: string) => void;
   onCancelRename: () => void;
   isDropTarget?: boolean;
-  dragHandleListeners?: Record<string, unknown>;
-  dragHandleRef?: (el: HTMLElement | null) => void;
   onContextMenu?: (e: React.MouseEvent) => void;
 }
 
@@ -33,8 +31,6 @@ export const FolderItem = ({
   onStartRename,
   onCancelRename,
   isDropTarget,
-  dragHandleListeners,
-  dragHandleRef,
   onContextMenu,
 }: FolderItemProps) => {
   const [renameValue, setRenameValue] = useState(folder.name);
@@ -99,18 +95,6 @@ export const FolderItem = ({
       }}
       onContextMenu={onContextMenu}
     >
-      {/* Drag handle */}
-      {dragHandleListeners && (
-        <div
-          ref={dragHandleRef}
-          {...dragHandleListeners}
-          className="flex-shrink-0 cursor-grab touch-none text-slate-300 hover:text-slate-500 dark:text-slate-700 dark:hover:text-slate-400"
-          onClick={(e) => e.stopPropagation()}
-        >
-          <GripVertical size={12} />
-        </div>
-      )}
-
       <button
         className="flex-shrink-0 w-4 h-4 flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
         onClick={(e) => {

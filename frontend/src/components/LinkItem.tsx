@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { GripVertical } from 'lucide-react';
 import { Link } from '../types';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -42,8 +41,6 @@ export interface LinkItemProps {
   isDragDisabled: boolean;
   isGroupDragging: boolean;
   onContextMenu?: (e: React.MouseEvent) => void;
-  dragHandleRef?: (el: HTMLElement | null) => void;
-  dragHandleListeners?: Record<string, unknown>;
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -59,8 +56,6 @@ export const LinkItem = ({
   isDragDisabled,
   isGroupDragging,
   onContextMenu,
-  dragHandleRef,
-  dragHandleListeners,
 }: LinkItemProps) => {
   const [hovered, setHovered] = useState(false);
   const showCheckbox = hovered || isSelected;
@@ -104,18 +99,6 @@ export const LinkItem = ({
         }
       }}
     >
-      {/* Drag handle */}
-      {dragHandleListeners && (
-        <div
-          ref={dragHandleRef}
-          {...dragHandleListeners}
-          className="flex-shrink-0 cursor-grab touch-none text-slate-300 hover:text-slate-500 dark:text-slate-700 dark:hover:text-slate-400"
-          onClick={(e) => e.stopPropagation()}
-        >
-          <GripVertical size={12} />
-        </div>
-      )}
-
       {/* Checkbox */}
       <div
         role="checkbox"

@@ -5,7 +5,8 @@ import { AxiosError } from 'axios';
 import {
   DndContext,
   DragOverlay,
-  PointerSensor,
+  MouseSensor,
+  TouchSensor,
   useSensor,
   useSensors,
   closestCenter,
@@ -172,7 +173,7 @@ const SortableLinkItem = ({
   onItemClick,
   onCheckboxClick,
 }: SortableLinkItemProps) => {
-  const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } = useSortable({
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: link.id,
     disabled: isSearching || dragDisabled,
   });
@@ -188,7 +189,7 @@ const SortableLinkItem = ({
   };
 
   return (
-    <div ref={setNodeRef} style={style} {...attributes}>
+    <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
       <LinkItemComponent
         link={link}
         isSelected={isSelected}
@@ -198,8 +199,6 @@ const SortableLinkItem = ({
         isGroupDragging={isGroupDragging}
         onItemClick={onItemClick}
         onCheckboxClick={onCheckboxClick}
-        dragHandleRef={setActivatorNodeRef}
-        dragHandleListeners={listeners}
       />
     </div>
   );
@@ -746,7 +745,8 @@ export default function StashAccessPage() {
   // ─── Drag & Drop ──────────────────────────────────────────────────────────────
 
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
+    useSensor(MouseSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 300, tolerance: 8 } })
   );
 
   const handleDragStart = useCallback(
