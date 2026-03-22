@@ -2,7 +2,7 @@
 FROM arigaio/atlas:latest AS atlas-bin
 
 # ── Stage 2: Build the Spring Boot JAR ──────────────────────────────────────
-FROM maven:3.9-eclipse-temurin-21-alpine AS builder
+FROM maven:3.9-eclipse-temurin-21 AS builder
 
 WORKDIR /app
 
