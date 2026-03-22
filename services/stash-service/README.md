@@ -18,13 +18,12 @@ mise install
 # 2. Start infrastructure
 docker-compose up -d postgres redis
 
-# 3. Apply migrations and generate jOOQ code (first run only)
+# 3. Apply migrations (first run only — generates DB schema for local dev)
 atlas migrate apply --env local
-mise exec java -- mvn jooq-codegen:generate -pl infrastructure-persistence
 
 # 4. Build and run
 cd services/stash-service
-mise exec java -- mvn clean package -DskipTests
+mise exec java -- mvn clean package -DskipTests -Djooq.codegen.skip=true
 mise exec java -- mvn spring-boot:run -pl boot
 ```
 
@@ -116,19 +115,21 @@ Migrations live in: `infrastructure-persistence/src/main/resources/db/migrations
 
 ## jOOQ Code Generation
 
-**IMPORTANT**: jOOQ generates Java code from the live database schema. Generated code is NOT committed.
+jOOQ-generated sources are **committed to the repo** (`infrastructure-persistence/src/main/generated/`). Most builds pass `-Djooq.codegen.skip=true` and use the committed sources directly.
+
+Regenerate only when the DB schema changes:
 
 ```bash
 # 1. Ensure DB is running and migrations are applied
 atlas migrate apply --env local
 
-# 2. Generate jOOQ classes
+# 2. Regenerate jOOQ classes
 mise exec java -- mvn jooq-codegen:generate -pl infrastructure-persistence
 ```
 
-Generated code goes to: `infrastructure-persistence/src/main/generated/`
+Then commit the updated files in `infrastructure-persistence/src/main/generated/`.
 
-**Note**: `mvn clean` deletes generated code. You must regenerate after cleaning.
+**Note**: `mvn clean` does **not** delete generated code — it lives in `src/main/generated/`, not `target/`.
 
 ### Troubleshooting jOOQ
 

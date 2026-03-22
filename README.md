@@ -31,10 +31,6 @@ cp .env.example .env
 
 # Start all infrastructure and services (Atlas migrations run automatically)
 docker-compose up -d
-
-# Build the stash service
-cd services/stash-service
-mise exec java -- mvn clean package -DskipTests
 ```
 
 The frontend is served by Vite on `http://localhost:5173` and the API Gateway is on `http://localhost:8080`.
@@ -244,17 +240,13 @@ cp .env.example .env
 # Atlas migrations run automatically via the atlas-migrate service
 docker-compose up -d
 
-# Build stash service
-cd services/stash-service
-mise exec java -- mvn clean package -DskipTests
-
 # Install and run frontend
 cd frontend
 npm install
 npm run dev
 ```
 
-> To run stash-service from an IDE (outside Docker), also run `mise run migrate` to apply migrations and regenerate jOOQ sources.
+> To run stash-service from an IDE (outside Docker), run `mise run migrate` to apply migrations and regenerate jOOQ sources against the live DB.
 
 ### Build commands
 

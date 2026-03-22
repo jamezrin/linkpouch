@@ -78,66 +78,7 @@ Report success or any rollout errors clearly.
 
 ## Local deployment (docker-compose)
 
-Local deployment does **not** require committing, pushing, or waiting for CI. It builds images directly from local source files.
-
-### Pre-build step for stash-service
-
-The stash-service Dockerfile is a thin runtime-only image — it expects a pre-built JAR. You must build the JAR with Maven before running `docker-compose up --build`.
-
-The Maven build requires a live PostgreSQL **with the schema already applied** (jOOQ generates code by introspecting live DB tables). Follow these steps in order:
-
-**1. Start infrastructure:**
-
-```bash
-cd /home/jamezrin/dev/linkpouch
-docker-compose up -d postgres redis seaweedfs
-```
-
-**2. Apply the DB schema via Atlas migrate:**
-
-Atlas is the migration tool — it creates the tables that jOOQ needs to introspect. Run it as a one-shot container:
-
-```bash
-docker-compose run --rm atlas-migrate
-```
-
-Wait for it to exit 0 before continuing. If it reports the DB is "not clean" (e.g. tables exist without Atlas tracking), drop and recreate the schema, then rerun:
-
-```bash
-docker-compose exec postgres psql -U linkpouch -d linkpouch -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"
-docker-compose run --rm atlas-migrate
-```
-
-**3. Generate jOOQ sources (requires live DB with tables):**
-
-```bash
-cd services/stash-service
-mise exec java -- mvn generate-sources -pl :infrastructure-persistence -q
-```
-
-Verify it produced files (should be ~51):
-```bash
-find infrastructure-persistence/src/main/generated -name "*.java" | wc -l
-```
-
-If the count is 0, the DB has no tables — go back to step 2.
-
-**4. Build the JAR:**
-
-```bash
-mise exec java -- mvn verify -B -DskipTests
-```
-
-Do **not** use `mvn clean verify` here — `clean` is unnecessary since jOOQ sources live in `src/main/generated` (not `target/`), and running it risks clearing compiled outputs between phases.
-
-**Spotless failures:** If `mvn verify` fails with a Spotless formatting violation, fix formatting and rebuild:
-
-```bash
-mise exec java -- mvn spotless:apply -q
-mise exec java -- mvn verify -B -DskipTests
-```
-
-Other services (frontend, api-gateway, indexer-service) do **not** need a pre-build step — their Dockerfiles handle everything.
+Local deployment does **not** require committing, pushing, or waiting for CI. It builds images directly from local source files. All services (including stash-service) build their own JARs inside Docker — no pre-build step is needed.
 
 ### Rebuild and restart the service
 
@@ -146,7 +87,7 @@ cd /home/jamezrin/dev/linkpouch
 docker-compose up -d --build <service-name>
 ```
 
-For `all` (after running the stash-service pre-build above):
+For `all`:
 
 ```bash
 docker-compose up -d --build frontend stash-service api-gateway indexer-service
