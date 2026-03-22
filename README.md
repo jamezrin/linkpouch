@@ -74,20 +74,20 @@ The frontend is served by Vite on `http://localhost:5173` and the API Gateway is
 | Service | Stack | Port | Responsibility |
 |---|---|---|---|
 | **API Gateway** | Spring Cloud Gateway | 8080 | Routing, CORS, blocks internal endpoints |
-| **Stash Service** | Java 21 / Spring Boot 3.4.3 | 8081 | Core API, DDD + Hexagonal Architecture |
+| **Stash Service** | Java 21 / Spring Boot 4.0.1 | 8081 | Core API, DDD + Hexagonal Architecture |
 | **Indexer Service** | Python 3.13 / FastAPI | 8082 | Async scraping via Playwright + Redis consumer |
-| **Frontend** | React 19 / Vite 6 | 5173 | Single-page app |
+| **Frontend** | React 19 / Vite 8 | 5173 | Single-page app |
 
 ## Tech Stack
 
 | Layer | Technology |
 |---|---|
 | Backend language | Java 21, Python 3.13 |
-| Web frameworks | Spring Boot 3.4.3, FastAPI |
-| Frontend | React 19, Vite 6, TypeScript 5.6, Tailwind CSS v4 |
+| Web frameworks | Spring Boot 4.0.1, FastAPI |
+| Frontend | React 19, Vite 8, TypeScript 5.6, Tailwind CSS v4 |
 | Database | PostgreSQL 18 (FTS + trigram indexes) |
 | Migrations | Atlas |
-| ORM / query | JPA (writes), jOOQ 3.19 (reads / FTS) |
+| ORM / query | JPA (writes), jOOQ 3.20 (reads / FTS) |
 | Events | Redis 8 Streams |
 | Object storage | SeaweedFS (S3-compatible) |
 | Scraping | Playwright (Chromium) |
