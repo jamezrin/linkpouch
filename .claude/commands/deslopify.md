@@ -29,7 +29,7 @@ For each candidate:
 
 Fix any of the following found in recently changed code:
 
-- **Unnecessary comments** — remove comments that just restate the code (e.g., `// get the user`, `// return result`). Keep comments only where the intent is not obvious from reading the code.
+- **Unnecessary comments** — remove comments that just restate the code (e.g., `// get the user`, `// return result`). Keep comments only where the intent is not obvious from reading the code. **Exception: JSX section labels** (e.g., `{/* Share button */}`, `{/* Theme */}`) are useful for AI tooling and navigation — do not remove them.
 - **Redundant null checks** — remove null guards on values that cannot be null given framework guarantees or prior validation.
 - **Defensive no-op catch blocks** — remove empty or log-only catch blocks that swallow real errors, unless there is a documented reason.
 - **Over-abstracted one-off helpers** — inline helper methods that are called exactly once and add no clarity; remove them.

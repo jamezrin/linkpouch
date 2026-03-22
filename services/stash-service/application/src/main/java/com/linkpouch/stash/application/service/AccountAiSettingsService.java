@@ -7,6 +7,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.linkpouch.stash.application.annotation.UseCase;
 import com.linkpouch.stash.domain.model.AccountAiSettings;
+import com.linkpouch.stash.domain.model.AiProvider;
 import com.linkpouch.stash.domain.port.in.GetAccountAiSettingsQuery;
 import com.linkpouch.stash.domain.port.in.UpsertAccountAiSettingsCommand;
 import com.linkpouch.stash.domain.port.in.UpsertAccountAiSettingsUseCase;
@@ -32,9 +33,7 @@ public class AccountAiSettingsService implements GetAccountAiSettingsQuery, Upse
         // Custom prompts are never persisted for the included provider — enforced
         // server-side regardless of what the client sends.
         final String customPrompt =
-                command.provider() == com.linkpouch.stash.domain.model.AiProvider.OPENROUTER_INCLUDED
-                        ? null
-                        : command.customPrompt();
+                command.provider() == AiProvider.OPENROUTER_INCLUDED ? null : command.customPrompt();
 
         final Optional<AccountAiSettings> existing = repository.findByAccountId(command.accountId());
 

@@ -13,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.linkpouch.stash.application.annotation.UseCase;
 import com.linkpouch.stash.domain.event.LinkAddedEvent;
 import com.linkpouch.stash.domain.event.ScreenshotRefreshRequestedEvent;
+import com.linkpouch.stash.domain.exception.ForbiddenException;
 import com.linkpouch.stash.domain.exception.NotFoundException;
 import com.linkpouch.stash.domain.model.AccountAiSettings;
 import com.linkpouch.stash.domain.model.AiProvider;
@@ -466,7 +467,7 @@ public class LinkManagementService
                 .orElseThrow(() -> new NotFoundException("Link not found: " + command.linkId()));
 
         if (!link.getStashId().equals(command.stashId())) {
-            throw new com.linkpouch.stash.domain.exception.ForbiddenException("Link does not belong to this stash");
+            throw new ForbiddenException("Link does not belong to this stash");
         }
 
         final Stash stash = stashRepository

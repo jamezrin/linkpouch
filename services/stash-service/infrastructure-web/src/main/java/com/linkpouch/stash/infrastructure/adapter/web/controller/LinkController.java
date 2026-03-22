@@ -8,6 +8,7 @@ import jakarta.servlet.http.HttpServletRequest;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ByteArrayResource;
+import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -256,8 +257,7 @@ public class LinkController implements LinksApi {
     }
 
     @Override
-    public ResponseEntity<org.springframework.core.io.Resource> getLinkScreenshot(
-            final UUID stashId, final UUID linkId) {
+    public ResponseEntity<Resource> getLinkScreenshot(final UUID stashId, final UUID linkId) {
         final var link =
                 findLinkByIdQuery.execute(linkId).orElseThrow(() -> new NotFoundException("Link not found: " + linkId));
         if (!link.getStashId().equals(stashId)) {

@@ -614,7 +614,6 @@ export default function StashAccessPage() {
     }
   }, [links, activeLinkId, debouncedSearch]);
 
-  // Reset preview state when a different link is selected
   useEffect(() => {
     setScreenshotModalOpen(false);
     const savedMode = (localStorage.getItem('preferredPreviewMode') as PreviewMode) ?? 'live';
@@ -693,7 +692,6 @@ export default function StashAccessPage() {
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
-  // Reset selection when search changes
   useEffect(() => {
     setSelectedLinkIds(new Set());
     setLastCheckedIndex(null);
@@ -774,7 +772,6 @@ export default function StashAccessPage() {
       const overIdx = links.findIndex((l) => l.id === overId);
 
       if (selectedLinkIds.size <= 1) {
-        // Single item drag
         if (activeIdx === overIdx) return;
         const newLinks = arrayMove(links, activeIdx, overIdx);
         setLinks(newLinks);
@@ -814,10 +811,8 @@ export default function StashAccessPage() {
   // ─── Mutations ───────────────────────────────────────────────────────────────
 
   const addLinkMutation = useMutation({
-    mutationFn: async (url: string) => {
-      const res = await linkApi.addLink(stashId!, accessToken!, { url, folderId: activeFolderId });
-      return res;
-    },
+    mutationFn: (url: string) =>
+      linkApi.addLink(stashId!, accessToken!, { url, folderId: activeFolderId }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['links', stashId] });
       setNewLinkUrl('');
