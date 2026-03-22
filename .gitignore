@@ -58,5 +58,3 @@ Thumbs.db
 # AI-generated files
 .ai
 
-# Generated files
-services/**/src/main/generated/**

@@ -1,17 +1,19 @@
-# Runtime-only image — expects a pre-built Spring Boot JAR.
-#
-# Build the JAR first with Maven (requires a live PostgreSQL for jOOQ codegen;
-# run 'atlas migrate apply --env local' before running jOOQ codegen):
-#   atlas migrate apply --env local
-#   mvn clean verify -B
-#
-# Then build the image:
-#   docker build -t stash-service .
-
 # ── Stage 1: Pull the Atlas binary ──────────────────────────────────────────
 FROM arigaio/atlas:latest AS atlas-bin
 
-# ── Stage 2: Runtime image ──────────────────────────────────────────────────
+# ── Stage 2: Build the Spring Boot JAR ──────────────────────────────────────
+FROM maven:3.9-eclipse-temurin-21-alpine AS builder
+
+WORKDIR /app
+
+COPY . .
+
+# BuildKit cache mount keeps the local Maven repository between builds.
+# jOOQ codegen is skipped — generated sources are committed to the repo.
+RUN --mount=type=cache,target=/root/.m2 \
+    mvn package -DskipTests -Djooq.codegen.skip=true -B
+
+# ── Stage 3: Runtime image ───────────────────────────────────────────────────
 FROM eclipse-temurin:25.0.2_10-jre-alpine
 
 WORKDIR /app
@@ -25,8 +27,8 @@ COPY --from=atlas-bin /atlas /usr/local/bin/atlas
 # Embed the Atlas migration files (used by the init container)
 COPY infrastructure-persistence/src/main/resources/db/migrations /migrations
 
-# Copy the Spring Boot executable JAR from the boot module
-COPY boot/target/*.jar app.jar
+# Copy the Spring Boot executable JAR from the builder
+COPY --from=builder /app/boot/target/*.jar app.jar
 
 # Create non-root user
 RUN addgroup -S linkpouch && adduser -S linkpouch -G linkpouch

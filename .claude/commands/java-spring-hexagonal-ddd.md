@@ -721,9 +721,8 @@ Define the API contract in a dedicated `api-spec/` Maven/Gradle module as YAML f
 
 jOOQ classes are generated from the live database schema and used exclusively in the read-side output adapters inside the persistence infrastructure module.
 
-- jOOQ sources may be stored in `src/main/generated/` (tracked) or `target/generated-sources/` (not tracked) depending on project convention — check the build configuration before deciding.
-- Regenerate after every schema migration.
-- The build requires a live database with the schema applied (jOOQ introspects it at codegen time).
+- jOOQ sources are committed to `src/main/generated/` — normal builds pass `-Djooq.codegen.skip=true` and use them directly.
+- Regenerate after every schema migration by running `mvn jooq-codegen:generate -pl infrastructure-persistence` against a live DB, then commit the result.
 - The build fails without generated classes — this is intentional and ensures schema drift is caught immediately.
 
 ## Refactoring Guidelines
