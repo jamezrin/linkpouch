@@ -9,6 +9,7 @@ import PrivacyPolicyPage from './pages/PrivacyPolicyPage';
 import ThemeToggle from './components/ThemeToggle';
 import AccountDropdown from './components/AccountDropdown';
 import MobileAccountSection from './components/MobileAccountSection';
+import SignInModal from './components/SignInModal';
 import { StashSearchContext } from './contexts/stashSearch';
 import { ThemeProvider } from './contexts/theme';
 import { AccountProvider, useAccount } from './contexts/account';
@@ -47,6 +48,7 @@ function AppContent() {
   const [editedName, setEditedName] = useState('');
   const [shareCopied, setShareCopied] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [signInOpen, setSignInOpen] = useState(false);
   const [mobilePane, setMobilePane] = useState<'list' | 'preview'>('list');
   const [stashSettingsOpen, setStashSettingsOpen] = useState(false);
   const [canWrite, setCanWrite] = useState(true);
@@ -263,7 +265,7 @@ function AppContent() {
               <div className="fixed inset-0 z-40" onClick={() => setMobileMenuOpen(false)} />
               <div className="md:hidden absolute top-full right-0 z-50 mt-1 mr-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-lg p-3 min-w-[200px] flex flex-col gap-1">
                 {/* Account section */}
-                <MobileAccountSection onAction={() => setMobileMenuOpen(false)} />
+                <MobileAccountSection onAction={() => setMobileMenuOpen(false)} onSignIn={() => setSignInOpen(true)} />
 
                 {/* Divider — always separates account from rest */}
                 <div className="border-t border-slate-100 dark:border-slate-800 -mx-3 my-2" />
@@ -326,6 +328,7 @@ function AppContent() {
             </>
           )}
         </header>
+        {signInOpen && <SignInModal onClose={() => setSignInOpen(false)} />}
         <main className={`flex-1 ${isStashPage ? 'overflow-hidden' : ''}`}>
           {isStashPage && !signature && !isSignedIn ? (
             <div className="flex flex-col items-center justify-center h-full gap-3 text-center px-4">

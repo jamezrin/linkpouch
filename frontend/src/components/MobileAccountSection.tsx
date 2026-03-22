@@ -4,7 +4,6 @@ import { useAccount } from '../contexts/account';
 import { accountApi } from '../services/accountApi';
 import { OAuthProviderName } from '../types/account';
 import StashesModal from './StashesModal';
-import SignInModal from './SignInModal';
 
 const PROVIDER_LABELS: Record<OAuthProviderName, string> = {
   github: 'GitHub',
@@ -22,12 +21,12 @@ const PROVIDER_COLORS: Record<OAuthProviderName, string> = {
 
 interface MobileAccountSectionProps {
   onAction?: () => void;
+  onSignIn?: () => void;
 }
 
-export default function MobileAccountSection({ onAction }: MobileAccountSectionProps) {
+export default function MobileAccountSection({ onAction, onSignIn }: MobileAccountSectionProps) {
   const { accountToken, isSignedIn, clearAccountToken } = useAccount();
   const [stashesOpen, setStashesOpen] = useState(false);
-  const [signInOpen, setSignInOpen] = useState(false);
 
   const { data: account } = useQuery({
     queryKey: ['account'],
@@ -37,18 +36,15 @@ export default function MobileAccountSection({ onAction }: MobileAccountSectionP
 
   if (!isSignedIn) {
     return (
-      <>
-        <button
-          onClick={() => { setSignInOpen(true); onAction?.(); }}
-          className="flex items-center gap-2.5 px-2 py-1.5 rounded-lg text-[13px] font-medium transition-colors text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white w-full text-left"
-        >
-          <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-          </svg>
-          Sign in
-        </button>
-        {signInOpen && <SignInModal onClose={() => setSignInOpen(false)} />}
-      </>
+      <button
+        onClick={() => { onSignIn?.(); onAction?.(); }}
+        className="flex items-center gap-2.5 px-2 py-1.5 rounded-lg text-[13px] font-medium transition-colors text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white w-full text-left"
+      >
+        <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+        </svg>
+        Sign in
+      </button>
     );
   }
 
