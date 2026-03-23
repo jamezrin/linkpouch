@@ -63,7 +63,7 @@
         <palantir-java-format.version>2.89.0</palantir-java-format.version>
         <error-prone.version>2.36.0</error-prone.version>
         <rewrite-maven-plugin.version>6.34.0</rewrite-maven-plugin.version>
-        <rewrite-java.version>8.75.11</rewrite-java.version>
+        <rewrite-java.version>8.76.0</rewrite-java.version>
     </properties>
     
     <dependencyManagement>
