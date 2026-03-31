@@ -16,7 +16,7 @@
     <description>OpenAPI specification and generated code</description>
 
     <properties>
-        <openapi-generator.version>7.20.0</openapi-generator.version>
+        <openapi-generator.version>7.21.0</openapi-generator.version>
         <jackson-databind-nullable.version>0.2.9</jackson-databind-nullable.version>
         <swagger-annotations.version>2.2.45</swagger-annotations.version>
     </properties>
