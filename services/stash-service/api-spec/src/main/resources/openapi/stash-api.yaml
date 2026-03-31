@@ -549,6 +549,22 @@ components:
             $ref: '#/components/schemas/AiModelInfo'
           description: Available models for the given provider
 
+    ProxySettingsResponse:
+      type: object
+      properties:
+        proxyCountry:
+          type: string
+          nullable: true
+          description: ISO 3166-1 alpha-2 country code, or null if no proxy is configured
+
+    UpsertProxySettingsRequest:
+      type: object
+      properties:
+        proxyCountry:
+          type: string
+          nullable: true
+          description: ISO 3166-1 alpha-2 country code (e.g. "US", "DE"), or null to disable proxy
+
     EmbeddabilityCheckResponse:
       type: object
       properties:
@@ -1663,6 +1679,60 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Invalid or missing account token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /account/proxy-settings:
+    get:
+      summary: Get proxy settings for the authenticated account
+      operationId: getProxySettings
+      tags:
+        - AccountProxySettings
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Proxy settings for the account
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProxySettingsResponse'
+        '404':
+          description: No proxy settings have been configured yet
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Invalid or missing account token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    put:
+      summary: Create or update proxy settings (set proxyCountry to null to disable)
+      operationId: upsertProxySettings
+      tags:
+        - AccountProxySettings
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpsertProxySettingsRequest'
+      responses:
+        '200':
+          description: Proxy settings saved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProxySettingsResponse'
         '401':
           description: Invalid or missing account token
           content:

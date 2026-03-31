@@ -62,6 +62,11 @@ class IndexerCallbackServiceStub(object):
                 request_serializer=stash__indexer__pb2.GetAiCredentialsRequest.SerializeToString,
                 response_deserializer=stash__indexer__pb2.GetAiCredentialsResponse.FromString,
                 _registered_method=True)
+        self.GetProxyCredentials = channel.unary_unary(
+                '/com.linkpouch.stash.indexer.v1.IndexerCallbackService/GetProxyCredentials',
+                request_serializer=stash__indexer__pb2.GetProxyCredentialsRequest.SerializeToString,
+                response_deserializer=stash__indexer__pb2.GetProxyCredentialsResponse.FromString,
+                _registered_method=True)
 
 
 class IndexerCallbackServiceServicer(object):
@@ -99,6 +104,12 @@ class IndexerCallbackServiceServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def GetProxyCredentials(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_IndexerCallbackServiceServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -126,6 +137,11 @@ def add_IndexerCallbackServiceServicer_to_server(servicer, server):
                     servicer.GetAiCredentials,
                     request_deserializer=stash__indexer__pb2.GetAiCredentialsRequest.FromString,
                     response_serializer=stash__indexer__pb2.GetAiCredentialsResponse.SerializeToString,
+            ),
+            'GetProxyCredentials': grpc.unary_unary_rpc_method_handler(
+                    servicer.GetProxyCredentials,
+                    request_deserializer=stash__indexer__pb2.GetProxyCredentialsRequest.FromString,
+                    response_serializer=stash__indexer__pb2.GetProxyCredentialsResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -265,6 +281,33 @@ class IndexerCallbackService(object):
             '/com.linkpouch.stash.indexer.v1.IndexerCallbackService/GetAiCredentials',
             stash__indexer__pb2.GetAiCredentialsRequest.SerializeToString,
             stash__indexer__pb2.GetAiCredentialsResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def GetProxyCredentials(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/com.linkpouch.stash.indexer.v1.IndexerCallbackService/GetProxyCredentials',
+            stash__indexer__pb2.GetProxyCredentialsRequest.SerializeToString,
+            stash__indexer__pb2.GetProxyCredentialsResponse.FromString,
             options,
             channel_credentials,
             insecure,

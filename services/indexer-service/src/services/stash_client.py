@@ -99,6 +99,24 @@ class StashServiceClient:
             )
             raise
 
+    async def get_proxy_credentials(self, stash_id: str) -> str:
+        """Fetch the proxy country code for the account that owns the given stash.
+        Returns an empty string if no proxy is configured."""
+        try:
+            request = stash_indexer_pb2.GetProxyCredentialsRequest(stash_id=stash_id)
+            response = await self._stub.GetProxyCredentials(
+                request, metadata=self._metadata, timeout=self._timeout
+            )
+            return response.proxy_country
+        except grpc.RpcError as e:
+            logger.error(
+                "Failed to fetch proxy credentials",
+                stash_id=stash_id,
+                grpc_code=e.code(),
+                grpc_details=e.details(),
+            )
+            raise
+
     async def update_ai_summary(
         self,
         link_id: str,

@@ -16,6 +16,7 @@ import {
   MoveLinkToFolderRequest,
 } from '../types';
 import { AiSettingsResponse, AiModelsResponse, UpsertAiSettingsRequest, AiProvider } from '../types/aiSettings';
+import { ProxySettingsResponse, UpsertProxySettingsRequest } from '../types/proxySettings';
 
 export const api = axios.create({
   baseURL: '/api',
@@ -256,5 +257,15 @@ export const accountApi = {
         ...(apiKey ? { 'X-Ai-Api-Key': apiKey } : {}),
       },
       params: { provider },
+    }),
+
+  getProxySettings: (accountJwt: string) =>
+    api.get<ProxySettingsResponse>('/account/proxy-settings', {
+      headers: { Authorization: `Bearer ${accountJwt}` },
+    }),
+
+  upsertProxySettings: (accountJwt: string, data: UpsertProxySettingsRequest) =>
+    api.put<ProxySettingsResponse>('/account/proxy-settings', data, {
+      headers: { Authorization: `Bearer ${accountJwt}` },
     }),
 };
