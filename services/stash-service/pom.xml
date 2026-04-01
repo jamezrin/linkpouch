@@ -48,7 +48,7 @@
         <lombok.version>1.18.44</lombok.version>
         <mapstruct.version>1.6.3</mapstruct.version>
         <!-- AWS SDK v2 -->
-        <aws-sdk.version>2.42.24</aws-sdk.version>
+        <aws-sdk.version>2.42.25</aws-sdk.version>
         <!-- Testcontainers -->
         <testcontainers.version>2.0.3</testcontainers.version>
         <!-- jOOQ: set to true to skip codegen when DB is unavailable. -->
