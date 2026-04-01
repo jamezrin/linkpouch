@@ -5,7 +5,7 @@ maven = "3.9"
 
 # Node.js
 node = "24"
-npm = "10"
+npm = "11"
 
 # Python (for indexer service)
 python = "3.13"
