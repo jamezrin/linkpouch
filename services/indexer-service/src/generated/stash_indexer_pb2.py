@@ -25,7 +25,7 @@ _sym_db = _symbol_database.Default()
 from google.protobuf import empty_pb2 as google_dot_protobuf_dot_empty__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x13stash_indexer.proto\x12\x1e\x63om.linkpouch.stash.indexer.v1\x1a\x1bgoogle/protobuf/empty.proto\"\xf0\x01\n\x19UpdateLinkMetadataRequest\x12\x0f\n\x07link_id\x18\x01 \x01(\t\x12\x12\n\x05title\x18\x02 \x01(\tH\x00\x88\x01\x01\x12\x18\n\x0b\x64\x65scription\x18\x03 \x01(\tH\x01\x88\x01\x01\x12\x18\n\x0b\x66\x61vicon_url\x18\x04 \x01(\tH\x02\x88\x01\x01\x12\x19\n\x0cpage_content\x18\x05 \x01(\tH\x03\x88\x01\x01\x12\x16\n\tfinal_url\x18\x06 \x01(\tH\x04\x88\x01\x01\x42\x08\n\x06_titleB\x0e\n\x0c_descriptionB\x0e\n\x0c_favicon_urlB\x0f\n\r_page_contentB\x0c\n\n_final_url\"f\n\x17UpdateLinkStatusRequest\x12\x0f\n\x07link_id\x18\x01 \x01(\t\x12:\n\x06status\x18\x02 \x01(\x0e\x32*.com.linkpouch.stash.indexer.v1.LinkStatus\"\xb0\x02\n\x1aUpdateLinkAiSummaryRequest\x12\x0f\n\x07link_id\x18\x01 \x01(\t\x12?\n\x06status\x18\x02 \x01(\x0e\x32/.com.linkpouch.stash.indexer.v1.AiSummaryStatus\x12\x14\n\x07summary\x18\x03 \x01(\tH\x00\x88\x01\x01\x12\x12\n\x05model\x18\x04 \x01(\tH\x01\x88\x01\x01\x12\x19\n\x0cinput_tokens\x18\x05 \x01(\x05H\x02\x88\x01\x01\x12\x1a\n\routput_tokens\x18\x06 \x01(\x05H\x03\x88\x01\x01\x12\x17\n\nelapsed_ms\x18\x07 \x01(\x05H\x04\x88\x01\x01\x42\n\n\x08_summaryB\x08\n\x06_modelB\x0f\n\r_input_tokensB\x10\n\x0e_output_tokensB\r\n\x0b_elapsed_ms\"F\n\x1bUpdateLinkScreenshotRequest\x12\x0f\n\x07link_id\x18\x01 \x01(\t\x12\x16\n\x0escreenshot_key\x18\x02 \x01(\t\"+\n\x17GetAiCredentialsRequest\x12\x10\n\x08stash_id\x18\x01 \x01(\t\"+\n\x18GetAiCredentialsResponse\x12\x0f\n\x07\x61pi_key\x18\x01 \x01(\t*2\n\nLinkStatus\x12\x0b\n\x07PENDING\x10\x00\x12\x0b\n\x07INDEXED\x10\x01\x12\n\n\x06\x46\x41ILED\x10\x02*2\n\x0f\x41iSummaryStatus\x12\x10\n\x0c\x41I_COMPLETED\x10\x00\x12\r\n\tAI_FAILED\x10\x01\x32\xc6\x04\n\x16IndexerCallbackService\x12g\n\x12UpdateLinkMetadata\x12\x39.com.linkpouch.stash.indexer.v1.UpdateLinkMetadataRequest\x1a\x16.google.protobuf.Empty\x12\x63\n\x10UpdateLinkStatus\x12\x37.com.linkpouch.stash.indexer.v1.UpdateLinkStatusRequest\x1a\x16.google.protobuf.Empty\x12i\n\x13UpdateLinkAiSummary\x12:.com.linkpouch.stash.indexer.v1.UpdateLinkAiSummaryRequest\x1a\x16.google.protobuf.Empty\x12k\n\x14UpdateLinkScreenshot\x12;.com.linkpouch.stash.indexer.v1.UpdateLinkScreenshotRequest\x1a\x16.google.protobuf.Empty\x12\x85\x01\n\x10GetAiCredentials\x12\x37.com.linkpouch.stash.indexer.v1.GetAiCredentialsRequest\x1a\x38.com.linkpouch.stash.indexer.v1.GetAiCredentialsResponseB:\n#com.linkpouch.stash.grpc.indexer.v1B\x11StashIndexerProtoP\x01\x62\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x13stash_indexer.proto\x12\x1e\x63om.linkpouch.stash.indexer.v1\x1a\x1bgoogle/protobuf/empty.proto\"\xf0\x01\n\x19UpdateLinkMetadataRequest\x12\x0f\n\x07link_id\x18\x01 \x01(\t\x12\x12\n\x05title\x18\x02 \x01(\tH\x00\x88\x01\x01\x12\x18\n\x0b\x64\x65scription\x18\x03 \x01(\tH\x01\x88\x01\x01\x12\x18\n\x0b\x66\x61vicon_url\x18\x04 \x01(\tH\x02\x88\x01\x01\x12\x19\n\x0cpage_content\x18\x05 \x01(\tH\x03\x88\x01\x01\x12\x16\n\tfinal_url\x18\x06 \x01(\tH\x04\x88\x01\x01\x42\x08\n\x06_titleB\x0e\n\x0c_descriptionB\x0e\n\x0c_favicon_urlB\x0f\n\r_page_contentB\x0c\n\n_final_url\"f\n\x17UpdateLinkStatusRequest\x12\x0f\n\x07link_id\x18\x01 \x01(\t\x12:\n\x06status\x18\x02 \x01(\x0e\x32*.com.linkpouch.stash.indexer.v1.LinkStatus\"\xb0\x02\n\x1aUpdateLinkAiSummaryRequest\x12\x0f\n\x07link_id\x18\x01 \x01(\t\x12?\n\x06status\x18\x02 \x01(\x0e\x32/.com.linkpouch.stash.indexer.v1.AiSummaryStatus\x12\x14\n\x07summary\x18\x03 \x01(\tH\x00\x88\x01\x01\x12\x12\n\x05model\x18\x04 \x01(\tH\x01\x88\x01\x01\x12\x19\n\x0cinput_tokens\x18\x05 \x01(\x05H\x02\x88\x01\x01\x12\x1a\n\routput_tokens\x18\x06 \x01(\x05H\x03\x88\x01\x01\x12\x17\n\nelapsed_ms\x18\x07 \x01(\x05H\x04\x88\x01\x01\x42\n\n\x08_summaryB\x08\n\x06_modelB\x0f\n\r_input_tokensB\x10\n\x0e_output_tokensB\r\n\x0b_elapsed_ms\"F\n\x1bUpdateLinkScreenshotRequest\x12\x0f\n\x07link_id\x18\x01 \x01(\t\x12\x16\n\x0escreenshot_key\x18\x02 \x01(\t\"+\n\x17GetAiCredentialsRequest\x12\x10\n\x08stash_id\x18\x01 \x01(\t\"+\n\x18GetAiCredentialsResponse\x12\x0f\n\x07\x61pi_key\x18\x01 \x01(\t\".\n\x1aGetProxyCredentialsRequest\x12\x10\n\x08stash_id\x18\x01 \x01(\t\"4\n\x1bGetProxyCredentialsResponse\x12\x15\n\rproxy_country\x18\x01 \x01(\t*2\n\nLinkStatus\x12\x0b\n\x07PENDING\x10\x00\x12\x0b\n\x07INDEXED\x10\x01\x12\n\n\x06\x46\x41ILED\x10\x02*2\n\x0f\x41iSummaryStatus\x12\x10\n\x0c\x41I_COMPLETED\x10\x00\x12\r\n\tAI_FAILED\x10\x01\x32\xd7\x05\n\x16IndexerCallbackService\x12g\n\x12UpdateLinkMetadata\x12\x39.com.linkpouch.stash.indexer.v1.UpdateLinkMetadataRequest\x1a\x16.google.protobuf.Empty\x12\x63\n\x10UpdateLinkStatus\x12\x37.com.linkpouch.stash.indexer.v1.UpdateLinkStatusRequest\x1a\x16.google.protobuf.Empty\x12i\n\x13UpdateLinkAiSummary\x12:.com.linkpouch.stash.indexer.v1.UpdateLinkAiSummaryRequest\x1a\x16.google.protobuf.Empty\x12k\n\x14UpdateLinkScreenshot\x12;.com.linkpouch.stash.indexer.v1.UpdateLinkScreenshotRequest\x1a\x16.google.protobuf.Empty\x12\x85\x01\n\x10GetAiCredentials\x12\x37.com.linkpouch.stash.indexer.v1.GetAiCredentialsRequest\x1a\x38.com.linkpouch.stash.indexer.v1.GetAiCredentialsResponse\x12\x8e\x01\n\x13GetProxyCredentials\x12:.com.linkpouch.stash.indexer.v1.GetProxyCredentialsRequest\x1a;.com.linkpouch.stash.indexer.v1.GetProxyCredentialsResponseB:\n#com.linkpouch.stash.grpc.indexer.v1B\x11StashIndexerProtoP\x01\x62\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -33,10 +33,10 @@ _builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'stash_indexer_pb2', _global
 if not _descriptor._USE_C_DESCRIPTORS:
   _globals['DESCRIPTOR']._loaded_options = None
   _globals['DESCRIPTOR']._serialized_options = b'\n#com.linkpouch.stash.grpc.indexer.v1B\021StashIndexerProtoP\001'
-  _globals['_LINKSTATUS']._serialized_start=900
-  _globals['_LINKSTATUS']._serialized_end=950
-  _globals['_AISUMMARYSTATUS']._serialized_start=952
-  _globals['_AISUMMARYSTATUS']._serialized_end=1002
+  _globals['_LINKSTATUS']._serialized_start=1002
+  _globals['_LINKSTATUS']._serialized_end=1052
+  _globals['_AISUMMARYSTATUS']._serialized_start=1054
+  _globals['_AISUMMARYSTATUS']._serialized_end=1104
   _globals['_UPDATELINKMETADATAREQUEST']._serialized_start=85
   _globals['_UPDATELINKMETADATAREQUEST']._serialized_end=325
   _globals['_UPDATELINKSTATUSREQUEST']._serialized_start=327
@@ -49,6 +49,10 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_GETAICREDENTIALSREQUEST']._serialized_end=853
   _globals['_GETAICREDENTIALSRESPONSE']._serialized_start=855
   _globals['_GETAICREDENTIALSRESPONSE']._serialized_end=898
-  _globals['_INDEXERCALLBACKSERVICE']._serialized_start=1005
-  _globals['_INDEXERCALLBACKSERVICE']._serialized_end=1587
+  _globals['_GETPROXYCREDENTIALSREQUEST']._serialized_start=900
+  _globals['_GETPROXYCREDENTIALSREQUEST']._serialized_end=946
+  _globals['_GETPROXYCREDENTIALSRESPONSE']._serialized_start=948
+  _globals['_GETPROXYCREDENTIALSRESPONSE']._serialized_end=1000
+  _globals['_INDEXERCALLBACKSERVICE']._serialized_start=1107
+  _globals['_INDEXERCALLBACKSERVICE']._serialized_end=1834
 # @@protoc_insertion_point(module_scope)

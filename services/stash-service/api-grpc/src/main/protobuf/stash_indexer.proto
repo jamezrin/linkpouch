@@ -16,6 +16,7 @@ service IndexerCallbackService {
     rpc UpdateLinkAiSummary(UpdateLinkAiSummaryRequest) returns (google.protobuf.Empty);
     rpc UpdateLinkScreenshot(UpdateLinkScreenshotRequest) returns (google.protobuf.Empty);
     rpc GetAiCredentials(GetAiCredentialsRequest) returns (GetAiCredentialsResponse);
+    rpc GetProxyCredentials(GetProxyCredentialsRequest) returns (GetProxyCredentialsResponse);
 }
 
 message UpdateLinkMetadataRequest {
@@ -66,4 +67,14 @@ message GetAiCredentialsResponse {
     // Decrypted AI API key for the account that owns this stash,
     // or empty string if none is configured.
     string api_key = 1;
+}
+
+message GetProxyCredentialsRequest {
+    string stash_id = 1;
+}
+
+message GetProxyCredentialsResponse {
+    // ISO 3166-1 alpha-2 country code for the account that owns this stash,
+    // or empty string if no proxy is configured.
+    string proxy_country = 1;
 }

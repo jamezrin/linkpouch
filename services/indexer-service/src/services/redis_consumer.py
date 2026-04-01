@@ -9,6 +9,7 @@ from redis.asyncio import Redis
 
 from src.config.settings import Settings
 from src.services.ai_client import get_provider
+from src.services.proxy_manager import resolve_proxy, update_proxy_score
 from src.services.scraper import LinkScraper
 from src.services.stash_client import StashServiceClient
 from src.services.storage_service import ScreenshotStorageService
@@ -194,9 +195,23 @@ class RedisStreamConsumer:
                     stash_id=stash_id,
                 )
                 return
+            proxy_url: str | None = None
+            try:
+                country_code = await self.stash_client.get_proxy_credentials(stash_id)
+                if country_code:
+                    proxy_url = await resolve_proxy(self.redis, country_code, self.settings)
+            except Exception as proxy_err:
+                logger.warning(
+                    "Proxy resolution failed; proceeding without proxy",
+                    stash_id=stash_id,
+                    error=str(proxy_err),
+                )
+
+            scrape_ok = False
             try:
                 # Single browser session: scrape metadata and take screenshot together
-                result = await self.scraper.scrape_and_screenshot(url, stash_id, link_id)
+                result = await self.scraper.scrape_and_screenshot(url, stash_id, link_id, proxy_url=proxy_url)
+                scrape_ok = True
                 await self.stash_client.update_link_metadata(
                     link_id=link_id,
                     title=result.get("title"),
@@ -225,6 +240,8 @@ class RedisStreamConsumer:
                         error=str(status_err),
                     )
                     raise e
+            finally:
+                await update_proxy_score(self.redis, proxy_url, scrape_ok)
     
     async def _handle_ai_summary_event(self, data: dict) -> None:
         """Handle ai.summary.requested event."""
@@ -352,14 +369,31 @@ class RedisStreamConsumer:
                     stash_id=stash_id,
                 )
                 return
-            screenshot = await self.scraper.take_screenshot(url, stash_id, link_id)
-            logger.info(
-                "Screenshot refreshed",
-                link_id=link_id,
-                screenshot_key=screenshot.get("key"),
-            )
-            if screenshot.get("key"):
-                await self.stash_client.update_screenshot(
-                    link_id=link_id,
-                    screenshot_key=screenshot["key"],
+            proxy_url: str | None = None
+            try:
+                country_code = await self.stash_client.get_proxy_credentials(stash_id)
+                if country_code:
+                    proxy_url = await resolve_proxy(self.redis, country_code, self.settings)
+            except Exception as proxy_err:
+                logger.warning(
+                    "Proxy resolution failed; proceeding without proxy",
+                    stash_id=stash_id,
+                    error=str(proxy_err),
                 )
+
+            screenshot_ok = False
+            try:
+                screenshot = await self.scraper.take_screenshot(url, stash_id, link_id, proxy_url=proxy_url)
+                screenshot_ok = True
+                logger.info(
+                    "Screenshot refreshed",
+                    link_id=link_id,
+                    screenshot_key=screenshot.get("key"),
+                )
+                if screenshot.get("key"):
+                    await self.stash_client.update_screenshot(
+                        link_id=link_id,
+                        screenshot_key=screenshot["key"],
+                    )
+            finally:
+                await update_proxy_score(self.redis, proxy_url, screenshot_ok)

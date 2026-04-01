@@ -67,11 +67,11 @@ class LinkScraper:
         retry=retry_if_not_exception_type(ValueError),
     )
     async def scrape_and_screenshot(
-        self, url: str, stash_id: str, link_id: str
+        self, url: str, stash_id: str, link_id: str, proxy_url: str | None = None
     ) -> dict[str, Any]:
         """Scrape metadata and take a screenshot in a single browser session."""
         validate_url(url)
-        logger.info("Scraping link and taking screenshot", url=url)
+        logger.info("Scraping link and taking screenshot", url=url, proxy=proxy_url)
 
         result: dict[str, Any] = {
             "url": url,
@@ -89,12 +89,15 @@ class LinkScraper:
             browser = await p.chromium.launch(headless=self.settings.playwright_headless)
 
             try:
-                context = await browser.new_context(
-                    viewport={
+                context_kwargs: dict[str, Any] = {
+                    "viewport": {
                         "width": self.settings.screenshot_width,
                         "height": self.settings.screenshot_height,
                     },
-                )
+                }
+                if proxy_url:
+                    context_kwargs["proxy"] = {"server": proxy_url}
+                context = await browser.new_context(**context_kwargs)
 
                 page = await context.new_page()
 
@@ -157,22 +160,25 @@ class LinkScraper:
         retry=retry_if_not_exception_type(ValueError),
     )
     async def take_screenshot(
-        self, url: str, stash_id: str, link_id: str
+        self, url: str, stash_id: str, link_id: str, proxy_url: str | None = None
     ) -> dict[str, Any]:
         """Take a screenshot of a URL (used for refresh-only events)."""
         validate_url(url)
-        logger.info("Taking screenshot", url=url)
+        logger.info("Taking screenshot", url=url, proxy=proxy_url)
 
         async with async_playwright() as p:
             browser = await p.chromium.launch(headless=self.settings.playwright_headless)
 
             try:
-                context = await browser.new_context(
-                    viewport={
+                context_kwargs: dict[str, Any] = {
+                    "viewport": {
                         "width": self.settings.screenshot_width,
                         "height": self.settings.screenshot_height,
                     },
-                )
+                }
+                if proxy_url:
+                    context_kwargs["proxy"] = {"server": proxy_url}
+                context = await browser.new_context(**context_kwargs)
 
                 page = await context.new_page()
 

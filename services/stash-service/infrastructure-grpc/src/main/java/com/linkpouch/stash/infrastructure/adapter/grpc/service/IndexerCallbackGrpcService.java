@@ -10,10 +10,12 @@ import com.google.protobuf.Empty;
 
 import com.linkpouch.stash.domain.exception.NotFoundException;
 import com.linkpouch.stash.domain.model.AccountAiSettings;
+import com.linkpouch.stash.domain.model.AccountProxySettings;
 import com.linkpouch.stash.domain.model.AiProvider;
 import com.linkpouch.stash.domain.model.LinkStatus;
 import com.linkpouch.stash.domain.port.in.FindLinkByIdQuery;
 import com.linkpouch.stash.domain.port.in.GetAccountAiSettingsQuery;
+import com.linkpouch.stash.domain.port.in.GetAccountProxySettingsQuery;
 import com.linkpouch.stash.domain.port.in.UpdateAiSummaryCommand;
 import com.linkpouch.stash.domain.port.in.UpdateAiSummaryUseCase;
 import com.linkpouch.stash.domain.port.in.UpdateLinkMetadataCommand;
@@ -24,6 +26,8 @@ import com.linkpouch.stash.domain.port.outbound.AccountRepository;
 import com.linkpouch.stash.grpc.indexer.v1.AiSummaryStatus;
 import com.linkpouch.stash.grpc.indexer.v1.GetAiCredentialsRequest;
 import com.linkpouch.stash.grpc.indexer.v1.GetAiCredentialsResponse;
+import com.linkpouch.stash.grpc.indexer.v1.GetProxyCredentialsRequest;
+import com.linkpouch.stash.grpc.indexer.v1.GetProxyCredentialsResponse;
 import com.linkpouch.stash.grpc.indexer.v1.IndexerCallbackServiceGrpc;
 import com.linkpouch.stash.grpc.indexer.v1.UpdateLinkAiSummaryRequest;
 import com.linkpouch.stash.grpc.indexer.v1.UpdateLinkMetadataRequest;
@@ -47,6 +51,7 @@ public class IndexerCallbackGrpcService extends IndexerCallbackServiceGrpc.Index
     private final UpdateLinkScreenshotUseCase updateLinkScreenshotUseCase;
     private final FindLinkByIdQuery findLinkByIdQuery;
     private final GetAccountAiSettingsQuery getAccountAiSettingsQuery;
+    private final GetAccountProxySettingsQuery getAccountProxySettingsQuery;
     private final AccountRepository accountRepository;
 
     @Value("${linkpouch.ai.included-api-key:}")
@@ -173,6 +178,36 @@ public class IndexerCallbackGrpcService extends IndexerCallbackServiceGrpc.Index
             responseObserver.onCompleted();
         } catch (Exception e) {
             log.error("Error in getAiCredentials for stashId={}", request.getStashId(), e);
+            responseObserver.onError(
+                    Status.INTERNAL.withDescription(e.getMessage()).asException());
+        }
+    }
+
+    @Override
+    public void getProxyCredentials(
+            final GetProxyCredentialsRequest request,
+            final StreamObserver<GetProxyCredentialsResponse> responseObserver) {
+        try {
+            final UUID stashId = UUID.fromString(request.getStashId());
+            final Optional<UUID> accountIdOpt = accountRepository.findClaimerAccountId(stashId);
+            if (accountIdOpt.isEmpty()) {
+                responseObserver.onNext(GetProxyCredentialsResponse.newBuilder()
+                        .setProxyCountry("")
+                        .build());
+                responseObserver.onCompleted();
+                return;
+            }
+            final Optional<AccountProxySettings> settingsOpt = getAccountProxySettingsQuery.execute(accountIdOpt.get());
+            final String country = settingsOpt
+                    .map(AccountProxySettings::getProxyCountry)
+                    .filter(c -> c != null && !c.isBlank())
+                    .orElse("");
+            responseObserver.onNext(GetProxyCredentialsResponse.newBuilder()
+                    .setProxyCountry(country)
+                    .build());
+            responseObserver.onCompleted();
+        } catch (Exception e) {
+            log.error("Error in getProxyCredentials for stashId={}", request.getStashId(), e);
             responseObserver.onError(
                     Status.INTERNAL.withDescription(e.getMessage()).asException());
         }
