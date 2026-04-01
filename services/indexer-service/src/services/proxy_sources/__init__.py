@@ -3,12 +3,10 @@
 from src.services.proxy_sources.base import ProxyEntry, ProxySourceAdapter
 from src.services.proxy_sources.iplocate import IplocateAdapter
 from src.services.proxy_sources.proxifly import ProxiflyAdapter
-from src.services.proxy_sources.proxy_list_world import ProxyListWorldAdapter
 
 _ALL_ADAPTERS: dict[str, ProxySourceAdapter] = {
     "proxifly": ProxiflyAdapter(),
     "iplocate": IplocateAdapter(),
-    "proxy_list_world": ProxyListWorldAdapter(),
 }
 
 
@@ -41,6 +39,5 @@ __all__ = [
     "ProxySourceAdapter",
     "ProxiflyAdapter",
     "IplocateAdapter",
-    "ProxyListWorldAdapter",
     "build_adapters",
 ]

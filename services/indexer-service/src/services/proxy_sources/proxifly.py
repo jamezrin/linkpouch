@@ -1,7 +1,7 @@
 """Proxifly free-proxy-list adapter.
 
 Source: https://github.com/proxifly/free-proxy-list
-JSON schema: [{ip, port, country, anonymity, protocols: [str, ...], ...}]
+JSON schema: [{ip, port, https: bool, geolocation: {country, city}, ...}]
 """
 
 import structlog
@@ -34,15 +34,16 @@ class ProxiflyAdapter:
         for item in raw:
             ip = item.get("ip")
             port = item.get("port")
-            country = item.get("country")
-            protocols: list[str] = item.get("protocols") or []
+            geo = item.get("geolocation") or {}
+            country = geo.get("country")
+            supports_https: bool = bool(item.get("https", False))
             if not ip or not port or not country:
                 continue
             results.append(ProxyEntry(
                 ip=str(ip),
                 port=int(port),
                 country=str(country).upper(),
-                supports_https="https" in [p.lower() for p in protocols],
+                supports_https=supports_https,
             ))
 
         logger.debug("Proxifly proxies fetched", total=len(raw), valid=len(results))
