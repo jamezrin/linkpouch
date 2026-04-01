@@ -57,7 +57,7 @@ class Settings(BaseSettings):
     # Proxy
     proxy_cache_ttl: int = Field(default=3600)  # seconds; how long merged proxy list stays in Redis
     proxy_enabled_sources: str = Field(default="proxifly,iplocate")
-    proxy_max_attempts: int = Field(default=5)  # max candidates to test per resolve call
+    proxy_max_attempts: int = Field(default=15)  # max candidates to test per resolve call
     
     @property
     def redis_url(self) -> str:

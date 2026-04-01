@@ -129,15 +129,18 @@ async def resolve_proxy(redis: Redis, country_code: str, settings: Settings) -> 
         logger.info("No proxy candidates for country", country=upper)
         return None
 
-    # Score each candidate and sort by score descending
-    scores: list[tuple[float, ProxyEntry]] = []
+    # Score each candidate; shuffle within each score tier so equal-scored
+    # candidates (e.g. all-unseen at 0.5) are tried in random order rather than
+    # always picking the same datacenter cluster.
+    scored: list[tuple[float, ProxyEntry]] = []
     for entry in candidates:
         score = await _get_score(redis, entry["ip"], entry["port"])
-        scores.append((score, entry))
-    scores.sort(key=lambda t: t[0], reverse=True)
+        scored.append((score, entry))
+    random.shuffle(scored)
+    scored.sort(key=lambda t: t[0], reverse=True)
 
     # Try top candidates
-    for score, entry in scores[: settings.proxy_max_attempts]:
+    for score, entry in scored[: settings.proxy_max_attempts]:
         url = _proxy_url(entry)
         ok = await _test_proxy(url)
         await _update_score(redis, entry["ip"], entry["port"], ok)
