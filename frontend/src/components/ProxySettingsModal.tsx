@@ -42,13 +42,13 @@ export function ProxySettingsModal({ accountToken, onClose }: ProxySettingsModal
   });
 
   return (
-    /* {/* Backdrop */}
+    {/* Backdrop */}
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
       <div className="relative w-full max-w-md rounded-xl bg-white dark:bg-slate-900 shadow-2xl border border-slate-200 dark:border-slate-700">
-        {/* {/* Header */}
+        {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-slate-200 dark:border-slate-700">
           <div className="flex items-center gap-2.5">
             <svg className="w-5 h-5 text-slate-500 dark:text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -68,9 +68,9 @@ export function ProxySettingsModal({ accountToken, onClose }: ProxySettingsModal
           </button>
         </div>
 
-        {/* {/* Body */}
+        {/* Body */}
         <div className="px-5 py-5 space-y-5">
-          {/* {/* Warning callout */}
+          {/* Warning callout */}
           <div className="rounded-lg border border-amber-200 dark:border-amber-800/50 bg-amber-50 dark:bg-amber-950/30 px-4 py-3 flex gap-3">
             <svg className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
               <path fillRule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 5zm0 9a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
@@ -80,7 +80,7 @@ export function ProxySettingsModal({ accountToken, onClose }: ProxySettingsModal
             </p>
           </div>
 
-          {/* {/* Country selector */}
+          {/* Country selector */}
           <div className="space-y-2">
             <label className="block text-[13px] font-medium text-slate-700 dark:text-slate-300">
               Proxy country
@@ -107,7 +107,7 @@ export function ProxySettingsModal({ accountToken, onClose }: ProxySettingsModal
           </div>
         </div>
 
-        {/* {/* Footer */}
+        {/* Footer */}
         <div className="px-5 py-4 border-t border-slate-200 dark:border-slate-700 flex items-center justify-end gap-2">
           <button
             onClick={onClose}

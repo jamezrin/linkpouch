@@ -1,4 +1,4 @@
-h1:QwQQ0i9qBACBhpiOMxvVUfYgIUuSO/fLuqUGTlh6wtU=
+h1:pAnbMg1/S/IYrIqmaJO2mlL4mw9UUYwW0Ym/ZuYhGDI=
 1_create_stashes_table.sql h1:FnqKvUfR9C02MUZINXrh02hwzN/wSLzWnuWqO6dxt64=
 2_create_links_table.sql h1:e1nSMwKhwbnEv5Tt8XEnxOCECptkSmx/+MU56ZFAbmQ=
 3_create_search_indexes.sql h1:NzdsWysdUo/BIc0qYzyz7gwpENTZsyLUHdUrhiY5smw=
@@ -17,3 +17,4 @@ h1:QwQQ0i9qBACBhpiOMxvVUfYgIUuSO/fLuqUGTlh6wtU=
 9zf_add_ai_summary_metadata.sql h1:wkzhOZY1GV2H/SaxFUIQTsbvp8Pcxngh+GEAbsYdh84=
 9zg_simplify_account_ai_settings.sql h1:YecvXtHGdjWk4gfo5nXS7v9joZBtntzGxTn2thGP1SY=
 9zh_rename_included_provider.sql h1:6uyxDtkxZDpHhyeQgwMCC1oPYrRHPqs9I/aEgp2hw64=
+9zi_create_account_proxy_settings.sql h1:FP/UUVH0GL3KOUmUgchBEJDW2/rteFZ28LRIBlO1xig=
