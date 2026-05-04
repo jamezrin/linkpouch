@@ -31,7 +31,7 @@ services:
       retries: 10
 
   seaweedfs:
-    image: chrislusf/seaweedfs:4.17
+    image: chrislusf/seaweedfs:4.23
     command: >
       server
       -dir=/data
