@@ -14,7 +14,7 @@ RUN --mount=type=cache,target=/root/.m2 \
     mvn package -DskipTests -Djooq.codegen.skip=true -B
 
 # ── Stage 3: Runtime image ───────────────────────────────────────────────────
-FROM eclipse-temurin:25.0.2_10-jre-alpine
+FROM eclipse-temurin:25.0.5_8-jre-alpine
 
 WORKDIR /app
 
